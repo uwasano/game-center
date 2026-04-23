@@ -11,7 +11,7 @@
   body{display:flex;align-items:center;justify-content:center;}
   #game-container{position:relative;width:100vw;height:100vh;overflow:hidden;background:#0a0a1a;display:flex;align-items:center;justify-content:center;}
   #phaser-game{width:100%;height:100%;}
-  #phaser-game canvas{display:block;}
+  #phaser-game canvas{display:block;image-rendering:auto;-webkit-font-smoothing:antialiased;}
   #ui-overlay{position:absolute;top:0;left:0;right:0;padding:8px 10px;display:flex;justify-content:space-between;align-items:flex-start;pointer-events:none;z-index:10;gap:6px;}
   #ui-dist-block{order:1;}
   #stage-badge{order:2;}
@@ -1502,69 +1502,120 @@ class TitleScene extends Phaser.Scene{
     this.add.text(W/2,438,'✨ 30ステージに伝説のレアアイテムが眠る ✨',{fontSize:'14px',fontFamily:'Arial',color:'#FFD700',fontStyle:'italic'}).setOrigin(.5);
 
     // GAME START ボタン - 派手に点滅するネオン風
-    const btn=this.add.text(W/2,475,'🎮  GAME  START  🎮',{
-      fontSize:'30px',
+    const btn=this.add.text(W/2,465,'🎮  GAME  START  🎮',{
+      fontSize:'28px',
       fontFamily:'Arial Black',
       color:'#FFFFFF',
       backgroundColor:'#FF00AA',
-      padding:{x:30,y:14},
+      padding:{x:26,y:12},
       letterSpacing:3,
       stroke:'#FFD700',
       strokeThickness:3
     }).setOrigin(.5).setInteractive({useHandCursor:true});
     btn.setShadow(0,0,'#FF00FF',20,true,true);
     this.tweens.add({targets:btn,scale:{from:1,to:1.08},duration:600,yoyo:true,repeat:-1,ease:'Sine.easeInOut'});
-    // 光るエフェクト
-    const glow=this.add.rectangle(W/2,475,btn.displayWidth+20,btn.displayHeight+20,0xFF00FF,0).setStrokeStyle(3,0xFFD700);
-    this.tweens.add({targets:glow,alpha:{from:.3,to:1},duration:700,yoyo:true,repeat:-1});
 
-    // HOW TO and RANKING buttons - 大きめで目立つ
-    const howtoBtn=this.add.text(W/2-130,545,'📖  HOW TO  PLAY',{
-      fontSize:'18px',
+    // HOW TO and RANKING buttons - 少し小さめに
+    const howtoBtn=this.add.text(W/2-120,520,'📖  HOW TO  PLAY',{
+      fontSize:'15px',
       fontFamily:'Arial Black',
       color:'#FFFFFF',
       backgroundColor:'#00BFFF',
-      padding:{x:18,y:10},
+      padding:{x:14,y:8},
       letterSpacing:1,
       stroke:'#003366',
       strokeThickness:2
     }).setOrigin(.5).setInteractive({useHandCursor:true});
-    howtoBtn.setShadow(0,0,'#00BFFF',15,true,true);
+    howtoBtn.setShadow(0,0,'#00BFFF',12,true,true);
 
-    const rankBtn=this.add.text(W/2+130,545,'🏆  RANKING  🏆',{
-      fontSize:'18px',
+    const rankBtn=this.add.text(W/2+120,520,'🏆  RANKING  🏆',{
+      fontSize:'15px',
       fontFamily:'Arial Black',
       color:'#000000',
       backgroundColor:'#FFD700',
-      padding:{x:18,y:10},
+      padding:{x:14,y:8},
       letterSpacing:1,
       stroke:'#FF6600',
       strokeThickness:2
     }).setOrigin(.5).setInteractive({useHandCursor:true});
-    rankBtn.setShadow(0,0,'#FFD700',15,true,true);
+    rankBtn.setShadow(0,0,'#FFD700',12,true,true);
 
     howtoBtn.on('pointerover',()=>howtoBtn.setScale(1.08));howtoBtn.on('pointerout',()=>howtoBtn.setScale(1));
     rankBtn.on('pointerover', ()=>rankBtn.setScale(1.08)); rankBtn.on('pointerout', ()=>rankBtn.setScale(1));
     howtoBtn.on('pointerdown',()=>showHowTo());
     rankBtn.on('pointerdown', ()=>showRankingPanel());
 
-    // プレイヤー名表示 & 変更ボタン
-    this.playerNameText=this.add.text(W/2,598,'',{
-      fontSize:'14px',
+    // プレイヤー名表示 & 変更ボタン (コンパクトに横並び)
+    this.playerNameText=this.add.text(W/2-70,555,'',{
+      fontSize:'13px',
       fontFamily:'Arial Black',
       color:'#FFFFFF',
       stroke:'#000',
       strokeThickness:2
     }).setOrigin(.5);
-    const changeBtn=this.add.text(W/2,628,'✏ 名前を変更',{
-      fontSize:'12px',
+    const changeBtn=this.add.text(W/2+70,555,'✏ 名前変更',{
+      fontSize:'11px',
       fontFamily:'Arial',
       color:'#FFD700',
       backgroundColor:'rgba(0,0,0,0.5)',
-      padding:{x:10,y:4}
+      padding:{x:8,y:3}
     }).setOrigin(.5).setInteractive({useHandCursor:true});
     changeBtn.on('pointerover',()=>changeBtn.setScale(1.1));
     changeBtn.on('pointerout',()=>changeBtn.setScale(1));
+
+    // ─── WEEKLY TOP 5 (ゲーム画面の下に直接表示) ───
+    const rankY=585;
+    // 半透明背景
+    const rankBg=this.add.rectangle(W/2,rankY+60,520,130,0x000000,.75).setStrokeStyle(2,0xFFD700);
+    rankBg.setDepth(5);
+    this.add.text(W/2,rankY,'🏆 WEEKLY TOP 5 🏆',{
+      fontSize:'14px',
+      fontFamily:'Arial Black',
+      color:'#FFD700',
+      stroke:'#FF00FF',
+      strokeThickness:2,
+      letterSpacing:2
+    }).setOrigin(.5).setDepth(6);
+
+    // ランキング行
+    this.titleRankLines=[];
+    for(let i=0;i<5;i++){
+      const t=this.add.text(W/2,rankY+24+i*20,'読み込み中...',{
+        fontSize:'12px',
+        fontFamily:'Arial',
+        color:'#AAAAAA'
+      }).setOrigin(.5).setDepth(6);
+      this.titleRankLines.push(t);
+    }
+
+    // ランキングをロード
+    sbFetchRanking().then(data=>{
+      if(!data){
+        this.titleRankLines[0].setText('⚠ ランキングを取得できませんでした').setStyle({color:'#888',fontSize:'11px'});
+        for(let i=1;i<5;i++)this.titleRankLines[i].setText('');
+        return;
+      }
+      if(!data.length){
+        this.titleRankLines[0].setText('まだ記録なし！').setStyle({color:'#888'});
+        this.titleRankLines[1].setText('最初のプレイヤーになろう 🎮').setStyle({color:'#FFD700',fontSize:'11px'});
+        for(let i=2;i<5;i++)this.titleRankLines[i].setText('');
+        return;
+      }
+      const medals=['🥇','🥈','🥉','4位','5位'];
+      const colors=['#FFD700','#C0C0C0','#CD7F32','#FFFFFF','#FFFFFF'];
+      for(let i=0;i<5;i++){
+        const row=data[i];
+        const t=this.titleRankLines[i];
+        if(row){
+          const name=(row.player_name||'???').substring(0,8);
+          t.setText(`${medals[i]}  ${name}   🪙 ${row.coins||0}`);
+          t.setStyle({color:colors[i],fontFamily:'Arial Black',fontSize:'13px',stroke:'#000',strokeThickness:2});
+        }else{
+          t.setText('—');
+          t.setStyle({color:'#444',fontSize:'11px'});
+        }
+      }
+    });
 
     const refreshNameDisplay=()=>{
       const n=getPlayerName();
@@ -3191,7 +3242,16 @@ const config={
   backgroundColor:'#0a0a1a',
   pixelArt:false,
   antialias:true,
-  roundPixels:true,
+  antialiasGL:true,
+  roundPixels:false,
+  resolution:window.devicePixelRatio||1,
+  render:{
+    antialias:true,
+    antialiasGL:true,
+    pixelArt:false,
+    roundPixels:false,
+    powerPreference:'high-performance'
+  },
   scale:{
     mode:Phaser.Scale.FIT,
     autoCenter:Phaser.Scale.CENTER_BOTH,
