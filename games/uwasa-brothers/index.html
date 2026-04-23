@@ -1604,23 +1604,16 @@ class TitleScene extends Phaser.Scene{
   constructor(){super('Title');}
   create(){
     gameState={distance:0,stage:0,lives:3,score:0,coins:0,powersCollected:[]};
-    updateUI();showPowerBadge('normal');
 
-    // タイトル画面ではUIのsecret handlerをクリア＆pointer-eventsをnoneに
+    // タイトル画面ではゲームUIを完全に隠す
     try{
-      const stageEl=document.getElementById('stage-badge');
-      const hpEl=document.getElementById('ui-lives-block');
-      if(stageEl){
-        if(stageEl._secretHandler){stageEl.removeEventListener('click',stageEl._secretHandler);stageEl._secretHandler=null;}
-        stageEl.style.pointerEvents='none';
-        stageEl.style.cursor='default';
-      }
-      if(hpEl){
-        if(hpEl._secretHandler){hpEl.removeEventListener('click',hpEl._secretHandler);hpEl._secretHandler=null;}
-        hpEl.style.pointerEvents='none';
-        hpEl.style.cursor='default';
-      }
+      const ui=document.getElementById('ui-overlay');
+      if(ui)ui.style.display='none';
+      const mc=document.getElementById('mobile-controls');
+      if(mc)mc.style.display='none';
     }catch(e){}
+
+    updateUI();showPowerBadge('normal');
 
     const g=this.add.graphics();
     for(let y=0;y<H;y++){const t=y/H;const r=Math.floor(26+48*t),gg=10,b=Math.floor(58-12*t);g.fillStyle((r<<16)|(gg<<8)|b);g.fillRect(0,y,W,1);}
@@ -1968,6 +1961,14 @@ async function loadGameRanking(){
 class GameScene extends Phaser.Scene{
   constructor(){super('Game');}
   create(){
+    // ゲームUIを表示
+    try{
+      const ui=document.getElementById('ui-overlay');
+      if(ui)ui.style.display='flex';
+      const mc=document.getElementById('mobile-controls');
+      if(mc)mc.style.display='flex';
+    }catch(e){}
+
     this.stageIdx=0;this.scrollSpeed=STAGES[0].speed;this.distance=0;
     this.lives=gameState.lives;this.gameOver=false;this.invincible=false;
     this.coinsCollected=gameState.coins||0;
