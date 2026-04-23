@@ -1465,6 +1465,23 @@ class TitleScene extends Phaser.Scene{
     this.add.image(W-150,100,'cloud_yellow').setAlpha(.7);
     this.add.image(W/2,140,'cloud_pink').setAlpha(.6);
 
+    // 🏆 先週の王者バナー (最上部)
+    this.championBanner=this.add.container(W/2,30).setDepth(300);
+    const chBg=this.add.rectangle(0,0,440,32,0x000000,.7).setStrokeStyle(2,0xFFD700);
+    const chText=this.add.text(0,0,'🏆 先週の王者：読み込み中...',{fontSize:'14px',fontFamily:'Arial Black',color:'#FFD700',stroke:'#FF00FF',strokeThickness:2,letterSpacing:1}).setOrigin(.5);
+    this.championBanner.add([chBg,chText]);
+    this.championBanner.setAlpha(0);
+    // fetch & show
+    sbFetchLastWeekChampion().then(champ=>{
+      if(champ&&champ.player_name){
+        chText.setText(`🏆 先週の王者: ${champ.player_name}  🪙 ${champ.coins||0}`);
+      }else{
+        chText.setText('🏆 先週の王者: まだ記録なし');
+      }
+      this.tweens.add({targets:this.championBanner,alpha:1,duration:600});
+      this.tweens.add({targets:chBg,alpha:{from:.4,to:.9},duration:1500,yoyo:true,repeat:-1});
+    });
+
     this.add.text(W/2,62,'U.wasano Shisha Bar  presents',{fontSize:'20px',fontFamily:'"Courier New", monospace',color:'#FFD700',fontStyle:'italic bold',letterSpacing:3}).setOrigin(.5);
 
     const t1=this.add.text(W/2,140,'UWASA',{fontSize:'92px',fontFamily:'Arial Black',color:'#FFD700',stroke:'#FF00FF',strokeThickness:7}).setOrigin(.5);
@@ -1484,25 +1501,117 @@ class TitleScene extends Phaser.Scene{
     this.add.text(W/2,410,'↑ JUMP    ⚡ ATTACK    30 STAGES × 10 POWERS',{fontSize:'17px',fontFamily:'Arial Black',color:'#00BFFF',stroke:'#000',strokeThickness:3,letterSpacing:2}).setOrigin(.5);
     this.add.text(W/2,438,'✨ 30ステージに伝説のレアアイテムが眠る ✨',{fontSize:'14px',fontFamily:'Arial',color:'#FFD700',fontStyle:'italic'}).setOrigin(.5);
 
-    const btn=this.add.text(W/2,478,'▶  PLAY START',{fontSize:'22px',fontFamily:'Arial Black',color:'#000',backgroundColor:'#FFD700',padding:{x:26,y:12},letterSpacing:2}).setOrigin(.5).setInteractive({useHandCursor:true});
-    this.tweens.add({targets:btn,alpha:.5,duration:600,yoyo:true,repeat:-1});
-    this.tweens.add({targets:btn,scale:{from:1,to:1.05},duration:800,yoyo:true,repeat:-1});
+    // GAME START ボタン - 派手に点滅するネオン風
+    const btn=this.add.text(W/2,475,'🎮  GAME  START  🎮',{
+      fontSize:'30px',
+      fontFamily:'Arial Black',
+      color:'#FFFFFF',
+      backgroundColor:'#FF00AA',
+      padding:{x:30,y:14},
+      letterSpacing:3,
+      stroke:'#FFD700',
+      strokeThickness:3
+    }).setOrigin(.5).setInteractive({useHandCursor:true});
+    btn.setShadow(0,0,'#FF00FF',20,true,true);
+    this.tweens.add({targets:btn,scale:{from:1,to:1.08},duration:600,yoyo:true,repeat:-1,ease:'Sine.easeInOut'});
+    // 光るエフェクト
+    const glow=this.add.rectangle(W/2,475,btn.displayWidth+20,btn.displayHeight+20,0xFF00FF,0).setStrokeStyle(3,0xFFD700);
+    this.tweens.add({targets:glow,alpha:{from:.3,to:1},duration:700,yoyo:true,repeat:-1});
 
-    // HOW TO and RANKING buttons
-    const howtoBtn=this.add.text(W/2-110,518,'📖 HOW TO',{fontSize:'13px',fontFamily:'Arial Black',color:'#000',backgroundColor:'#00BFFF',padding:{x:14,y:8}}).setOrigin(.5).setInteractive({useHandCursor:true});
-    const rankBtn =this.add.text(W/2+110,518,'🏆 RANKING',{fontSize:'13px',fontFamily:'Arial Black',color:'#000',backgroundColor:'#FFD700',padding:{x:14,y:8}}).setOrigin(.5).setInteractive({useHandCursor:true});
-    howtoBtn.on('pointerover',()=>howtoBtn.setScale(1.06));howtoBtn.on('pointerout',()=>howtoBtn.setScale(1));
-    rankBtn.on('pointerover', ()=>rankBtn.setScale(1.06)); rankBtn.on('pointerout', ()=>rankBtn.setScale(1));
+    // HOW TO and RANKING buttons - 大きめで目立つ
+    const howtoBtn=this.add.text(W/2-130,545,'📖  HOW TO  PLAY',{
+      fontSize:'18px',
+      fontFamily:'Arial Black',
+      color:'#FFFFFF',
+      backgroundColor:'#00BFFF',
+      padding:{x:18,y:10},
+      letterSpacing:1,
+      stroke:'#003366',
+      strokeThickness:2
+    }).setOrigin(.5).setInteractive({useHandCursor:true});
+    howtoBtn.setShadow(0,0,'#00BFFF',15,true,true);
+
+    const rankBtn=this.add.text(W/2+130,545,'🏆  RANKING  🏆',{
+      fontSize:'18px',
+      fontFamily:'Arial Black',
+      color:'#000000',
+      backgroundColor:'#FFD700',
+      padding:{x:18,y:10},
+      letterSpacing:1,
+      stroke:'#FF6600',
+      strokeThickness:2
+    }).setOrigin(.5).setInteractive({useHandCursor:true});
+    rankBtn.setShadow(0,0,'#FFD700',15,true,true);
+
+    howtoBtn.on('pointerover',()=>howtoBtn.setScale(1.08));howtoBtn.on('pointerout',()=>howtoBtn.setScale(1));
+    rankBtn.on('pointerover', ()=>rankBtn.setScale(1.08)); rankBtn.on('pointerout', ()=>rankBtn.setScale(1));
     howtoBtn.on('pointerdown',()=>showHowTo());
     rankBtn.on('pointerdown', ()=>showRankingPanel());
 
-    const start=()=>{hideGamePanels();Audio.init();Audio.resume();Audio.SFX.start();setTimeout(()=>Audio.startBGM(),400);this.scene.start('Game');};
+    // プレイヤー名表示 & 変更ボタン
+    this.playerNameText=this.add.text(W/2,598,'',{
+      fontSize:'14px',
+      fontFamily:'Arial Black',
+      color:'#FFFFFF',
+      stroke:'#000',
+      strokeThickness:2
+    }).setOrigin(.5);
+    const changeBtn=this.add.text(W/2,628,'✏ 名前を変更',{
+      fontSize:'12px',
+      fontFamily:'Arial',
+      color:'#FFD700',
+      backgroundColor:'rgba(0,0,0,0.5)',
+      padding:{x:10,y:4}
+    }).setOrigin(.5).setInteractive({useHandCursor:true});
+    changeBtn.on('pointerover',()=>changeBtn.setScale(1.1));
+    changeBtn.on('pointerout',()=>changeBtn.setScale(1));
+
+    const refreshNameDisplay=()=>{
+      const n=getPlayerName();
+      this.playerNameText.setText(n?`🎮 プレイヤー: ${n}`:'');
+    };
+    refreshNameDisplay();
+
+    changeBtn.on('pointerdown',()=>{
+      showNameInput((newName)=>{
+        if(newName){
+          setPlayerName(newName);
+          refreshNameDisplay();
+        }
+      },{
+        title:'✏ 名前を変更',
+        desc:'新しい名前を入力してください<br>（最大8文字）',
+        defaultName:getPlayerName(),
+        submitLabel:'✅ 変更する',
+        skipAllowed:false
+      });
+    });
+
+    const start=()=>{
+      // 名前が未設定なら強制入力
+      if(!getPlayerName()){
+        showNameInput((name)=>{
+          if(name){
+            setPlayerName(name);
+            refreshNameDisplay();
+            hideGamePanels();Audio.init();Audio.resume();Audio.SFX.start();setTimeout(()=>Audio.startBGM(),400);this.scene.start('Game');
+          }
+        },{
+          title:'🎮 ようこそ！',
+          desc:'プレイヤー名を入力してください<br>（最大8文字 / 後から変更可能）',
+          submitLabel:'▶ ゲームスタート！',
+          skipAllowed:false
+        });
+        return;
+      }
+      hideGamePanels();Audio.init();Audio.resume();Audio.SFX.start();setTimeout(()=>Audio.startBGM(),400);this.scene.start('Game');
+    };
     btn.on('pointerdown',start);
     this.input.keyboard.on('keydown-SPACE',start);
     this.input.keyboard.on('keydown-UP',start);
     // タップで開始（ボタン以外の部分）
     this.input.on('pointerdown',(p)=>{
-      if(!btn.getBounds().contains(p.x,p.y)&&!howtoBtn.getBounds().contains(p.x,p.y)&&!rankBtn.getBounds().contains(p.x,p.y))start();
+      if(!btn.getBounds().contains(p.x,p.y)&&!howtoBtn.getBounds().contains(p.x,p.y)&&!rankBtn.getBounds().contains(p.x,p.y)&&!changeBtn.getBounds().contains(p.x,p.y))start();
     });
   }
 }
@@ -2844,10 +2953,44 @@ async function sbFetchRanking(){
   return res.ok?await res.json():null;
 }
 
+// 先週の王者を取得
+async function sbFetchLastWeekChampion(){
+  if(!SUPABASE_URL||!SUPABASE_KEY)return null;
+  const mondayThisWeek=new Date();
+  mondayThisWeek.setDate(mondayThisWeek.getDate()-((mondayThisWeek.getDay()+6)%7));
+  mondayThisWeek.setHours(0,0,0,0);
+  const mondayLastWeek=new Date(mondayThisWeek);
+  mondayLastWeek.setDate(mondayLastWeek.getDate()-7);
+  try{
+    const res=await fetch(
+      SUPABASE_URL+'/rest/v1/scores?select=player_name,coins&game=eq.uwasa_brothers&created_at=gte.'+mondayLastWeek.toISOString()+'&created_at=lt.'+mondayThisWeek.toISOString()+'&order=coins.desc&limit=1',
+      {headers:{'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY}}
+    );
+    if(!res.ok)return null;
+    const data=await res.json();
+    return data&&data.length>0?data[0]:null;
+  }catch(e){return null;}
+}
+
+// プレイヤー名をlocalStorageで管理
+function getPlayerName(){
+  try{return localStorage.getItem('uwasa_player_name')||'';}catch(e){return '';}
+}
+function setPlayerName(name){
+  try{localStorage.setItem('uwasa_player_name',name);}catch(e){}
+}
+
 // ═══════════════════════════════════════════════════════
 // NAME INPUT OVERLAY (DOM, not Phaser)
 // ═══════════════════════════════════════════════════════
-function showNameInput(onSubmit){
+function showNameInput(onSubmit, opts){
+  opts=opts||{};
+  const title=opts.title||'🎮 GAME OVER 🎮';
+  const desc=opts.desc||'名前を入力してランキングに登録しよう！<br>（最大8文字）';
+  const defaultName=opts.defaultName||'';
+  const skipAllowed=opts.skipAllowed!==false;
+  const submitLabel=opts.submitLabel||'✅ ランキングに登録';
+
   // Inject CSS once
   if(!document.getElementById('ni-style')){
     const st=document.createElement('style');
@@ -2869,24 +3012,26 @@ function showNameInput(onSubmit){
   ov.id='name-overlay';
   ov.innerHTML=`
     <div id="name-box">
-      <h2>🎮 GAME OVER 🎮</h2>
-      <p>名前を入力してランキングに登録しよう！<br>（最大8文字）</p>
-      <input id="name-input" maxlength="8" placeholder="YOUR NAME" autocomplete="off" spellcheck="false">
-      <button id="name-submit">✅ ランキングに登録</button>
-      <br>
-      <button id="name-skip">スキップ（登録しない）</button>
+      <h2>${title}</h2>
+      <p>${desc}</p>
+      <input id="name-input" maxlength="8" placeholder="YOUR NAME" autocomplete="off" spellcheck="false" value="${defaultName}">
+      <button id="name-submit">${submitLabel}</button>
+      ${skipAllowed?'<br><button id="name-skip">スキップ（登録しない）</button>':''}
     </div>
   `;
   document.body.appendChild(ov);
   const inp=document.getElementById('name-input');
   inp.focus();
+  if(defaultName)inp.select();
   const submit=()=>{
     const name=(inp.value.trim()||'NONAME').substring(0,8);
     ov.remove();
     onSubmit(name);
   };
   document.getElementById('name-submit').onclick=submit;
-  document.getElementById('name-skip').onclick=()=>{ov.remove();onSubmit(null);};
+  if(skipAllowed){
+    document.getElementById('name-skip').onclick=()=>{ov.remove();onSubmit(null);};
+  }
   inp.addEventListener('keydown',e=>{if(e.key==='Enter')submit();});
 }
 
@@ -2968,25 +3113,46 @@ class GameOverScene extends Phaser.Scene{
     // タグライン
     this.add.text(W/2,528,'U.wasano Shisha Bar — 片町',{fontSize:'11px',fontFamily:'Arial',color:'#FFD700',fontStyle:'italic'}).setOrigin(.5);
 
-    // Show name input after short delay
-    this.time.delayedCall(800,()=>{
-      showNameInput(async(playerName)=>{
-        if(playerName){
-          // Submit to Supabase
-          try{
-            await sbInsert({
-              player_name:playerName,
-              coins:finalCoins,
-              score:finalScore,
-              distance:parseFloat(d),
-              stage:gameState.stage,
-              powers_collected:pc
-            });
-          }catch(e){console.warn('Supabase insert failed:',e);}
-        }
-        // Load & show ranking
-        this.showRanking(playerName);
-      });
+    // 保存された名前で自動送信
+    this.time.delayedCall(500,async()=>{
+      const savedName=getPlayerName();
+      if(savedName){
+        // 自動でランキングに登録
+        try{
+          await sbInsert({
+            player_name:savedName,
+            coins:finalCoins,
+            score:finalScore,
+            distance:parseFloat(d),
+            stage:gameState.stage,
+            powers_collected:pc
+          });
+        }catch(e){console.warn('Supabase insert failed:',e);}
+        this.showRanking(savedName);
+      }else{
+        // 名前がない場合のみ入力（念のためのフォールバック）
+        showNameInput(async(playerName)=>{
+          if(playerName){
+            setPlayerName(playerName);
+            try{
+              await sbInsert({
+                player_name:playerName,
+                coins:finalCoins,
+                score:finalScore,
+                distance:parseFloat(d),
+                stage:gameState.stage,
+                powers_collected:pc
+              });
+            }catch(e){console.warn('Supabase insert failed:',e);}
+          }
+          this.showRanking(playerName);
+        },{
+          title:'🎮 GAME OVER',
+          desc:'名前を入力してランキングに登録！<br>（最大8文字）',
+          submitLabel:'✅ 登録',
+          skipAllowed:false
+        });
+      }
     });
   }
 
