@@ -14,9 +14,9 @@
   #phaser-game canvas{display:block;image-rendering:auto;-webkit-font-smoothing:antialiased;}
   #ui-overlay{position:absolute;top:0;left:0;right:0;padding:8px 10px;display:flex;justify-content:space-between;align-items:flex-start;pointer-events:none;z-index:10;gap:6px;}
   #ui-dist-block{order:1;}
-  #stage-badge{order:2;pointer-events:auto;cursor:pointer;}
+  #stage-badge{order:2;}
   /* LIVESはCLOSEボタンとかぶらないよう下にずらす */
-  #ui-lives-block{order:3;margin-top:48px;pointer-events:auto;cursor:pointer;}
+  #ui-lives-block{order:3;margin-top:48px;}
   .ui-block{background:rgba(0,0,0,.78);border:2px solid #FFD700;border-radius:6px;padding:4px 8px;color:#FFD700;font-size:9px;font-weight:900;letter-spacing:1px;line-height:1.4;}
   .ui-block .val{color:#fff;font-size:13px;display:block;}
   #stage-badge{background:linear-gradient(135deg,#FF00FF,#9B59B6);border-color:#FF00FF;color:#fff;font-size:12px;text-align:center;box-shadow:0 0 10px #FF00FF66;}
@@ -1605,6 +1605,23 @@ class TitleScene extends Phaser.Scene{
   create(){
     gameState={distance:0,stage:0,lives:3,score:0,coins:0,powersCollected:[]};
     updateUI();showPowerBadge('normal');
+
+    // タイトル画面ではUIのsecret handlerをクリア＆pointer-eventsをnoneに
+    try{
+      const stageEl=document.getElementById('stage-badge');
+      const hpEl=document.getElementById('ui-lives-block');
+      if(stageEl){
+        if(stageEl._secretHandler){stageEl.removeEventListener('click',stageEl._secretHandler);stageEl._secretHandler=null;}
+        stageEl.style.pointerEvents='none';
+        stageEl.style.cursor='default';
+      }
+      if(hpEl){
+        if(hpEl._secretHandler){hpEl.removeEventListener('click',hpEl._secretHandler);hpEl._secretHandler=null;}
+        hpEl.style.pointerEvents='none';
+        hpEl.style.cursor='default';
+      }
+    }catch(e){}
+
     const g=this.add.graphics();
     for(let y=0;y<H;y++){const t=y/H;const r=Math.floor(26+48*t),gg=10,b=Math.floor(58-12*t);g.fillStyle((r<<16)|(gg<<8)|b);g.fillRect(0,y,W,1);}
     for(let i=0;i<60;i++){const st=this.add.image(Phaser.Math.Between(0,W),Phaser.Math.Between(0,H*.7),'star').setScale(Phaser.Math.FloatBetween(.5,1.5));this.tweens.add({targets:st,alpha:.2,duration:Phaser.Math.Between(800,2000),yoyo:true,repeat:-1});}
