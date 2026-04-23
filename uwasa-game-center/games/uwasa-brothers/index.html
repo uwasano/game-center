@@ -11,7 +11,12 @@
   body{display:flex;align-items:center;justify-content:center;}
   #game-container{position:relative;width:100vw;height:100vh;overflow:hidden;background:#0a0a1a;}
   #phaser-game{width:100%;height:100%;}
+  #phaser-game canvas{display:block;width:100%!important;height:100%!important;object-fit:cover;}
   #ui-overlay{position:absolute;top:0;left:0;right:0;padding:8px 10px;display:flex;justify-content:space-between;align-items:flex-start;pointer-events:none;z-index:10;gap:6px;}
+  /* CLOSEボタン(右上)と重ならないように右端は少し余白 */
+  #ui-dist-block{order:1;}
+  #stage-badge{order:2;}
+  #ui-lives-block{order:3;}
   .ui-block{background:rgba(0,0,0,.78);border:2px solid #FFD700;border-radius:6px;padding:4px 8px;color:#FFD700;font-size:9px;font-weight:900;letter-spacing:1px;line-height:1.4;}
   .ui-block .val{color:#fff;font-size:13px;display:block;}
   #stage-badge{background:linear-gradient(135deg,#FF00FF,#9B59B6);border-color:#FF00FF;color:#fff;font-size:12px;text-align:center;box-shadow:0 0 10px #FF00FF66;}
@@ -27,9 +32,9 @@
 <body>
 <div id="game-container">
   <div id="ui-overlay">
-    <div class="ui-block"><span>📏 DIST</span><span class="val" id="ui-dist">0.0 m</span></div>
+    <div class="ui-block" id="ui-dist-block"><span>📏</span><span class="val" id="ui-dist">0.0 m</span></div>
     <div class="ui-block" id="stage-badge"><span id="ui-stage">STAGE 1</span></div>
-    <div class="ui-block"><span>❤️ LIVES</span><span class="val" id="ui-lives">♥♥♥</span></div>
+    <div class="ui-block" id="ui-lives-block"><span>❤️</span><span class="val" id="ui-lives">♥♥♥</span></div>
   </div>
   <div id="power-badge"></div>
   <div id="phaser-game"></div>
@@ -1991,6 +1996,11 @@ class GameScene extends Phaser.Scene{
   }
 
   projectileHitObstacle(proj,obs){
+    // スパイクは攻撃で壊せない！プロジェクタイルだけ消す
+    if(obs.isSpike){
+      if(proj.active)proj.destroy();
+      return;
+    }
     const x=obs.x,y=obs.y;obs.destroy();
     if(!['laser','angel','cosmic'].includes(this.currentForm)){if(proj.active)proj.destroy();}
     const pu=POWERUPS[this.currentForm]||{color:0xFFD700};
@@ -2721,7 +2731,10 @@ class GameScene extends Phaser.Scene{
     Audio.stopBGM();Audio.SFX.gameover();
     this.player.setTexture(`bro_${this.currentForm}_jump`);
     this.player.setTint(0xff6666);
-    gameState.distance=this.distance;gameState.stage=this.stageIdx;
+    // コインを確実に保存
+    gameState.distance=this.distance;
+    gameState.stage=this.stageIdx;
+    gameState.coins=this.coinsCollected;
     this.time.delayedCall(1400,()=>this.scene.start('GameOver'));
   }
 
@@ -3014,7 +3027,11 @@ const config={
   parent:'phaser-game',
   backgroundColor:'#0a0a1a',
   pixelArt:true,
-  scale:{mode:Phaser.Scale.FIT,autoCenter:Phaser.Scale.CENTER_BOTH,width:W,height:H},
+  scale:{
+    mode:Phaser.Scale.ENVELOP,
+    autoCenter:Phaser.Scale.CENTER_BOTH,
+    width:W,height:H
+  },
   physics:{default:'arcade',arcade:{gravity:{y:0},debug:false}},
   scene:[BootScene,TitleScene,GameScene,GameOverScene]
 };

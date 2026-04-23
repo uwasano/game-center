@@ -185,8 +185,12 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9998;
 #gm{display:none;position:fixed;inset:0;background:#000;z-index:5000;flex-direction:column;}
 #gm.open{display:flex}
 #gm-close{
-  position:absolute;top:10px;left:10px;z-index:5100;
-  background:rgba(0,0,0,.88);border:2px solid var(--pink);
+  position:absolute;
+  top:10px;
+  right:10px;
+  left:auto;
+  z-index:5100;
+  background:rgba(0,0,0,.85);border:2px solid var(--pink);
   color:var(--pink);font-family:'Press Start 2P',monospace;
   font-size:9px;padding:8px 12px;border-radius:6px;cursor:pointer;
   box-shadow:0 0 12px rgba(255,45,120,.5);letter-spacing:1px;
