@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>世界のうわさナベアツ｜うわさのゲームセンター</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=RocknRoll+One&family=Bebas+Neue&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root{
+    --smoke:#1a0f1f;
+    --smoke-2:#2a1438;
+    --neon-pink:#ff2e88;
+    --neon-cyan:#00e8ff;
+    --neon-gold:#ffd166;
+    --accent-red:#ff3b3b;
+    --cream:#f7e9c9;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;overflow:hidden;overscroll-behavior:none;}
+  body{
+    font-family:'RocknRoll One', sans-serif;
+    background:
+      radial-gradient(ellipse at 20% 10%, rgba(255,46,136,.25), transparent 60%),
+      radial-gradient(ellipse at 80% 90%, rgba(0,232,255,.22), transparent 60%),
+      linear-gradient(180deg, #120820 0%, #1a0f1f 50%, #0b0514 100%);
+    color:var(--cream);
+    user-select:none;
+    touch-action:manipulation;
+  }
+  /* 煙のアニメ */
+  .smoke{
+    position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.35;
+    background:
+      radial-gradient(circle at 30% 70%, rgba(255,255,255,.08), transparent 40%),
+      radial-gradient(circle at 70% 30%, rgba(255,255,255,.06), transparent 45%);
+    animation: smokeMove 18s ease-in-out infinite alternate;
+    filter:blur(20px);
+  }
+  @keyframes smokeMove{
+    0%{transform:translate(0,0) scale(1);}
+    100%{transform:translate(-30px,20px) scale(1.1);}
+  }
+  .grain{
+    position:fixed;inset:0;pointer-events:none;z-index:1;opacity:.08;mix-blend-mode:overlay;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='0.6'/></svg>");
+  }
+
+  .screen{
+    position:relative;z-index:2;
+    height:100dvh;display:flex;flex-direction:column;
+    max-width:560px;margin:0 auto;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
+  }
+
+  /* ヘッダー */
+  header{
+    padding:14px 18px 8px;display:flex;justify-content:space-between;align-items:center;gap:8px;
+  }
+  .back{
+    font-family:'Bebas Neue',sans-serif;letter-spacing:.12em;font-size:14px;
+    color:var(--neon-cyan);text-decoration:none;
+    border:1px solid rgba(0,232,255,.35);padding:6px 10px;border-radius:999px;
+    background:rgba(0,232,255,.05);
+  }
+  .back:active{transform:scale(.96);}
+  .title-mini{
+    font-family:'DotGothic16',monospace;font-size:12px;color:var(--neon-gold);
+    text-shadow:0 0 8px rgba(255,209,102,.6);letter-spacing:.1em;
+  }
+
+  /* タイトル画面 */
+  #title{
+    flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:24px;padding:0 24px;
+  }
+  .logo{
+    text-align:center;line-height:1.1;
+  }
+  .logo .jp1{
+    font-family:'DotGothic16',monospace;
+    font-size:clamp(34px,9vw,52px);
+    color:var(--neon-pink);
+    text-shadow:
+      0 0 4px rgba(255,46,136,.9),
+      0 0 18px rgba(255,46,136,.6),
+      0 0 42px rgba(255,46,136,.4),
+      2px 2px 0 #000;
+    letter-spacing:.04em;
+  }
+  .logo .jp2{
+    font-family:'DotGothic16',monospace;
+    font-size:clamp(52px,14vw,80px);
+    color:var(--neon-gold);
+    text-shadow:
+      0 0 6px rgba(255,209,102,.9),
+      0 0 24px rgba(255,209,102,.6),
+      3px 3px 0 #000;
+    letter-spacing:.02em;
+    display:block;margin-top:4px;
+  }
+  .logo .en{
+    font-family:'Bebas Neue',sans-serif;
+    font-size:clamp(12px,3.4vw,16px);
+    letter-spacing:.5em;
+    color:var(--neon-cyan);margin-top:14px;
+    text-shadow:0 0 10px rgba(0,232,255,.6);
+  }
+
+  .rules{
+    background:rgba(20,10,30,.65);
+    border:1px solid rgba(255,209,102,.35);
+    border-radius:14px;padding:16px 18px;
+    box-shadow:inset 0 0 20px rgba(255,209,102,.08), 0 8px 30px rgba(0,0,0,.4);
+    backdrop-filter: blur(6px);
+    max-width:420px;width:100%;
+  }
+  .rules h3{
+    font-family:'DotGothic16',monospace;color:var(--neon-gold);font-size:14px;letter-spacing:.1em;margin-bottom:8px;
+  }
+  .rules p{font-size:13.5px;line-height:1.7;color:#ffeec2;}
+  .rules b{color:var(--neon-pink);}
+  .rules .bad{color:#ffb3b3;}
+
+  .start-btn{
+    font-family:'DotGothic16',monospace;
+    font-size:22px;letter-spacing:.15em;
+    background:linear-gradient(180deg, #ff2e88 0%, #c21a6b 100%);
+    color:#fff;border:none;border-radius:999px;
+    padding:16px 44px;cursor:pointer;
+    box-shadow:
+      0 0 0 3px rgba(255,46,136,.15),
+      0 0 25px rgba(255,46,136,.6),
+      0 8px 0 #6c0a38;
+    transform:translateY(0);transition:transform .08s, box-shadow .08s;
+    text-shadow:2px 2px 0 rgba(0,0,0,.3);
+  }
+  .start-btn:active{
+    transform:translateY(6px);
+    box-shadow:
+      0 0 0 3px rgba(255,46,136,.15),
+      0 0 15px rgba(255,46,136,.6),
+      0 2px 0 #6c0a38;
+  }
+
+  .credit{font-family:'DotGothic16',monospace;font-size:11px;color:#8b7a9e;letter-spacing:.08em;}
+
+  /* ゲーム画面 */
+  #game{
+    display:none;flex:1;flex-direction:column;padding:8px 16px 16px;
+  }
+  .hud{
+    display:flex;justify-content:space-between;align-items:center;
+    background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.08);
+    border-radius:12px;padding:10px 14px;margin-bottom:8px;
+  }
+  .hud .item{font-family:'DotGothic16',monospace;font-size:12px;letter-spacing:.08em;}
+  .hud .label{color:#a99bbf;}
+  .hud .val{color:var(--neon-gold);font-size:18px;text-shadow:0 0 10px rgba(255,209,102,.5);}
+  .hud .coins{color:var(--neon-pink);text-shadow:0 0 10px rgba(255,46,136,.5);}
+
+  .stage{
+    flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:14px;
+    position:relative;overflow:hidden;border-radius:16px;
+    background:
+      radial-gradient(ellipse at 50% 40%, rgba(255,46,136,.15), transparent 60%),
+      linear-gradient(180deg, rgba(20,10,30,.6), rgba(10,5,15,.9));
+    border:1px solid rgba(255,46,136,.25);
+    padding:20px;
+    box-shadow:inset 0 0 40px rgba(255,46,136,.08);
+  }
+
+  .turn-indicator{
+    font-family:'DotGothic16',monospace;font-size:13px;letter-spacing:.14em;
+    color:var(--neon-cyan);text-shadow:0 0 10px rgba(0,232,255,.6);
+  }
+  .turn-indicator.you{color:var(--neon-pink);text-shadow:0 0 10px rgba(255,46,136,.6);}
+
+  .speaker{
+    font-family:'DotGothic16',monospace;font-size:12px;letter-spacing:.1em;color:#ffeec2;opacity:.8;
+  }
+
+  .number-display{
+    font-family:'Bebas Neue',sans-serif;
+    font-size:clamp(120px,30vw,180px);
+    color:var(--cream);line-height:1;
+    text-shadow:
+      0 0 20px rgba(255,209,102,.5),
+      0 0 40px rgba(255,46,136,.3),
+      4px 6px 0 #000;
+    letter-spacing:-0.04em;
+    transition:transform .15s, color .15s;
+  }
+  .number-display.aho{
+    color:var(--neon-pink);
+    animation: ahoShake .35s ease;
+  }
+  .number-display.clap{
+    font-size:clamp(60px,14vw,90px);
+    color:var(--neon-gold);
+    animation: clapPop .3s ease;
+  }
+  @keyframes ahoShake{
+    0%,100%{transform:rotate(0) scale(1);}
+    25%{transform:rotate(-8deg) scale(1.15);}
+    50%{transform:rotate(8deg) scale(1.1);}
+    75%{transform:rotate(-4deg) scale(1.08);}
+  }
+  @keyframes clapPop{
+    0%{transform:scale(.4);opacity:0;}
+    60%{transform:scale(1.2);opacity:1;}
+    100%{transform:scale(1);opacity:1;}
+  }
+
+  .history{
+    display:flex;gap:6px;flex-wrap:wrap;justify-content:center;
+    max-height:46px;overflow:hidden;opacity:.55;
+  }
+  .history .chip{
+    font-family:'DotGothic16',monospace;font-size:11px;
+    background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);
+    padding:3px 8px;border-radius:999px;color:#ddd;
+  }
+  .history .chip.c{color:var(--neon-gold);border-color:rgba(255,209,102,.4);}
+
+  /* 操作ボタン */
+  .controls{
+    display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:10px;
+  }
+  .btn{
+    font-family:'DotGothic16',monospace;
+    font-size:20px;letter-spacing:.08em;
+    border:none;border-radius:14px;cursor:pointer;padding:22px 10px;
+    color:#fff;text-shadow:2px 2px 0 rgba(0,0,0,.3);
+    transition:transform .08s, box-shadow .08s, filter .08s;
+  }
+  .btn .label{display:block;font-size:12px;letter-spacing:.14em;opacity:.85;margin-bottom:4px;color:#fff;}
+  .btn .big{font-size:28px;display:block;}
+  .btn-num{
+    background:linear-gradient(180deg, #00e8ff 0%, #0088a8 100%);
+    box-shadow:0 0 20px rgba(0,232,255,.4), 0 6px 0 #004c60;
+  }
+  .btn-num:active{transform:translateY(5px);box-shadow:0 0 10px rgba(0,232,255,.4), 0 1px 0 #004c60;}
+  .btn-clap{
+    background:linear-gradient(180deg, #ffd166 0%, #c88a1a 100%);
+    color:#2a1500;text-shadow:1px 1px 0 rgba(255,255,255,.2);
+    box-shadow:0 0 20px rgba(255,209,102,.4), 0 6px 0 #6a4500;
+  }
+  .btn-clap:active{transform:translateY(5px);box-shadow:0 0 10px rgba(255,209,102,.4), 0 1px 0 #6a4500;}
+  .btn:disabled{filter:grayscale(.6) brightness(.6);cursor:not-allowed;}
+
+  .timer-bar{
+    height:6px;border-radius:3px;background:rgba(255,255,255,.08);overflow:hidden;margin-top:10px;
+  }
+  .timer-bar > div{
+    height:100%;background:linear-gradient(90deg, var(--neon-cyan), var(--neon-pink));
+    width:100%;transition:width .1s linear;
+  }
+
+  /* ゲームオーバー */
+  #gameover{
+    display:none;position:fixed;inset:0;z-index:10;
+    background:rgba(10,5,15,.92);backdrop-filter:blur(8px);
+    align-items:center;justify-content:center;padding:24px;
+  }
+  .go-card{
+    max-width:420px;width:100%;
+    background:linear-gradient(180deg, #2a1438 0%, #1a0f1f 100%);
+    border:2px solid var(--accent-red);border-radius:20px;padding:26px 22px;
+    box-shadow:0 0 40px rgba(255,59,59,.4), inset 0 0 30px rgba(255,59,59,.1);
+    text-align:center;
+  }
+  .go-card h2{
+    font-family:'DotGothic16',monospace;
+    color:var(--accent-red);font-size:34px;
+    text-shadow:0 0 15px rgba(255,59,59,.6), 3px 3px 0 #000;
+    letter-spacing:.06em;margin-bottom:6px;
+  }
+  .go-card .sub{
+    font-family:'DotGothic16',monospace;font-size:13px;color:var(--neon-gold);margin-bottom:14px;letter-spacing:.1em;
+  }
+  .go-card .reason{
+    background:rgba(255,59,59,.1);border:1px dashed rgba(255,59,59,.4);
+    padding:10px;border-radius:10px;font-size:13px;line-height:1.6;margin-bottom:16px;color:#ffcaca;
+  }
+  .go-stats{
+    display:flex;justify-content:space-around;margin-bottom:18px;
+  }
+  .go-stats .s{font-family:'DotGothic16',monospace;font-size:12px;color:#a99bbf;}
+  .go-stats .s .v{display:block;font-family:'Bebas Neue',sans-serif;font-size:40px;color:var(--neon-gold);text-shadow:0 0 12px rgba(255,209,102,.5);}
+  .name-in{
+    width:100%;padding:12px 14px;border-radius:10px;border:1px solid rgba(255,255,255,.15);
+    background:rgba(0,0,0,.4);color:#fff;font-family:'RocknRoll One',sans-serif;font-size:16px;text-align:center;
+    margin-bottom:12px;
+  }
+  .name-in:focus{outline:none;border-color:var(--neon-pink);box-shadow:0 0 0 3px rgba(255,46,136,.2);}
+  .go-btns{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .go-btn{
+    font-family:'DotGothic16',monospace;font-size:15px;letter-spacing:.1em;
+    padding:12px;border-radius:10px;border:none;cursor:pointer;color:#fff;
+  }
+  .go-btn.send{background:linear-gradient(180deg, #ff2e88, #c21a6b);box-shadow:0 4px 0 #6c0a38;}
+  .go-btn.send:active{transform:translateY(3px);box-shadow:0 1px 0 #6c0a38;}
+  .go-btn.retry{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.2);}
+
+  /* カウントダウン */
+  #countdown{
+    display:none;position:fixed;inset:0;z-index:9;
+    background:rgba(10,5,15,.88);align-items:center;justify-content:center;
+    font-family:'DotGothic16',monospace;font-size:140px;color:var(--neon-pink);
+    text-shadow:0 0 30px rgba(255,46,136,.8), 4px 4px 0 #000;
+    animation: cdPulse .9s ease-out infinite;
+  }
+  @keyframes cdPulse{
+    0%{transform:scale(1);opacity:1;}
+    80%{transform:scale(1.4);opacity:0;}
+    100%{transform:scale(1.4);opacity:0;}
+  }
+
+  /* FX: 良い判定 */
+  .fx-ok{
+    position:absolute;top:20px;right:20px;
+    font-family:'DotGothic16',monospace;color:var(--neon-cyan);font-size:16px;
+    text-shadow:0 0 10px rgba(0,232,255,.8);
+    animation: okPop .6s ease forwards;pointer-events:none;
+  }
+  @keyframes okPop{
+    0%{transform:translateY(0);opacity:0;}
+    20%{transform:translateY(-6px);opacity:1;}
+    100%{transform:translateY(-40px);opacity:0;}
+  }
+</style>
+</head>
+<body>
+<div class="smoke"></div>
+<div class="grain"></div>
+
+<div class="screen">
+  <header>
+    <a class="back" href="../../index.html">← 戻る</a>
+    <div class="title-mini">世界のうわさナベアツ</div>
+  </header>
+
+  <!-- タイトル -->
+  <section id="title">
+    <div class="logo">
+      <div class="jp1">世界の</div>
+      <div class="jp2">うわさナベアツ</div>
+      <div class="en">3 NO BAISUU DE AHO NI NARU</div>
+    </div>
+
+    <div class="rules">
+      <h3>▼ あそびかた</h3>
+      <p>
+        CPUと交互に<b>1から順番</b>に数字を言っていく。<br>
+        <b class="bad">3の倍数</b>と <b class="bad">3がつく数字</b>のときは<br>
+        数字じゃなくて <b>「パン！」</b>（手を叩く）を選ぶ。<br>
+        制限時間切れ or 選択ミスで<span style="color:var(--accent-red)">即終了</span> → 即乾杯。
+      </p>
+    </div>
+
+    <button class="start-btn" id="startBtn">スタート</button>
+    <div class="credit">U.wasano Shisha Bar presents</div>
+  </section>
+
+  <!-- ゲーム -->
+  <section id="game">
+    <div class="hud">
+      <div class="item"><span class="label">COIN </span><span class="val coins" id="coinVal">0</span></div>
+      <div class="item"><span class="label">NEXT </span><span class="val" id="nextVal">1</span></div>
+      <div class="item"><span class="label">BEST </span><span class="val" id="bestVal">0</span></div>
+    </div>
+
+    <div class="stage">
+      <div class="turn-indicator" id="turn">CPUのばん</div>
+      <div class="speaker" id="speaker">— CPU —</div>
+      <div class="number-display" id="numDisp">1</div>
+      <div class="history" id="history"></div>
+    </div>
+
+    <div class="timer-bar"><div id="timerFill"></div></div>
+
+    <div class="controls">
+      <button class="btn btn-num" id="numBtn" disabled>
+        <span class="label">NUMBER</span>
+        <span class="big" id="numBtnLabel">—</span>
+      </button>
+      <button class="btn btn-clap" id="clapBtn" disabled>
+        <span class="label">CLAP</span>
+        <span class="big">パン！</span>
+      </button>
+    </div>
+  </section>
+</div>
+
+<!-- カウントダウン -->
+<div id="countdown">3</div>
+
+<!-- ゲームオーバー -->
+<div id="gameover">
+  <div class="go-card">
+    <h2>アホになれず</h2>
+    <div class="sub">即・乾杯！</div>
+    <div class="reason" id="reason">—</div>
+    <div class="go-stats">
+      <div class="s">COIN<span class="v" id="goCoin">0</span></div>
+      <div class="s">REACHED<span class="v" id="goNum">0</span></div>
+    </div>
+    <input class="name-in" id="nameIn" type="text" maxlength="12" placeholder="なまえ（12文字まで）">
+    <div class="go-btns">
+      <button class="go-btn retry" id="retryBtn">もう一回</button>
+      <button class="go-btn send" id="sendBtn">ランキングへ</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ========== Supabase ========== */
+const SUPABASE_URL = 'https://hwoltvzmsznprsbyrbaj.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_1JsQKCxHNyH4fGzFUJeEHg_czjaZxPR';
+const GAME_KEY = 'count_up_aho';
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+/* ========== Game State ========== */
+const S = {
+  running:false,
+  current:0,      // 次に言うべき数
+  turn:'cpu',     // 'cpu' or 'you'
+  coins:0,
+  best: Number(localStorage.getItem('count_up_aho_best')||0),
+  history:[],
+  timer:null,
+  timeLeft:0,
+  timeMax:4000,
+};
+
+/* ========== Helpers ========== */
+const $ = id => document.getElementById(id);
+const isAho = n => {
+  if (n % 3 === 0) return true;
+  return String(n).includes('3');
+};
+
+/* ========== Screens ========== */
+function goGame(){
+  $('title').style.display='none';
+  $('game').style.display='flex';
+}
+function showCountdown(cb){
+  const cd = $('countdown');
+  cd.style.display='flex';
+  let n=3; cd.textContent=n;
+  const tk = setInterval(()=>{
+    n--;
+    if(n<=0){
+      clearInterval(tk);
+      cd.style.display='none';
+      cb();
+    } else {
+      cd.textContent=n;
+    }
+  },700);
+}
+
+/* ========== Core ========== */
+function startGame(){
+  S.running=true;
+  S.current=0;
+  S.coins=0;
+  S.turn='cpu';
+  S.history=[];
+  $('coinVal').textContent='0';
+  $('bestVal').textContent=S.best;
+  $('history').innerHTML='';
+  goGame();
+  showCountdown(()=> cpuTurn());
+}
+
+function updateSpeaker(){
+  $('turn').textContent = S.turn==='cpu' ? 'CPUのばん' : 'あなたのばん';
+  $('turn').classList.toggle('you', S.turn==='you');
+  $('speaker').textContent = S.turn==='cpu' ? '— CPU —' : '— YOU —';
+}
+
+function pushHistory(n, isClap){
+  S.history.push({n, isClap});
+  if(S.history.length>10) S.history.shift();
+  const h = $('history');
+  h.innerHTML='';
+  S.history.forEach(it=>{
+    const c = document.createElement('span');
+    c.className='chip' + (it.isClap?' c':'');
+    c.textContent = it.isClap ? `${it.n}👏` : it.n;
+    h.appendChild(c);
+  });
+}
+
+function showNumber(n, isClap){
+  const el = $('numDisp');
+  el.classList.remove('aho','clap');
+  if(isClap){
+    el.textContent='パン！';
+    el.classList.add('clap');
+  } else {
+    el.textContent = n;
+    if(isAho(n)) el.classList.add('aho');
+  }
+}
+
+function cpuTurn(){
+  if(!S.running) return;
+  S.turn='cpu';
+  updateSpeaker();
+  $('numBtn').disabled=true;
+  $('clapBtn').disabled=true;
+
+  S.current++;
+  const n = S.current;
+  const aho = isAho(n);
+
+  // CPUの思考時間（だんだん早くなる）
+  const thinkMs = Math.max(350, 900 - S.current*25);
+
+  setTimeout(()=>{
+    if(!S.running) return;
+    showNumber(n, aho);
+    pushHistory(n, aho);
+    // CPUは常に正解
+    $('nextVal').textContent = n+1;
+
+    // 次はプレイヤーの番
+    setTimeout(()=> yourTurn(), 600);
+  }, thinkMs);
+}
+
+function yourTurn(){
+  if(!S.running) return;
+  S.turn='you';
+  updateSpeaker();
+  S.current++;
+  const n = S.current;
+
+  $('numBtnLabel').textContent = n;
+  $('numBtn').disabled=false;
+  $('clapBtn').disabled=false;
+
+  // 制限時間を少しずつ短く
+  const tMax = Math.max(1600, 4000 - (S.coins*60));
+  S.timeMax = tMax;
+  S.timeLeft = tMax;
+  startTimer();
+}
+
+function startTimer(){
+  stopTimer();
+  const fill = $('timerFill');
+  const start = performance.now();
+  const tick = (now)=>{
+    if(!S.running) return;
+    const elapsed = now - start;
+    S.timeLeft = Math.max(0, S.timeMax - elapsed);
+    fill.style.width = (S.timeLeft / S.timeMax * 100) + '%';
+    if(S.timeLeft<=0){
+      gameOver('時間切れ！テンポが命や。');
+      return;
+    }
+    S.timer = requestAnimationFrame(tick);
+  };
+  S.timer = requestAnimationFrame(tick);
+}
+function stopTimer(){
+  if(S.timer){ cancelAnimationFrame(S.timer); S.timer=null; }
+}
+
+function onAnswer(isClap){
+  if(!S.running || S.turn!=='you') return;
+  stopTimer();
+  const n = S.current;
+  const aho = isAho(n);
+  const ok = (aho && isClap) || (!aho && !isClap);
+
+  if(!ok){
+    showNumber(n, isClap); // 選んだ方を表示
+    pushHistory(n, isClap);
+    let reason = '';
+    if(aho && !isClap) reason = `${n} は「3の倍数 or 3がつく」や！<br>ここは「パン！」やろ。`;
+    else reason = `${n} は普通の数字やんか。<br>叩くとこちゃうで。`;
+    gameOver(reason);
+    return;
+  }
+
+  // 正解
+  showNumber(n, isClap);
+  pushHistory(n, isClap);
+  S.coins++;
+  $('coinVal').textContent = S.coins;
+  $('nextVal').textContent = n+1;
+
+  // FX
+  const fx = document.createElement('div');
+  fx.className='fx-ok';
+  fx.textContent = isClap ? '👏 +1' : 'OK +1';
+  document.querySelector('.stage').appendChild(fx);
+  setTimeout(()=> fx.remove(), 600);
+
+  $('numBtn').disabled=true;
+  $('clapBtn').disabled=true;
+
+  setTimeout(()=> cpuTurn(), 500);
+}
+
+/* ========== Game Over ========== */
+function gameOver(reasonHtml){
+  if(!S.running) return;
+  S.running=false;
+  stopTimer();
+  if(S.coins > S.best){
+    S.best = S.coins;
+    localStorage.setItem('count_up_aho_best', S.best);
+  }
+  $('reason').innerHTML = reasonHtml;
+  $('goCoin').textContent = S.coins;
+  $('goNum').textContent = S.current;
+  // 最後に保存した名前を復元
+  const savedName = localStorage.getItem('uwasa_player_name') || '';
+  $('nameIn').value = savedName;
+  $('gameover').style.display='flex';
+}
+
+async function submitScore(){
+  const nameRaw = $('nameIn').value.trim();
+  const name = (nameRaw || 'ナナシ').slice(0,12);
+  localStorage.setItem('uwasa_player_name', name);
+  $('sendBtn').disabled=true;
+  $('sendBtn').textContent='送信中...';
+  try{
+    const { error } = await sb.from('scores').insert([{
+      player_name: name,
+      game: GAME_KEY,
+      coins: S.coins,
+      score: S.coins,
+      distance: S.current,
+      stage: null,
+      powers_collected: null,
+    }]);
+    if(error) throw error;
+    // 成功したらランチャーへ
+    location.href = '../../index.html?ranked=' + encodeURIComponent(GAME_KEY);
+  }catch(e){
+    alert('送信失敗: ' + (e.message||e));
+    $('sendBtn').disabled=false;
+    $('sendBtn').textContent='ランキングへ';
+  }
+}
+
+function retry(){
+  $('gameover').style.display='none';
+  startGame();
+}
+
+/* ========== Events ========== */
+$('startBtn').addEventListener('click', startGame);
+$('numBtn').addEventListener('click', ()=> onAnswer(false));
+$('clapBtn').addEventListener('click', ()=> onAnswer(true));
+$('retryBtn').addEventListener('click', retry);
+$('sendBtn').addEventListener('click', submitScore);
+
+// キーボード対応（PC）
+window.addEventListener('keydown', e=>{
+  if(!S.running) return;
+  if(S.turn!=='you') return;
+  if(e.key==='ArrowLeft' || e.key==='1' || e.key==='z' || e.key==='Z'){ onAnswer(false); }
+  if(e.key==='ArrowRight' || e.key==='2' || e.key==='x' || e.key==='X' || e.key===' '){ e.preventDefault(); onAnswer(true); }
+});
+</script>
+</body>
+</html>
