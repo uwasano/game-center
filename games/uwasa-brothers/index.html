@@ -14,9 +14,9 @@
   #phaser-game canvas{display:block;image-rendering:auto;-webkit-font-smoothing:antialiased;}
   #ui-overlay{position:absolute;top:0;left:0;right:0;padding:8px 10px;display:flex;justify-content:space-between;align-items:flex-start;pointer-events:none;z-index:10;gap:6px;}
   #ui-dist-block{order:1;}
-  #stage-badge{order:2;}
+  #stage-badge{order:2;pointer-events:auto;cursor:pointer;}
   /* LIVESはCLOSEボタンとかぶらないよう下にずらす */
-  #ui-lives-block{order:3;margin-top:48px;}
+  #ui-lives-block{order:3;margin-top:48px;pointer-events:auto;cursor:pointer;}
   .ui-block{background:rgba(0,0,0,.78);border:2px solid #FFD700;border-radius:6px;padding:4px 8px;color:#FFD700;font-size:9px;font-weight:900;letter-spacing:1px;line-height:1.4;}
   .ui-block .val{color:#fff;font-size:13px;display:block;}
   #stage-badge{background:linear-gradient(135deg,#FF00FF,#9B59B6);border-color:#FF00FF;color:#fff;font-size:12px;text-align:center;box-shadow:0 0 10px #FF00FF66;}
@@ -90,6 +90,121 @@ if(bs%2===1)noise(.03,.08,4000);
 if(bs%4===0){const o=ctx.createOscillator(),g=ctx.createGain();o.type='sine';o.frequency.setValueAtTime(120,ctx.currentTime);o.frequency.exponentialRampToValueAtTime(40,ctx.currentTime+.1);g.gain.setValueAtTime(.3,ctx.currentTime);g.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+.15);o.connect(g);g.connect(musg);o.start();o.stop(ctx.currentTime+.15);}
 bs++;},sm);}
 function stopBGM(){if(bgm){clearInterval(bgm);bgm=null;}}
+
+// 🌟 INVINCIBILITY BGM (マリオのスター風 - 本物に近い)
+// オリジナルの旋律: C#G-C#G-EG-BG (ギャロップリズム)
+const STAR_MELODY=[
+  // 1小節目 (fast tempo, 16分音符)
+  [554,0],[1109,0],[831,1],[554,0],[1109,0],[831,1],[698,0],[1397,0],
+  // 2小節目
+  [1047,1],[554,0],[1109,0],[831,1],[554,0],[1109,0],[831,1],[698,0],
+  // 3小節目 (上昇)
+  [1175,0],[932,1],[622,0],[1245,0],[932,1],[622,0],[1245,0],[932,1],
+  // 4小節目 (頂点)
+  [932,0],[1175,0],[1397,0],[1568,0],[1760,1],[1568,0],[1397,0],[1175,0],
+];
+// 各音: [freq, isAccent(1=強拍)]
+
+function startStarBGM(){
+  if(!ctx||!en||bgm)return;
+  const noteDur=85; // 85ms per 16th note = 176BPM相当
+  let mi=0;
+  bgm=setInterval(()=>{
+    if(!en||!ctx)return;
+    const note=STAR_MELODY[mi%STAR_MELODY.length];
+    const f=note[0],accent=note[1];
+    if(f>0){
+      const d=(noteDur-10)/1000;
+      // メロディ (square + saw)
+      const o=ctx.createOscillator(),g=ctx.createGain();
+      o.type='square';o.frequency.value=f;
+      g.gain.setValueAtTime(0,ctx.currentTime);
+      g.gain.linearRampToValueAtTime(accent?.25:.15,ctx.currentTime+.005);
+      g.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+d);
+      o.connect(g);g.connect(musg);
+      o.start();o.stop(ctx.currentTime+d);
+      // ハーモニー (5度下)
+      const o2=ctx.createOscillator(),g2=ctx.createGain();
+      o2.type='square';o2.frequency.value=f*.67;
+      g2.gain.setValueAtTime(0,ctx.currentTime);
+      g2.gain.linearRampToValueAtTime(accent?.12:.07,ctx.currentTime+.005);
+      g2.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+d);
+      o2.connect(g2);g2.connect(musg);
+      o2.start();o2.stop(ctx.currentTime+d);
+    }
+    // ベース (キック+ベース交互)
+    if(mi%2===0){
+      const bf=mi%4===0?165:220;
+      const o3=ctx.createOscillator(),g3=ctx.createGain();
+      o3.type='triangle';o3.frequency.value=bf;
+      g3.gain.setValueAtTime(.3,ctx.currentTime);
+      g3.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+.15);
+      o3.connect(g3);g3.connect(musg);
+      o3.start();o3.stop(ctx.currentTime+.15);
+    }
+    // ハイハット (裏拍)
+    if(mi%2===1){
+      const bn=ctx.createBuffer(1,ctx.sampleRate*.03,ctx.sampleRate);
+      const bd=bn.getChannelData(0);
+      for(let i=0;i<bd.length;i++)bd[i]=(Math.random()*2-1)*.3;
+      const bs=ctx.createBufferSource();bs.buffer=bn;
+      const bg=ctx.createGain();
+      bg.gain.setValueAtTime(.15,ctx.currentTime);
+      bg.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+.04);
+      bs.connect(bg);bg.connect(musg);
+      bs.start();
+    }
+    mi++;
+  },noteDur);
+}
+
+// 🔊 「うぉぉぉぉぉ！」叫び声風サウンド
+function playHypeShout(){
+  if(!ctx||!en)return;
+  const dur=1.2;
+  // ノイズベース（叫び声の息遣い）
+  const bn=ctx.createBuffer(1,ctx.sampleRate*dur,ctx.sampleRate);
+  const bd=bn.getChannelData(0);
+  for(let i=0;i<bd.length;i++){
+    const t=i/ctx.sampleRate;
+    // ピッチが上がっていくモーション
+    const env=Math.min(1,t*3)*Math.max(0,1-(t-.3)/(dur-.3))*.8;
+    bd[i]=(Math.random()*2-1)*env;
+  }
+  const bs=ctx.createBufferSource();bs.buffer=bn;
+  // バンドパスフィルター（声っぽさ）
+  const bp=ctx.createBiquadFilter();
+  bp.type='bandpass';bp.frequency.value=800;bp.Q.value=3;
+  // ピッチ上昇
+  bp.frequency.setValueAtTime(400,ctx.currentTime);
+  bp.frequency.exponentialRampToValueAtTime(2000,ctx.currentTime+dur*.7);
+  const bg=ctx.createGain();
+  bg.gain.setValueAtTime(.4,ctx.currentTime);
+  bg.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+dur);
+  bs.connect(bp);bp.connect(bg);bg.connect(musg);
+  bs.start();
+  // オシレーター追加（低音の迫力）
+  const o=ctx.createOscillator(),og=ctx.createGain();
+  o.type='sawtooth';
+  o.frequency.setValueAtTime(80,ctx.currentTime);
+  o.frequency.exponentialRampToValueAtTime(250,ctx.currentTime+dur*.6);
+  o.frequency.exponentialRampToValueAtTime(120,ctx.currentTime+dur);
+  og.gain.setValueAtTime(0,ctx.currentTime);
+  og.gain.linearRampToValueAtTime(.25,ctx.currentTime+.05);
+  og.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+dur);
+  o.connect(og);og.connect(musg);
+  o.start();o.stop(ctx.currentTime+dur);
+  // ライザー（テンション爆上げ）
+  const o2=ctx.createOscillator(),og2=ctx.createGain();
+  o2.type='sawtooth';
+  o2.frequency.setValueAtTime(200,ctx.currentTime);
+  o2.frequency.exponentialRampToValueAtTime(3000,ctx.currentTime+dur*.8);
+  og2.gain.setValueAtTime(0,ctx.currentTime);
+  og2.gain.linearRampToValueAtTime(.15,ctx.currentTime+dur*.5);
+  og2.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+dur);
+  o2.connect(og2);og2.connect(musg);
+  o2.start();o2.stop(ctx.currentTime+dur);
+}
 
 // BOSS BGM — heavier, faster, minor-key tension theme
 const BOSS_MELODY=[
@@ -179,7 +294,7 @@ function startBossBGM(){
   },sm);
 }
 function setEnabled(v){en=v;if(!v){if(mg)mg.gain.value=0;stopBGM();}else{if(mg)mg.gain.value=.5;}}
-return{init,resume,SFX,startBGM,startBossBGM,stopBGM,setEnabled};})();
+return{init,resume,SFX,startBGM,startBossBGM,startStarBGM,playHypeShout,stopBGM,setEnabled};})();
 
 let soundOn=true;
 window.toggleSound=function(){soundOn=!soundOn;Audio.setEnabled(soundOn);document.getElementById('sound-toggle').textContent=soundOn?'🔊':'🔇';};
@@ -622,6 +737,39 @@ function makeTextures(s){
   g.destroy();}
   // Star (bg decoration)
   {const g=s.add.graphics();g.fillStyle(0xFFFFFF);g.fillRect(1,0,1,3);g.fillRect(0,1,3,1);g.generateTexture('star',3,3);g.destroy();}
+
+  // 🌟 大きな無敵スター (マリオ風)
+  {const g=s.add.graphics();
+    // 5角星を描画
+    const cx=24,cy=24,rOut=22,rIn=9;
+    const pts=[];
+    for(let i=0;i<10;i++){
+      const a=(i/10)*Math.PI*2-Math.PI/2;
+      const r=(i%2===0)?rOut:rIn;
+      pts.push({x:cx+Math.cos(a)*r,y:cy+Math.sin(a)*r});
+    }
+    // 外周の黒
+    g.fillStyle(0x000000);
+    g.beginPath();
+    g.moveTo(pts[0].x,pts[0].y);
+    for(let i=1;i<pts.length;i++)g.lineTo(pts[i].x,pts[i].y);
+    g.closePath();g.fillPath();
+    // 内側の金
+    g.fillStyle(0xFFD700);
+    const pts2=pts.map(p=>({x:cx+(p.x-cx)*.85,y:cy+(p.y-cy)*.85}));
+    g.beginPath();
+    g.moveTo(pts2[0].x,pts2[0].y);
+    for(let i=1;i<pts2.length;i++)g.lineTo(pts2[i].x,pts2[i].y);
+    g.closePath();g.fillPath();
+    // 目
+    g.fillStyle(0x000000);
+    g.fillRect(18,22,3,5);g.fillRect(27,22,3,5);
+    // ハイライト
+    g.fillStyle(0xFFFFFF);
+    g.fillRect(18,22,1,2);g.fillRect(27,22,1,2);
+    g.generateTexture('star_invincible',48,48);
+    g.destroy();
+  }
 
   // Basic punch (normal attack)
   {const g=s.add.graphics();
@@ -1887,13 +2035,56 @@ class GameScene extends Phaser.Scene{
 
     const jb=document.getElementById('btn-jump');
     const ab=document.getElementById('btn-attack');
-    if(jb&&!jb.dataset.bound){jb.dataset.bound='1';const h=(e)=>{e.preventDefault();window.__game_jump&&window.__game_jump();};jb.addEventListener('touchstart',h,{passive:false});jb.addEventListener('mousedown',h);}
-    if(ab&&!ab.dataset.bound){ab.dataset.bound='1';const h=(e)=>{e.preventDefault();window.__game_attack&&window.__game_attack();};ab.addEventListener('touchstart',h,{passive:false});ab.addEventListener('mousedown',h);}
     window.__game_jump=()=>this.doJump();
     window.__game_attack=()=>this.doAttack();
 
+    // ジャンプボタン - 複数イベントで確実に
+    if(jb){
+      const jumpHandler=(e)=>{
+        e.preventDefault();
+        e.stopPropagation();
+        if(window.__game_jump)window.__game_jump();
+      };
+      // 既存ハンドラを削除してから登録（シーン再開時対応）
+      if(jb._handler){
+        jb.removeEventListener('touchstart',jb._handler);
+        jb.removeEventListener('mousedown',jb._handler);
+        jb.removeEventListener('pointerdown',jb._handler);
+      }
+      jb._handler=jumpHandler;
+      jb.addEventListener('touchstart',jumpHandler,{passive:false});
+      jb.addEventListener('mousedown',jumpHandler);
+      jb.addEventListener('pointerdown',jumpHandler);
+    }
+
+    // 攻撃ボタン - 複数イベントで確実に
+    if(ab){
+      const attackHandler=(e)=>{
+        e.preventDefault();
+        e.stopPropagation();
+        if(window.__game_attack)window.__game_attack();
+      };
+      if(ab._handler){
+        ab.removeEventListener('touchstart',ab._handler);
+        ab.removeEventListener('mousedown',ab._handler);
+        ab.removeEventListener('pointerdown',ab._handler);
+      }
+      ab._handler=attackHandler;
+      ab.addEventListener('touchstart',attackHandler,{passive:false});
+      ab.addEventListener('mousedown',attackHandler);
+      ab.addEventListener('pointerdown',attackHandler);
+    }
+
+    // 画面タップ（ボタン以外の部分）
     this.input.on('pointerdown',(p)=>{
-      // Screen-relative: left half = jump, right half = attack
+      // タップ位置がボタンの真上なら無視（ボタン側で処理）
+      const btnRect=jb?jb.getBoundingClientRect():null;
+      const abRect=ab?ab.getBoundingClientRect():null;
+      if(p.event){
+        const ex=p.event.clientX,ey=p.event.clientY;
+        if(btnRect&&ex>=btnRect.left&&ex<=btnRect.right&&ey>=btnRect.top&&ey<=btnRect.bottom)return;
+        if(abRect&&ex>=abRect.left&&ex<=abRect.right&&ey>=abRect.top&&ey<=abRect.bottom)return;
+      }
       if(p.x<W/2)this.doJump();else this.doAttack();
     });
 
@@ -1903,6 +2094,161 @@ class GameScene extends Phaser.Scene{
 
     updateUI();showPowerBadge('normal');
     this.scheduleStagePowerup(0);
+
+    // 🌟 隠しコマンド: STAGE表示3回タップ → HP表示3回タップで発動
+    this.starMode=false;
+    this.starSpawned=false;
+    this.stars=this.physics.add.group();
+    this.physics.add.overlap(this.player,this.stars,this.collectInvincibilityStar,null,this);
+
+    // 秘密コマンドのトリガー
+    this._secretStage=0; // 0:STAGE押し中 1:HP押し中
+    this._secretStageCount=0;
+    this._secretHpCount=0;
+    this._secretLastTap=0;
+    const stageEl=document.getElementById('stage-badge');
+    const hpEl=document.getElementById('ui-lives-block');
+    const triggerSecret=()=>{
+      if(this.starSpawned||this.starMode||this.gameOver)return;
+      this.spawnInvincibilityStar();
+    };
+    if(stageEl){
+      if(stageEl._secretHandler)stageEl.removeEventListener('click',stageEl._secretHandler);
+      stageEl._secretHandler=(e)=>{
+        e.stopPropagation();
+        const now=Date.now();
+        if(now-this._secretLastTap>2000){this._secretStageCount=0;this._secretHpCount=0;}
+        this._secretLastTap=now;
+        if(this._secretHpCount===0){
+          this._secretStageCount++;
+          // デバッグ用微小ヒント（視覚には影響なし）
+        }else{
+          // HP押し中にSTAGE押したらリセット
+          this._secretStageCount=1;this._secretHpCount=0;
+        }
+      };
+      stageEl.style.pointerEvents='auto';
+      stageEl.style.cursor='pointer';
+      stageEl.addEventListener('click',stageEl._secretHandler);
+    }
+    if(hpEl){
+      if(hpEl._secretHandler)hpEl.removeEventListener('click',hpEl._secretHandler);
+      hpEl._secretHandler=(e)=>{
+        e.stopPropagation();
+        const now=Date.now();
+        if(now-this._secretLastTap>2000){this._secretStageCount=0;this._secretHpCount=0;return;}
+        this._secretLastTap=now;
+        if(this._secretStageCount>=3){
+          this._secretHpCount++;
+          if(this._secretHpCount>=3){
+            this._secretStageCount=0;
+            this._secretHpCount=0;
+            triggerSecret();
+          }
+        }
+      };
+      hpEl.style.pointerEvents='auto';
+      hpEl.style.cursor='pointer';
+      hpEl.addEventListener('click',hpEl._secretHandler);
+    }
+  }
+
+  spawnInvincibilityStar(){
+    if(this.gameOver||this.starSpawned||this.starMode)return;
+    this.starSpawned=true;
+    const st=this.stars.create(W+40,GROUND_Y-120,'star_invincible');
+    st.setDepth(90);
+    st.body.setAllowGravity(false);
+    st.body.setVelocityX(-this.scrollSpeed);
+    // キラキラ効果
+    this.tweens.add({targets:st,angle:360,duration:1500,repeat:-1});
+    this.tweens.add({targets:st,y:GROUND_Y-160,duration:900,yoyo:true,repeat:-1,ease:'Sine.easeInOut'});
+    // 光のオーラ
+    st.aura=this.add.circle(st.x,st.y,30,0xFFD700,.3).setDepth(89);
+    this.tweens.add({targets:st.aura,alpha:.6,scale:1.4,duration:500,yoyo:true,repeat:-1});
+  }
+
+  collectInvincibilityStar(player,st){
+    if(!st.active)return;
+    if(st.aura)st.aura.destroy();
+    st.destroy();
+    this.activateStarMode();
+  }
+
+  activateStarMode(){
+    this.starMode=true;
+    // BGM切替
+    Audio.stopBGM();
+    // 🔊 「うぉぉぉぉぉ！」叫び声（星取得の瞬間に激しく）
+    Audio.playHypeShout();
+    // 少し遅れてスターBGM開始
+    this.time.delayedCall(200,()=>{if(this.starMode)Audio.startStarBGM();});
+    // テキスト表示 - デカく激しく
+    const txt=this.add.text(W/2,H/2-60,'⭐ INVINCIBLE! ⭐\nうぉぉぉぉぉ！',{fontSize:'42px',fontFamily:'Arial Black',color:'#FFD700',stroke:'#FF00FF',strokeThickness:7,align:'center'}).setOrigin(.5).setDepth(500).setAlpha(0);
+    this.tweens.add({targets:txt,alpha:1,scale:{from:.3,to:1.4},duration:400,ease:'Back.easeOut',onComplete:()=>{
+      this.tweens.add({targets:txt,scale:1.2,duration:150,yoyo:true,repeat:3});
+      this.tweens.add({targets:txt,alpha:0,delay:1800,duration:400,onComplete:()=>txt.destroy()});
+    }});
+    // 画面派手にフラッシュ
+    this.cameras.main.flash(600,255,215,0);
+    this.cameras.main.shake(400,.008);
+    // 放射状の爆発エフェクト
+    const colors=[0xFFD700,0xFF00FF,0x00FFFF,0x00FF00,0xFF6600];
+    for(let i=0;i<30;i++){
+      const a=(i/30)*Math.PI*2;
+      const p=this.add.circle(W/2,H/2,Phaser.Math.Between(8,16),colors[i%5],.9).setDepth(450);
+      this.tweens.add({
+        targets:p,
+        x:W/2+Math.cos(a)*400,
+        y:H/2+Math.sin(a)*400,
+        alpha:0,
+        scale:.2,
+        duration:800,
+        ease:'Cubic.easeOut',
+        onComplete:()=>p.destroy()
+      });
+    }
+    // プレイヤー虹色エフェクト
+    let ci=0;
+    this.starTintTimer=this.time.addEvent({
+      delay:80,repeat:-1,
+      callback:()=>{
+        if(this.player&&this.player.active){
+          this.player.setTint(colors[ci%colors.length]);
+          ci++;
+        }
+      }
+    });
+    // トレイルエフェクト
+    this.starTrailTimer=this.time.addEvent({
+      delay:60,repeat:-1,
+      callback:()=>{
+        if(!this.player||!this.player.active)return;
+        const trail=this.add.circle(this.player.x,this.player.y,Phaser.Math.Between(8,14),colors[Phaser.Math.Between(0,4)],.6).setDepth(95);
+        this.tweens.add({targets:trail,alpha:0,scale:2,duration:500,onComplete:()=>trail.destroy()});
+      }
+    });
+    // 60秒後に終了
+    this.time.delayedCall(60000,()=>this.deactivateStarMode());
+    // 残り時間カウントダウン (最後の5秒は点滅警告)
+    this.time.delayedCall(55000,()=>{
+      if(!this.starMode)return;
+      const warn=this.add.text(W/2,80,'⚠ 5秒で無敵解除 ⚠',{fontSize:'22px',fontFamily:'Arial Black',color:'#FF0033',stroke:'#FFD700',strokeThickness:4}).setOrigin(.5).setDepth(500);
+      this.tweens.add({targets:warn,alpha:.3,duration:250,yoyo:true,repeat:9,onComplete:()=>warn.destroy()});
+    });
+  }
+
+  deactivateStarMode(){
+    if(!this.starMode)return;
+    this.starMode=false;
+    if(this.starTintTimer)this.starTintTimer.remove();
+    if(this.starTrailTimer)this.starTrailTimer.remove();
+    if(this.player&&this.player.active)this.player.clearTint();
+    Audio.stopBGM();
+    if(!this.bossActive)Audio.startBGM();
+    else Audio.startBossBGM();
+    const txt=this.add.text(W/2,H/2-40,'無敵終了',{fontSize:'28px',fontFamily:'Arial Black',color:'#FFFFFF',stroke:'#000',strokeThickness:4}).setOrigin(.5).setDepth(500).setAlpha(0);
+    this.tweens.add({targets:txt,alpha:1,duration:300,yoyo:true,hold:800,onComplete:()=>txt.destroy()});
   }
 
   drawBackground(){
@@ -2169,7 +2515,7 @@ class GameScene extends Phaser.Scene{
   }
 
   hitObstacle(pl,obs){
-    if(this.invincible||this.gameOver)return;
+    if(this.invincible||this.gameOver||this.starMode)return;
     // Spike obstacles are NOT destroyed on contact - they hurt the player
     this.lives--;gameState.lives=this.lives;
     Audio.SFX.hit();
@@ -2183,6 +2529,14 @@ class GameScene extends Phaser.Scene{
 
   touchEnemy(player,enemy){
     if(this.invincible||this.gameOver||!enemy.active)return;
+    // ⭐ STARモード: 触れただけで敵を破壊
+    if(this.starMode){
+      this.killEnemy(enemy,false);
+      gameState.score+=100;
+      const txt=this.add.text(enemy.x,enemy.y-30,'+100 ⭐',{fontSize:'18px',fontFamily:'Arial Black',color:'#FFD700',stroke:'#FF00FF',strokeThickness:3}).setOrigin(.5).setDepth(120);
+      this.tweens.add({targets:txt,y:enemy.y-60,alpha:0,duration:600,onComplete:()=>txt.destroy()});
+      return;
+    }
     // Stomp if falling onto enemy from above
     if(player.body.velocity.y>100&&player.y<enemy.y-10){
       enemy.hp--;
@@ -2471,7 +2825,7 @@ class GameScene extends Phaser.Scene{
   }
 
   hitBossProjectile(player,proj){
-    if(this.invincible||this.gameOver)return;
+    if(this.invincible||this.gameOver||this.starMode)return;
     if(proj.groundCheckTimer)proj.groundCheckTimer.remove();
     proj.destroy();
     this.lives--;gameState.lives=this.lives;
@@ -2845,6 +3199,7 @@ class GameScene extends Phaser.Scene{
       this.enemies.getChildren().forEach(e=>e.body.setVelocityX(-this.scrollSpeed));
       this.coins.getChildren().forEach(c=>c.body.setVelocityX(-this.scrollSpeed));
       this.powerups.getChildren().forEach(p=>p.body.setVelocityX(-this.scrollSpeed));
+      if(this.stars)this.stars.getChildren().forEach(s=>s.body.setVelocityX(-this.scrollSpeed));
       Audio.SFX.stageUp();
       const fullName=STAGES[n].name;
       const parts=fullName.split(' — ');
@@ -2968,6 +3323,13 @@ class GameScene extends Phaser.Scene{
     this.projectiles.getChildren().forEach(pr=>{if(pr.x>W+200)pr.destroy();});
     this.bossProjectiles.getChildren().forEach(bp=>{if(bp.x<-60||bp.y>H+40){if(bp.groundCheckTimer)bp.groundCheckTimer.remove();bp.destroy();}});
     this.bossShards.getChildren().forEach(s=>{if(s.x<-30||s.x>W+30||s.y>H+30)s.destroy();});
+    // 🌟 invincibility star cleanup & aura follow
+    if(this.stars){
+      this.stars.getChildren().forEach(st=>{
+        if(st.aura){st.aura.x=st.x;st.aura.y=st.y;}
+        if(st.x<-60){if(st.aura)st.aura.destroy();st.destroy();}
+      });
+    }
 
     updateUI();
   }
