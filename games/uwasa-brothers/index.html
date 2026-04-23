@@ -1611,6 +1611,19 @@ class TitleScene extends Phaser.Scene{
       if(ui)ui.style.display='none';
       const mc=document.getElementById('mobile-controls');
       if(mc)mc.style.display='none';
+      const pb=document.getElementById('power-badge');
+      if(pb)pb.style.display='none';
+      // 隠しコマンド用の pointer-events もリセット（GameSceneで auto にされる可能性があるので）
+      const stageEl=document.getElementById('stage-badge');
+      if(stageEl){
+        stageEl.style.pointerEvents='none';
+        if(stageEl._secretHandler){stageEl.removeEventListener('click',stageEl._secretHandler);stageEl._secretHandler=null;}
+      }
+      const hpEl=document.getElementById('ui-lives-block');
+      if(hpEl){
+        hpEl.style.pointerEvents='none';
+        if(hpEl._secretHandler){hpEl.removeEventListener('click',hpEl._secretHandler);hpEl._secretHandler=null;}
+      }
     }catch(e){}
 
     updateUI();showPowerBadge('normal');
@@ -1818,8 +1831,14 @@ class TitleScene extends Phaser.Scene{
     btn.on('pointerdown',start);
     this.input.keyboard.on('keydown-SPACE',start);
     this.input.keyboard.on('keydown-UP',start);
-    // タップで開始（ボタン以外の部分）
+    // タップで開始（ボタン以外の部分）- DOMパネル表示中は無効
     this.input.on('pointerdown',(p)=>{
+      // DOMオーバーレイ（名前入力/HOW TO/ランキング）が開いていたら無視
+      if(document.getElementById('name-overlay'))return;
+      const hp=document.getElementById('howto-panel');
+      if(hp&&hp.classList.contains('open'))return;
+      const rp=document.getElementById('ranking-panel');
+      if(rp&&rp.classList.contains('open'))return;
       if(!btn.getBounds().contains(p.x,p.y)&&!howtoBtn.getBounds().contains(p.x,p.y)&&!rankBtn.getBounds().contains(p.x,p.y)&&!changeBtn.getBounds().contains(p.x,p.y))start();
     });
   }
@@ -3473,6 +3492,21 @@ class GameOverScene extends Phaser.Scene{
   constructor(){super('GameOver');}
 
   create(){
+    // ゲームオーバー画面ではゲームUIを完全に隠す
+    try{
+      const ui=document.getElementById('ui-overlay');
+      if(ui)ui.style.display='none';
+      const mc=document.getElementById('mobile-controls');
+      if(mc)mc.style.display='none';
+      const pb=document.getElementById('power-badge');
+      if(pb)pb.style.display='none';
+      // 隠しコマンド用の pointer-events もリセット
+      const stageEl=document.getElementById('stage-badge');
+      if(stageEl)stageEl.style.pointerEvents='none';
+      const hpEl=document.getElementById('ui-lives-block');
+      if(hpEl)hpEl.style.pointerEvents='none';
+    }catch(e){}
+
     // Background
     const g=this.add.graphics();
     g.fillStyle(0);g.fillRect(0,0,W,H);
@@ -3514,7 +3548,7 @@ class GameOverScene extends Phaser.Scene{
     else if(finalScore<1500){rm='💜 SHISHA MASTER';rc='#FF00FF';}
     else if(finalScore<3500){rm='⚡ UWASA ELITE';rc='#FFD700';}
     else if(finalScore<7000){rm='🔥 LEGENDARY!';rc='#FFD700';}
-    else if(finalScore<15000){rm='🌌 COSMIC GOD 🌌';rc:'#FF00FF';}
+    else if(finalScore<15000){rm='🌌 COSMIC GOD 🌌';rc='#FF00FF';}
     else{rm='👑 UWASA OVERLORD 👑';rc='#FF00FF';}
     if(gameState.stage>=29)rm='🏆 STAGE 30 CONQUEROR 🏆';
     this.add.text(W/2,326,rm,{fontSize:'22px',fontFamily:'Arial Black',color:rc,stroke:'#000',strokeThickness:4}).setOrigin(.5);
