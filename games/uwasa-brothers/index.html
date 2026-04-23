@@ -13,10 +13,10 @@
   #phaser-game{width:100%;height:100%;}
   #phaser-game canvas{display:block;}
   #ui-overlay{position:absolute;top:0;left:0;right:0;padding:8px 10px;display:flex;justify-content:space-between;align-items:flex-start;pointer-events:none;z-index:10;gap:6px;}
-  /* CLOSEボタン(右上)と重ならないように右端は少し余白 */
   #ui-dist-block{order:1;}
   #stage-badge{order:2;}
-  #ui-lives-block{order:3;}
+  /* LIVESはCLOSEボタンとかぶらないよう下にずらす */
+  #ui-lives-block{order:3;margin-top:48px;}
   .ui-block{background:rgba(0,0,0,.78);border:2px solid #FFD700;border-radius:6px;padding:4px 8px;color:#FFD700;font-size:9px;font-weight:900;letter-spacing:1px;line-height:1.4;}
   .ui-block .val{color:#fff;font-size:13px;display:block;}
   #stage-badge{background:linear-gradient(135deg,#FF00FF,#9B59B6);border-color:#FF00FF;color:#fff;font-size:12px;text-align:center;box-shadow:0 0 10px #FF00FF66;}
@@ -3023,7 +3023,9 @@ const config={
   width:W,height:H,
   parent:'phaser-game',
   backgroundColor:'#0a0a1a',
-  pixelArt:true,
+  pixelArt:false,
+  antialias:true,
+  roundPixels:true,
   scale:{
     mode:Phaser.Scale.FIT,
     autoCenter:Phaser.Scale.CENTER_BOTH,
