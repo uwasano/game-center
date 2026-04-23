@@ -104,8 +104,10 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9998;
 }
 .game-card:active{transform:scale(.97)}
 .game-card.uwasa{border:2px solid var(--pink);  box-shadow:0 0 16px rgba(255,45,120,.5)}
+.game-card.nabe {border:2px solid var(--green); box-shadow:0 0 16px rgba(57,255,20,.45)}
 .game-card.soon {border:2px solid #333;         opacity:.55;cursor:default}
 .game-card:hover.uwasa{box-shadow:0 0 28px rgba(255,45,120,.9),inset 0 0 20px rgba(255,45,120,.08)}
+.game-card:hover.nabe {box-shadow:0 0 28px rgba(57,255,20,.9),inset 0 0 20px rgba(57,255,20,.08)}
 
 /* Screen thumb */
 .gc-screen{
@@ -116,9 +118,11 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9998;
   content:'';position:absolute;inset:0;pointer-events:none;
   background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,.12) 3px,rgba(0,0,0,.12) 4px);}
 .game-card.uwasa .gc-screen{background:linear-gradient(135deg,#1a0020,#2a0010)}
+.game-card.nabe  .gc-screen{background:linear-gradient(135deg,#001a0a,#003015)}
 .game-card.soon  .gc-screen{background:linear-gradient(135deg,#0a0a0a,#111)}
 .gc-emoji{filter:drop-shadow(0 0 12px currentColor);animation:sf 2s ease-in-out infinite;}
 .game-card.uwasa .gc-emoji{color:var(--pink)}
+.game-card.nabe  .gc-emoji{color:var(--green)}
 @keyframes sf{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
 
 /* Pixel runner */
@@ -133,12 +137,14 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9998;
 .gc-info{flex:1;padding:12px 14px;display:flex;flex-direction:column;justify-content:center;}
 .gc-title{font-size:11px;margin-bottom:5px;line-height:1.4;}
 .game-card.uwasa .gc-title{color:var(--pink);text-shadow:0 0 8px var(--pink)}
+.game-card.nabe  .gc-title{color:var(--green);text-shadow:0 0 8px var(--green)}
 .game-card.soon  .gc-title{color:#444}
 .gc-desc{font-family:'DotGothic16',sans-serif;font-size:11px;color:rgba(255,255,255,.5);line-height:1.5;}
 .gc-tags{margin-top:6px;display:flex;gap:6px;flex-wrap:wrap;}
 .tag{font-family:'DotGothic16',sans-serif;font-size:9px;padding:2px 6px;border-radius:3px;}
 .tag.hot {background:var(--pink); color:#fff;animation:badgep .6s steps(2) infinite}
 .tag.new {background:var(--green);color:#000}
+.tag.new2{background:var(--yellow);color:#000;animation:badgep .6s steps(2) infinite}
 .tag.soon{background:#222;       color:#555}
 @keyframes badgep{0%{opacity:1}100%{opacity:.4}}
 
@@ -163,6 +169,7 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9998;
   transition:all .15s;
 }
 .rtab.active.uwasa{border-color:var(--pink);  color:var(--pink);  background:rgba(255,45,120,.12);  box-shadow:0 0 8px rgba(255,45,120,.4)}
+.rtab.active.nabe {border-color:var(--green); color:var(--green); background:rgba(57,255,20,.1);    box-shadow:0 0 8px rgba(57,255,20,.35)}
 .rtab.active.total{border-color:var(--yellow);color:var(--yellow);background:rgba(255,230,0,.1);   box-shadow:0 0 8px rgba(255,230,0,.3)}
 .rank-list{font-family:'DotGothic16',sans-serif;font-size:13px;min-height:120px;}
 .rank-row{display:flex;justify-content:space-between;align-items:center;
@@ -204,7 +211,7 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9998;
 
   <!-- MARQUEE -->
   <div class="marquee">
-    <span class="marquee-in">★ うわさのゲームセンター ★ UWASA GAME CENTER ★ 金沢市 片町 ★ U.wasano Shisha Bar presents ★ UWASA BROTHERS 稼働中！ ★ コイン数でランキング決定！ ★ 今週1位はシーシャ1台フリー！ ★</span>
+    <span class="marquee-in">★ うわさのゲームセンター ★ UWASA GAME CENTER ★ 金沢市 片町 ★ U.wasano Shisha Bar presents ★ UWASA BROTHERS 稼働中！ ★ NEW! 3の倍数アホになる 登場！ ★ コイン数でランキング決定！ ★ 今週1位はシーシャ1台フリー！ ★</span>
   </div>
 
   <!-- TOP BAR -->
@@ -253,19 +260,23 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9998;
       </div>
     </div>
 
-    <!-- COMING SOON 1 -->
-    <div class="game-card soon">
+    <!-- NABEATSU -->
+    <div class="game-card nabe" onclick="openGame('games/count-up-aho/index.html')">
       <div class="gc-screen">
-        <span class="gc-emoji" style="font-size:32px;color:#333">❓</span>
+        <span class="gc-emoji">👏</span>
+        <div class="px-runner"><span></span><span></span><span></span></div>
       </div>
       <div class="gc-info">
-        <div class="gc-title">NEW GAME #2</div>
-        <div class="gc-desc">近日公開予定...</div>
-        <div class="gc-tags"><span class="tag soon">COMING SOON</span></div>
+        <div class="gc-title">3 NO BAISUU AHO</div>
+        <div class="gc-desc">3の倍数でアホになる！<br>失敗したら即・乾杯🍻</div>
+        <div class="gc-tags">
+          <span class="tag new2">★ NEW</span>
+          <span class="tag new">RANKING</span>
+        </div>
       </div>
     </div>
 
-    <!-- COMING SOON 2 -->
+    <!-- COMING SOON -->
     <div class="game-card soon">
       <div class="gc-screen">
         <span class="gc-emoji" style="font-size:32px;color:#333">❓</span>
@@ -291,6 +302,7 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9998;
     <!-- GAME TABS -->
     <div class="rank-tabs">
       <div class="rtab active uwasa" onclick="switchTab('uwasa')" id="tab-uwasa">UWASA BROTHERS</div>
+      <div class="rtab nabe"         onclick="switchTab('nabe')"  id="tab-nabe">3 NO BAISUU AHO</div>
       <div class="rtab total"        onclick="switchTab('total')" id="tab-total">TOTAL</div>
     </div>
 
@@ -386,7 +398,7 @@ let currentTab='uwasa';
 
 function switchTab(tab){
   currentTab=tab;
-  document.querySelectorAll('.rtab').forEach(t=>t.classList.remove('active','uwasa','total'));
+  document.querySelectorAll('.rtab').forEach(t=>t.classList.remove('active','uwasa','nabe','total'));
   const el=document.getElementById('tab-'+tab);
   el.classList.add('active',tab);
   loadRanking(tab);
@@ -404,7 +416,7 @@ async function fetchRanking(game, limit=10){
   if(!SUPABASE_URL||!SUPABASE_KEY) return null;
   try{
     // game フィルター: 'uwasa_brothers' か 全ゲーム合算
-    let url=SUPABASE_URL+'/rest/v1/scores?select=player_name,coins,score,stage,game&created_at=gte.'+getMonday()+'&order=coins.desc&limit='+limit;
+    let url=SUPABASE_URL+'/rest/v1/scores?select=player_name,coins,score,stage,distance,game&created_at=gte.'+getMonday()+'&order=coins.desc&limit='+limit;
     if(game!=='total') url+='&game=eq.'+game;
     const r=await fetch(url,{headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+SUPABASE_KEY}});
     return r.ok?await r.json():null;
@@ -415,7 +427,9 @@ async function loadRanking(tab){
   const el=document.getElementById('rank-list');
   el.innerHTML='<div class="rank-empty">読み込み中...</div>';
 
-  const game = tab==='uwasa'?'uwasa_brothers':'total';
+  const game = tab==='uwasa' ? 'uwasa_brothers'
+             : tab==='nabe'  ? 'count_up_aho'
+             : 'total';
   const data = await fetchRanking(game);
 
   if(!data){
@@ -434,12 +448,18 @@ async function loadRanking(tab){
     const medal = i<3 ? medals[i] : (i+1)+'位';
     const col   = colors[Math.min(i,3)];
     const name  = (row.player_name||'???').substring(0,8);
-    const stage = (row.stage||0)+1;
+    const g     = row.game || '';
+    const gIcon = g==='count_up_aho' ? '👏' : g==='uwasa_brothers' ? '🎮' : '';
+    const sub   = g==='count_up_aho'
+      ? `→${row.distance||0}`
+      : g==='uwasa_brothers'
+        ? `ST${(row.stage||0)+1}`
+        : '';
     return `<div class="rank-row">
       <span style="font-size:15px;width:28px">${medal}</span>
-      <span style="font-family:'DotGothic16',sans-serif;font-size:13px;color:${col};flex:1;margin-left:6px">${name}</span>
+      <span style="font-family:'DotGothic16',sans-serif;font-size:13px;color:${col};flex:1;margin-left:6px">${gIcon?gIcon+' ':''}${name}</span>
       <span style="color:var(--yellow);font-family:'DotGothic16',sans-serif;font-size:13px">🪙 ${row.coins||0}</span>
-      <span style="color:rgba(255,255,255,.3);font-family:'DotGothic16',sans-serif;font-size:10px;margin-left:7px">ST${stage}</span>
+      <span style="color:rgba(255,255,255,.3);font-family:'DotGothic16',sans-serif;font-size:10px;margin-left:7px">${sub}</span>
     </div>`;
   }).join('');
 }

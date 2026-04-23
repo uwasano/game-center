@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>3の倍数アホになる</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DotGothic16&family=Press+Start+2P&display=swap');
+:root{
+  --pink:#FF2D78; --cyan:#00F5FF; --yellow:#FFE600;
+  --green:#39FF14; --purple:#BF00FF; --red:#FF2D2D;
+  --dark:#060410; --darker:#030208;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none;}
+html,body{
+  width:100%;height:100dvh;overflow:hidden;
+  background:var(--darker);color:#fff;
+  font-family:'Press Start 2P',monospace;
+  touch-action:manipulation;
+}
+/* CRT effects */
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;
+  background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.15) 2px,rgba(0,0,0,.15) 4px);}
+body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9998;
+  background:radial-gradient(ellipse at center,transparent 55%,rgba(0,0,0,.8) 100%);}
+
+.stage{
+  max-width:480px;margin:0 auto;height:100dvh;display:flex;flex-direction:column;
+  background:
+    radial-gradient(ellipse at 20% 0%,rgba(57,255,20,.14) 0%,transparent 55%),
+    radial-gradient(ellipse at 80% 100%,rgba(255,45,120,.12) 0%,transparent 55%),
+    var(--dark);
+  position:relative;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
+}
+
+/* ========== TITLE ========== */
+#title{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px 16px;gap:18px;}
+.t-en{font-family:'DotGothic16',sans-serif;font-size:10px;color:var(--cyan);
+  letter-spacing:6px;text-shadow:0 0 12px var(--cyan);animation:flicker 4s infinite;}
+@keyframes flicker{0%,19%,21%,23%,25%,54%,56%,100%{opacity:1}20%,22%,24%,55%{opacity:.3}}
+.t-ja{
+  font-family:'DotGothic16',sans-serif;font-weight:900;text-align:center;line-height:1.1;
+  font-size:clamp(28px,8.5vw,40px);letter-spacing:3px;
+  background:linear-gradient(180deg,#fff 0%,var(--yellow) 45%,var(--green) 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  filter:drop-shadow(0 0 18px rgba(255,230,0,.8)) drop-shadow(0 0 36px rgba(57,255,20,.5));
+  animation:tp 2.5s ease-in-out infinite;
+}
+@keyframes tp{
+  0%,100%{filter:drop-shadow(0 0 14px rgba(255,230,0,.7)) drop-shadow(0 0 30px rgba(57,255,20,.5))}
+  50%{filter:drop-shadow(0 0 28px rgba(255,230,0,1)) drop-shadow(0 0 56px rgba(57,255,20,.9))}}
+.t-stars{font-size:13px;color:var(--yellow);letter-spacing:4px;text-shadow:0 0 10px var(--yellow);}
+
+.rules{
+  background:#0a0818;border:2px solid var(--green);border-radius:8px;
+  padding:14px 16px;width:100%;max-width:360px;
+  box-shadow:0 0 16px rgba(57,255,20,.35),inset 0 0 20px rgba(57,255,20,.05);
+}
+.rules h3{font-size:9px;color:var(--green);letter-spacing:3px;margin-bottom:10px;
+  text-shadow:0 0 8px var(--green);text-align:center;}
+.rules p{font-family:'DotGothic16',sans-serif;font-size:13px;line-height:1.9;color:rgba(255,255,255,.85);}
+.rules b{color:var(--yellow);}
+.rules .bad{color:var(--red);}
+
+.start-btn{
+  font-family:'Press Start 2P',monospace;font-size:13px;letter-spacing:3px;
+  color:#000;background:var(--yellow);border:none;padding:14px 32px;border-radius:6px;
+  cursor:pointer;box-shadow:0 0 18px rgba(255,230,0,.7), 0 4px 0 #a08c00;
+  transition:transform .08s, box-shadow .08s;
+}
+.start-btn:active{transform:translateY(3px);box-shadow:0 0 12px rgba(255,230,0,.7), 0 1px 0 #a08c00;}
+
+.blink{animation:blink 1s steps(1) infinite;font-size:8px;color:var(--yellow);
+  text-shadow:0 0 10px var(--yellow);letter-spacing:3px;}
+@keyframes blink{0%,49%{opacity:1}50%,100%{opacity:0}}
+
+.credit{font-family:'DotGothic16',sans-serif;font-size:10px;color:rgba(255,255,255,.3);letter-spacing:2px;}
+
+/* ========== GAME ========== */
+#game{display:none;flex:1;flex-direction:column;padding:10px 12px 14px;gap:10px;}
+
+.hud{
+  background:#000;border:1px solid #222;border-radius:4px;
+  padding:8px 10px;display:flex;justify-content:space-between;align-items:center;gap:6px;
+  font-size:6.5px;letter-spacing:1.5px;
+}
+.hud .row{display:flex;flex-direction:column;gap:3px;flex:1;align-items:center;text-align:center;}
+.hud .lbl{color:rgba(255,255,255,.4);}
+.hud .val{font-size:11px;}
+.hud .coin{color:var(--yellow);text-shadow:0 0 8px var(--yellow);}
+.hud .next{color:var(--cyan);text-shadow:0 0 8px var(--cyan);}
+.hud .bpm {color:var(--green);text-shadow:0 0 8px var(--green);}
+.hud .best{color:var(--pink);text-shadow:0 0 8px var(--pink);}
+
+.screen{
+  flex:1;position:relative;overflow:hidden;border-radius:6px;
+  background:
+    linear-gradient(180deg, #000814 0%, #05000f 100%);
+  border:2px solid var(--green);
+  box-shadow:0 0 20px rgba(57,255,20,.3), inset 0 0 40px rgba(0,0,0,.5);
+  display:flex;flex-direction:column;align-items:center;justify-content:space-between;
+  padding:14px 10px;
+  transition: box-shadow .3s, border-color .3s;
+}
+.screen.hot1 {border-color:var(--yellow);box-shadow:0 0 24px rgba(255,230,0,.45), inset 0 0 40px rgba(0,0,0,.5);}
+.screen.hot2 {border-color:#ff8800;       box-shadow:0 0 30px rgba(255,136,0,.55), inset 0 0 45px rgba(255,45,0,.08);}
+.screen.hot3 {border-color:var(--red);    box-shadow:0 0 40px rgba(255,45,45,.7),  inset 0 0 50px rgba(255,45,45,.15);
+  animation: pulseHot .3s ease-in-out infinite alternate;}
+@keyframes pulseHot{from{filter:brightness(1)}to{filter:brightness(1.15)}}
+.screen::after{content:'';position:absolute;inset:0;pointer-events:none;
+  background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,.18) 3px,rgba(0,0,0,.18) 4px);}
+
+.turn{
+  font-size:9px;letter-spacing:3px;padding:5px 12px;border-radius:3px;
+  border:1px solid currentColor;color:var(--cyan);text-shadow:0 0 6px currentColor;
+  background:rgba(0,245,255,.06);
+}
+.turn.you{color:var(--pink);background:rgba(255,45,120,.08);}
+
+.number{
+  font-family:'Press Start 2P',monospace;
+  font-size:clamp(80px,22vw,130px);line-height:1;
+  color:var(--yellow);
+  text-shadow:0 0 20px var(--yellow), 0 0 44px rgba(255,230,0,.5),
+    4px 4px 0 #000, -2px 2px 0 #000;
+  letter-spacing:-.04em;
+  transition:transform .12s;
+}
+.number.aho{color:var(--red);text-shadow:0 0 20px var(--red), 0 0 44px rgba(255,45,45,.5), 4px 4px 0 #000;
+  animation:ahoShake .4s ease;}
+.number.clap{font-size:clamp(40px,11vw,62px);color:var(--green);
+  text-shadow:0 0 18px var(--green), 0 0 40px rgba(57,255,20,.6), 3px 3px 0 #000;
+  animation:clapPop .3s ease;font-family:'DotGothic16',sans-serif;letter-spacing:1px;}
+@keyframes ahoShake{0%,100%{transform:rotate(0) scale(1)}
+  25%{transform:rotate(-8deg) scale(1.15)}
+  50%{transform:rotate(8deg) scale(1.1)}
+  75%{transform:rotate(-4deg) scale(1.08)}}
+@keyframes clapPop{0%{transform:scale(.4);opacity:0}60%{transform:scale(1.25);opacity:1}100%{transform:scale(1);opacity:1}}
+
+.history{
+  display:flex;gap:4px;flex-wrap:wrap;justify-content:center;max-height:40px;overflow:hidden;
+  font-family:'DotGothic16',sans-serif;
+}
+.chip{font-size:11px;padding:2px 7px;border-radius:3px;background:#111;color:rgba(255,255,255,.5);
+  border:1px solid rgba(255,255,255,.1);}
+.chip.c{color:var(--green);border-color:rgba(57,255,20,.4);background:rgba(57,255,20,.06);}
+.chip.x{color:var(--red);border-color:rgba(255,45,45,.4);background:rgba(255,45,45,.08);}
+
+.tbar{height:6px;background:#000;border:1px solid #222;border-radius:2px;overflow:hidden;position:relative;}
+.tbar > i{display:block;height:100%;width:100%;background:linear-gradient(90deg, var(--green), var(--yellow), var(--red));
+  transform-origin:left;transition:transform .1s linear;}
+
+.controls{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.btn{
+  font-family:'Press Start 2P',monospace;
+  border:2px solid currentColor;border-radius:6px;padding:16px 8px;
+  cursor:pointer;color:#fff;background:#000;
+  display:flex;flex-direction:column;align-items:center;gap:6px;
+  transition:transform .08s, box-shadow .08s, filter .08s;
+  letter-spacing:2px;
+}
+.btn:disabled{filter:grayscale(.7) brightness(.5);cursor:not-allowed;}
+.btn .lbl{font-size:7px;opacity:.85;}
+.btn .big{font-family:'DotGothic16',sans-serif;font-size:22px;letter-spacing:1px;}
+.btn-num{color:var(--cyan);background:rgba(0,245,255,.08);box-shadow:0 0 14px rgba(0,245,255,.4), 0 4px 0 #003a44;}
+.btn-num:active:not(:disabled){transform:translateY(3px);box-shadow:0 0 8px rgba(0,245,255,.4), 0 1px 0 #003a44;}
+.btn-clap{color:var(--pink);background:rgba(255,45,120,.08);box-shadow:0 0 14px rgba(255,45,120,.4), 0 4px 0 #5a0a2a;}
+.btn-clap:active:not(:disabled){transform:translateY(3px);box-shadow:0 0 8px rgba(255,45,120,.4), 0 1px 0 #5a0a2a;}
+
+/* ========== COUNTDOWN ========== */
+#cd{display:none;position:absolute;inset:0;z-index:20;background:rgba(3,2,8,.94);
+  align-items:center;justify-content:center;
+  font-family:'Press Start 2P',monospace;font-size:120px;color:var(--yellow);
+  text-shadow:0 0 25px var(--yellow), 4px 4px 0 #000;
+  animation:cdp .9s ease-out infinite;}
+@keyframes cdp{0%{transform:scale(1);opacity:1}80%{transform:scale(1.5);opacity:0}100%{transform:scale(1.5);opacity:0}}
+
+/* ========== GAME OVER ========== */
+#gameover{display:none;position:absolute;inset:0;z-index:30;background:rgba(3,2,8,.95);
+  align-items:center;justify-content:center;padding:16px;}
+.go-card{
+  width:100%;max-width:340px;background:#0a0818;
+  border:3px solid var(--red);border-radius:8px;padding:18px 16px;text-align:center;
+  box-shadow:0 0 30px rgba(255,45,45,.5), inset 0 0 30px rgba(255,45,45,.08);
+}
+.go-card h2{font-family:'Press Start 2P',monospace;font-size:18px;color:var(--red);
+  text-shadow:0 0 15px var(--red), 3px 3px 0 #000;letter-spacing:3px;margin-bottom:6px;
+  animation:goFlash 1s steps(2) infinite;}
+@keyframes goFlash{0%{opacity:1}100%{opacity:.6}}
+.go-sub{font-family:'DotGothic16',sans-serif;font-size:12px;color:var(--yellow);
+  letter-spacing:2px;margin-bottom:12px;}
+.go-reason{
+  font-family:'DotGothic16',sans-serif;font-size:12px;line-height:1.7;
+  color:rgba(255,255,255,.8);background:rgba(255,45,45,.06);
+  border:1px dashed rgba(255,45,45,.4);border-radius:4px;padding:8px;margin-bottom:14px;
+}
+.go-reason b{color:var(--yellow);}
+.go-stats{display:flex;justify-content:space-around;margin-bottom:14px;}
+.go-stats .s{font-size:7px;color:rgba(255,255,255,.5);letter-spacing:2px;}
+.go-stats .v{display:block;font-size:24px;margin-top:4px;color:var(--yellow);
+  text-shadow:0 0 10px var(--yellow);letter-spacing:1px;}
+.name-in{
+  width:100%;padding:10px 12px;margin-bottom:10px;
+  font-family:'DotGothic16',sans-serif;font-size:14px;
+  background:#000;border:1px solid #333;border-radius:4px;color:#fff;text-align:center;
+}
+.name-in:focus{outline:none;border-color:var(--pink);box-shadow:0 0 8px rgba(255,45,120,.5);}
+.go-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.go-btn{
+  font-family:'Press Start 2P',monospace;font-size:8px;letter-spacing:2px;
+  padding:11px 4px;border-radius:4px;border:2px solid currentColor;cursor:pointer;
+  background:#000;transition:transform .08s;
+}
+.go-btn:active{transform:translateY(2px);}
+.go-btn.retry{color:var(--cyan);box-shadow:0 0 10px rgba(0,245,255,.3);}
+.go-btn.send{color:var(--pink);box-shadow:0 0 10px rgba(255,45,120,.4);}
+.go-btn:disabled{filter:grayscale(.7) brightness(.5);cursor:wait;}
+
+/* OK popup */
+.fx{position:absolute;top:20px;right:20px;font-family:'Press Start 2P',monospace;
+  font-size:11px;letter-spacing:2px;color:var(--green);text-shadow:0 0 10px var(--green);
+  animation:fxp .6s ease forwards;pointer-events:none;z-index:5;}
+@keyframes fxp{0%{transform:translateY(0);opacity:0}20%{transform:translateY(-5px);opacity:1}100%{transform:translateY(-40px);opacity:0}}
+</style>
+</head>
+<body>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<div class="stage">
+  <!-- ===== TITLE ===== -->
+  <div id="title">
+    <div class="t-en">3 &nbsp; N O &nbsp; B A I S U U &nbsp; A H O</div>
+    <div class="t-ja">3の倍数<br>アホになる</div>
+    <div class="t-stars">★ ★ ★ ★ ★</div>
+
+    <div class="rules">
+      <h3>▼ HOW TO PLAY ▼</h3>
+      <p>
+        CPUと交互に<b>1から順番</b>に数字を言うで。<br>
+        <b class="bad">3の倍数</b>と<b class="bad">3がつく数字</b>のときだけ<br>
+        数字やなくて <b>「パン！」</b>を選ぶんや。<br>
+        <b>数字が増えるほどテンポUP！</b>🔥<br>
+        ミスったら即ゲームオーバー → <b>乾杯！</b>🍻
+      </p>
+    </div>
+
+    <button class="start-btn" id="startBtn">PUSH TO START</button>
+    <div class="blink">● INSERT COIN ●</div>
+    <div class="credit">U . W A S A N O &nbsp; S H I S H A &nbsp; B A R</div>
+  </div>
+
+  <!-- ===== GAME ===== -->
+  <div id="game">
+    <div class="hud">
+      <div class="row"><span class="lbl">COIN</span><span class="val coin" id="coinV">0</span></div>
+      <div class="row"><span class="lbl">NEXT</span><span class="val next" id="nextV">1</span></div>
+      <div class="row"><span class="lbl">BPM</span><span class="val bpm" id="bpmV">100</span></div>
+      <div class="row"><span class="lbl">BEST</span><span class="val best" id="bestV">0</span></div>
+    </div>
+
+    <div class="screen">
+      <div class="turn" id="turn">CPU TURN</div>
+      <div class="number" id="numDisp">?</div>
+      <div class="history" id="history"></div>
+
+      <!-- countdown overlay inside screen -->
+      <div id="cd">3</div>
+      <!-- game over overlay inside screen -->
+      <div id="gameover">
+        <div class="go-card">
+          <h2>GAME OVER</h2>
+          <div class="go-sub">即・乾杯！🍻</div>
+          <div class="go-reason" id="reason">—</div>
+          <div class="go-stats">
+            <div class="s">COIN<span class="v" id="goCoin">0</span></div>
+            <div class="s">REACHED<span class="v" id="goNum">0</span></div>
+          </div>
+          <input class="name-in" id="nameIn" type="text" maxlength="12" placeholder="NAME (12文字まで)">
+          <div class="go-btns">
+            <button class="go-btn retry" id="retryBtn">RETRY</button>
+            <button class="go-btn send"  id="sendBtn">SUBMIT</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tbar"><i id="tFill"></i></div>
+
+    <div class="controls">
+      <button class="btn btn-num" id="numBtn" disabled>
+        <span class="lbl">NUMBER</span>
+        <span class="big" id="numBtnLabel">—</span>
+      </button>
+      <button class="btn btn-clap" id="clapBtn" disabled>
+        <span class="lbl">CLAP</span>
+        <span class="big">パン！</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ========== Supabase ========== */
+const SUPABASE_URL = 'https://hwoltvzmsznprsbyrbaj.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_1JsQKCxHNyH4fGzFUJeEHg_czjaZxPR';
+const GAME_KEY = 'count_up_aho';
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+/* ========== State ========== */
+const S = {
+  running:false, current:0, turn:'cpu', coins:0,
+  best:Number(localStorage.getItem('nabe_best')||0),
+  history:[], tReq:null, tStart:0,
+  bpm:100,        // 現在のBPM
+  beatMs:600,     // 1拍のms（60000/bpm）
+  bgmTimer:null,  // BGMの次拍スケジュール
+  bgmStep:0,      // BGMステップカウンタ
+};
+
+/* テンポ設定 */
+const BPM_BASE = 100;
+const BPM_PER_STEP = 3;  // 1カウントごと+3 BPM
+const BPM_MAX = 260;
+
+function setBPM(n){
+  S.bpm = Math.min(BPM_MAX, BPM_BASE + n * BPM_PER_STEP);
+  S.beatMs = 60000 / S.bpm;
+  const el = document.getElementById('bpmV');
+  if(el) el.textContent = Math.round(S.bpm);
+  // 画面の熱量表示
+  const screen = document.querySelector('.screen');
+  if(screen){
+    screen.classList.remove('hot1','hot2','hot3');
+    if(S.bpm >= 220) screen.classList.add('hot3');
+    else if(S.bpm >= 170) screen.classList.add('hot2');
+    else if(S.bpm >= 130) screen.classList.add('hot1');
+  }
+}
+
+/* ========== Helpers ========== */
+const $ = id => document.getElementById(id);
+const isAho = n => (n % 3 === 0) || String(n).includes('3');
+
+/* ========== Audio (WebAudio) ========== */
+let AC = null;
+function ac(){
+  if(!AC){ AC = new (window.AudioContext||window.webkitAudioContext)(); }
+  if(AC.state==='suspended') AC.resume();
+  return AC;
+}
+function tone(freq, dur=0.08, type='square', gain=0.15, slide=0, when=0){
+  try{
+    const a = ac();
+    const t = a.currentTime + when;
+    const o = a.createOscillator(), g = a.createGain();
+    o.type = type;
+    o.frequency.setValueAtTime(freq, t);
+    if(slide) o.frequency.exponentialRampToValueAtTime(slide, t+dur);
+    g.gain.setValueAtTime(gain, t);
+    g.gain.exponentialRampToValueAtTime(.001, t+dur);
+    o.connect(g); g.connect(a.destination);
+    o.start(t); o.stop(t+dur+0.02);
+  }catch(e){}
+}
+const sfx = {
+  clap:   ()=> { tone(1400,.04,'square',.22); setTimeout(()=>tone(900,.06,'square',.18),50); },
+  ok:     ()=> tone(1000,.08,'square',.15,1500),
+  bad:    ()=> { tone(220,.2,'sawtooth',.25,80); setTimeout(()=>tone(110,.3,'sawtooth',.22,55),100); },
+  start:  ()=> { tone(600,.06,'square',.18); setTimeout(()=>tone(900,.06,'square',.18),80); setTimeout(()=>tone(1200,.12,'square',.22),160); },
+  count3: ()=> tone(500,.1,'square',.18),
+};
+
+/* ---- BGM: テンポ同期の8bitベースライン ----
+   8ステップループ、各ステップ = 半拍。BPMが変わると自動で追従する。 */
+// Cマイナー風の低音シーケンス（Hz）
+const BGM_NOTES = [
+  130.81, // C3
+  196.00, // G3
+  155.56, // Eb3
+  196.00, // G3
+  174.61, // F3
+  220.00, // A3
+  155.56, // Eb3
+  196.00, // G3
+];
+// ハイハット用にメロディも重ねる（高音短発、3拍目強調で「アホ感」を出す）
+function bgmStepPlay(step){
+  // ベース
+  const bassFreq = BGM_NOTES[step % BGM_NOTES.length];
+  tone(bassFreq, Math.min(0.18, S.beatMs/1000 * 0.4), 'triangle', 0.10);
+  tone(bassFreq/2, Math.min(0.2, S.beatMs/1000 * 0.5), 'sine', 0.06);
+  // 表拍でキック
+  if(step % 2 === 0){
+    tone(60, 0.08, 'sine', 0.22, 30);
+  } else {
+    // 裏拍でハイハット
+    tone(8000, 0.025, 'square', 0.04);
+  }
+  // BPMが早いほど音を明るく
+  if(S.bpm > 160 && step % 4 === 0){
+    tone(bassFreq*4, 0.05, 'square', 0.05);
+  }
+}
+
+function bgmStart(){
+  bgmStop();
+  S.bgmStep = 0;
+  const tick = () => {
+    if(!S.running) return;
+    bgmStepPlay(S.bgmStep);
+    S.bgmStep++;
+    // 半拍ごとにステップ。BPMが上がると間隔が短くなる
+    S.bgmTimer = setTimeout(tick, S.beatMs / 2);
+  };
+  tick();
+}
+function bgmStop(){
+  if(S.bgmTimer){ clearTimeout(S.bgmTimer); S.bgmTimer = null; }
+}
+
+/* ---- メトロノーム: 各カウントで発音 ---- */
+function metro(isAhoBeat, isClap){
+  // 3の倍数等は高く、普通は低く
+  if(isClap){
+    // プレイヤーの「パン」系は sfx.clap で代替するのでこちらは鳴らさない
+    return;
+  }
+  if(isAhoBeat){
+    tone(1400, 0.06, 'square', 0.18);
+  } else {
+    tone(900, 0.05, 'square', 0.12);
+  }
+}
+
+/* ========== Flow ========== */
+function goGame(){
+  $('title').style.display='none';
+  $('game').style.display='flex';
+}
+function showCountdown(cb){
+  const cd = $('cd');
+  cd.style.display='flex';
+  let n=3; cd.textContent=n;
+  tone(440,.12,'square',.22);
+  const tk = setInterval(()=>{
+    n--;
+    if(n<=0){ clearInterval(tk); cd.style.display='none'; sfx.start(); cb(); }
+    else {
+      cd.textContent=n;
+      tone(440 + (3-n)*110, .12, 'square', .22);
+    }
+  },700);
+}
+
+function startGame(){
+  S.running=true; S.current=0; S.coins=0; S.turn='cpu'; S.history=[];
+  setBPM(0);
+  $('coinV').textContent='0';
+  $('bestV').textContent=S.best;
+  $('nextV').textContent='1';
+  $('history').innerHTML='';
+  $('numDisp').textContent='?';
+  $('numDisp').className='number';
+  $('gameover').style.display='none';
+  goGame();
+  // ユーザー操作（startBtnクリック）直後なのでここでAudio解放
+  ac();
+  showCountdown(()=>{
+    bgmStart();
+    cpuTurn();
+  });
+}
+
+function updateTurn(){
+  const el = $('turn');
+  if(S.turn==='cpu'){ el.textContent='CPU TURN'; el.classList.remove('you'); }
+  else { el.textContent='YOUR TURN'; el.classList.add('you'); }
+}
+
+function pushHistory(n, isClap, ok=true){
+  S.history.push({n, isClap, ok});
+  if(S.history.length>10) S.history.shift();
+  const h = $('history'); h.innerHTML='';
+  S.history.forEach(it=>{
+    const c = document.createElement('span');
+    c.className='chip' + (it.isClap?' c':'') + (it.ok?'':' x');
+    c.textContent = it.isClap ? `${it.n}👏` : it.n;
+    h.appendChild(c);
+  });
+}
+
+function showNumber(n, isClap){
+  const el = $('numDisp'); el.className='number';
+  if(isClap){ el.textContent='パン！'; el.classList.add('clap'); }
+  else { el.textContent = n; if(isAho(n)) el.classList.add('aho'); }
+}
+
+function cpuTurn(){
+  if(!S.running) return;
+  S.turn='cpu'; updateTurn();
+  $('numBtn').disabled=true; $('clapBtn').disabled=true;
+  S.current++;
+  setBPM(S.current);
+  const n = S.current, aho = isAho(n);
+  // CPUは1拍で答える
+  const thinkMs = S.beatMs;
+  setTimeout(()=>{
+    if(!S.running) return;
+    showNumber(n, aho);
+    pushHistory(n, aho, true);
+    // CPUがアホ数字なら「パン」効果音、普通なら通常メトロノーム
+    if(aho) sfx.clap(); else metro(false, false);
+    $('nextV').textContent = n+1;
+    // プレイヤーへの引き継ぎは1拍後
+    setTimeout(()=> yourTurn(), S.beatMs);
+  }, thinkMs);
+}
+
+function yourTurn(){
+  if(!S.running) return;
+  S.turn='you'; updateTurn();
+  S.current++;
+  setBPM(S.current);
+  const n = S.current;
+  $('numBtnLabel').textContent = n;
+  $('numBtn').disabled=false; $('clapBtn').disabled=false;
+  // 制限時間 = 1拍。最低350msは確保（BPMが上限に達しても操作可能に）
+  const lim = Math.max(350, S.beatMs);
+  S.tStart = performance.now();
+  S.tMaxCurrent = lim;
+  $('tFill').style.transform = 'scaleX(1)';
+  runTimer();
+}
+
+function runTimer(){
+  if(!S.running || S.turn!=='you') return;
+  const now = performance.now();
+  const elapsed = now - S.tStart;
+  const ratio = Math.max(0, 1 - elapsed/S.tMaxCurrent);
+  $('tFill').style.transform = `scaleX(${ratio})`;
+  if(ratio<=0){ gameOver('<b>時間切れ！</b><br>リズムが命やで。'); return; }
+  S.tReq = requestAnimationFrame(runTimer);
+}
+function stopTimer(){ if(S.tReq){ cancelAnimationFrame(S.tReq); S.tReq=null; } }
+
+function onAnswer(isClap){
+  if(!S.running || S.turn!=='you') return;
+  stopTimer();
+  const n = S.current, aho = isAho(n);
+  const ok = (aho && isClap) || (!aho && !isClap);
+  if(!ok){
+    showNumber(n, isClap);
+    pushHistory(n, isClap, false);
+    sfx.bad();
+    bgmStop();
+    const reason = aho
+      ? `<b>${n}</b> は<b>アホ</b>やんか！<br>ここは「パン！」やろ。`
+      : `<b>${n}</b> は普通の数字や。<br>叩くとこちゃうで。`;
+    gameOver(reason);
+    return;
+  }
+  showNumber(n, isClap);
+  pushHistory(n, isClap, true);
+  isClap ? sfx.clap() : metro(false, false);
+  S.coins++;
+  $('coinV').textContent = S.coins;
+  $('nextV').textContent = n+1;
+  const fx = document.createElement('div');
+  fx.className='fx'; fx.textContent = isClap ? 'CLAP+1' : 'OK +1';
+  document.querySelector('.screen').appendChild(fx);
+  setTimeout(()=> fx.remove(), 600);
+  $('numBtn').disabled=true; $('clapBtn').disabled=true;
+  // 次のCPUターンまで1拍
+  setTimeout(()=> cpuTurn(), S.beatMs);
+}
+
+/* ========== Game Over ========== */
+function gameOver(reasonHtml){
+  if(!S.running) return;
+  S.running=false; stopTimer(); bgmStop();
+  if(S.coins > S.best){ S.best = S.coins; localStorage.setItem('nabe_best', S.best); }
+  $('reason').innerHTML = reasonHtml;
+  $('goCoin').textContent = S.coins;
+  $('goNum').textContent = S.current;
+  $('nameIn').value = localStorage.getItem('uwasa_player_name') || '';
+  $('sendBtn').disabled=false; $('sendBtn').textContent='SUBMIT';
+  $('gameover').style.display='flex';
+}
+
+async function submitScore(){
+  const nameRaw = $('nameIn').value.trim();
+  const name = (nameRaw || 'ナナシ').slice(0,12);
+  localStorage.setItem('uwasa_player_name', name);
+  $('sendBtn').disabled=true; $('sendBtn').textContent='...';
+  try{
+    const { error } = await sb.from('scores').insert([{
+      player_name: name,
+      game: GAME_KEY,
+      coins: S.coins,
+      score: S.coins,
+      distance: S.current,
+      stage: null,
+      powers_collected: null,
+    }]);
+    if(error) throw error;
+    // 親ランチャーのランキング更新＆クローズ
+    if(window.parent && typeof window.parent.closeGame === 'function'){
+      window.parent.closeGame();
+    } else {
+      // 単体で開いた場合
+      location.href = '../../index.html';
+    }
+  }catch(e){
+    alert('送信失敗: ' + (e.message||e));
+    $('sendBtn').disabled=false; $('sendBtn').textContent='SUBMIT';
+  }
+}
+
+function retry(){
+  $('gameover').style.display='none';
+  startGame();
+}
+
+/* ========== Events ========== */
+$('startBtn').addEventListener('click', startGame);
+$('numBtn').addEventListener('click', ()=> onAnswer(false));
+$('clapBtn').addEventListener('click', ()=> onAnswer(true));
+$('retryBtn').addEventListener('click', retry);
+$('sendBtn').addEventListener('click', submitScore);
+
+window.addEventListener('keydown', e=>{
+  if(!S.running){
+    if(e.code==='Space' || e.code==='Enter'){ e.preventDefault(); startGame(); }
+    return;
+  }
+  if(S.turn!=='you') return;
+  if(e.key==='ArrowLeft' || e.key==='1' || e.key==='z' || e.key==='Z'){ onAnswer(false); }
+  if(e.key==='ArrowRight'|| e.key==='2' || e.key==='x' || e.key==='X' || e.code==='Space'){ e.preventDefault(); onAnswer(true); }
+});
+</script>
+</body>
+</html>
