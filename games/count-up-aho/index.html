@@ -146,7 +146,11 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9998;
 .chip.c{color:var(--green);border-color:rgba(57,255,20,.4);background:rgba(57,255,20,.06);}
 .chip.x{color:var(--red);border-color:rgba(255,45,45,.4);background:rgba(255,45,45,.08);}
 
-.tbar{height:6px;background:#000;border:1px solid #222;border-radius:2px;overflow:hidden;position:relative;}
+.tbar{height:6px;background:#000;border:1px solid #222;border-radius:2px;overflow:hidden;position:relative;
+  transition: box-shadow .2s;}
+.tbar.warn{box-shadow:0 0 10px rgba(255,230,0,.6);}
+.tbar.danger{box-shadow:0 0 14px rgba(255,45,45,.8);animation: tbarBlink .12s steps(2) infinite;}
+@keyframes tbarBlink{0%{opacity:1}100%{opacity:.5}}
 .tbar > i{display:block;height:100%;width:100%;background:linear-gradient(90deg, var(--green), var(--yellow), var(--red));
   transform-origin:left;transition:transform .1s linear;}
 
@@ -177,80 +181,120 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9998;
 
 /* ========== GAME OVER ========== */
 #gameover{display:none;position:absolute;inset:0;z-index:30;background:rgba(3,2,8,.95);
-  align-items:center;justify-content:center;padding:16px;overflow:hidden;}
+  flex-direction:column;align-items:stretch;justify-content:flex-end;
+  padding:10px;overflow:hidden;}
 
-/* 飲めよー！のスラム */
+/* 演出エリア（カードの上に占める上半分） */
+.go-stage{
+  flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:8px;padding:8px 6px;position:relative;min-height:0;
+}
+
+/* 飲めよー！の煽り */
 .slam{
-  position:absolute;top:18px;left:50%;transform:translateX(-50%) rotate(-5deg);
   font-family:'DotGothic16',sans-serif;font-weight:900;
-  font-size:clamp(36px,11vw,56px);letter-spacing:2px;
+  font-size:clamp(22px,7.5vw,34px);letter-spacing:2px;
   color:var(--yellow);
   text-shadow:
-    0 0 14px var(--yellow),
-    0 0 28px rgba(255,230,0,.6),
-    4px 4px 0 var(--red),
-    -2px -2px 0 #000,
-    5px 5px 0 #000;
-  animation: slamIn .5s cubic-bezier(.2,1.6,.4,1), slamWobble .6s ease-in-out .5s infinite alternate;
+    0 0 10px var(--yellow),
+    0 0 20px rgba(255,230,0,.6),
+    3px 3px 0 var(--red),
+    -1px -1px 0 #000,
+    4px 4px 0 #000;
+  transform:rotate(-4deg);
+  animation: slamIn .45s cubic-bezier(.2,1.6,.4,1), slamWobble .5s ease-in-out .5s infinite alternate;
   white-space:nowrap;pointer-events:none;
 }
 @keyframes slamIn{
-  0%{transform:translateX(-50%) rotate(-20deg) scale(3);opacity:0;}
-  60%{transform:translateX(-50%) rotate(2deg)   scale(1.2);opacity:1;}
-  100%{transform:translateX(-50%) rotate(-5deg) scale(1);opacity:1;}
+  0%{transform:rotate(-20deg) scale(2.5);opacity:0;}
+  60%{transform:rotate(3deg)  scale(1.15);opacity:1;}
+  100%{transform:rotate(-4deg) scale(1);opacity:1;}
 }
 @keyframes slamWobble{
-  from{transform:translateX(-50%) rotate(-5deg) scale(1);}
-  to  {transform:translateX(-50%) rotate(-3deg) scale(1.04);}
+  from{transform:rotate(-4deg) scale(1);}
+  to  {transform:rotate(-2deg) scale(1.04);}
 }
 
-/* テキーラ一杯 のデカ文字 */
+/* テキーラ一杯 のメインコピー */
 .tequila{
-  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-8deg);
   font-family:'DotGothic16',sans-serif;font-weight:900;
-  line-height:.95;letter-spacing:4px;text-align:center;
+  line-height:.95;letter-spacing:2px;text-align:center;
   background:linear-gradient(180deg, #fff 0%, var(--yellow) 40%, #ff6a00 75%, var(--red) 100%);
   -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
   filter:
-    drop-shadow(0 0 18px rgba(255,230,0,.85))
-    drop-shadow(0 0 40px rgba(255,45,45,.7))
-    drop-shadow(6px 6px 0 rgba(0,0,0,.9));
-  font-size:clamp(72px,22vw,140px);
+    drop-shadow(0 0 12px rgba(255,230,0,.85))
+    drop-shadow(0 0 22px rgba(255,45,45,.6))
+    drop-shadow(3px 3px 0 rgba(0,0,0,.9));
+  font-size:clamp(36px,10vw,58px);
+  transform:rotate(-6deg);
   animation: tqIn .55s cubic-bezier(.2,1.6,.4,1), tqPulse .5s ease-in-out .55s infinite alternate;
   pointer-events:none;
-  z-index:2;
 }
 .tequila small{
-  display:block;font-size:.35em;letter-spacing:6px;margin-top:6px;
+  display:block;font-family:'Press Start 2P',monospace;
+  font-size:clamp(9px,2.4vw,13px);letter-spacing:4px;margin-top:6px;
   -webkit-text-fill-color:var(--red);background:none;
-  text-shadow:0 0 10px var(--red), 3px 3px 0 #000;
+  text-shadow:0 0 8px var(--red), 2px 2px 0 #000;
+}
+
+/* TEQUILA 1800 ラベル */
+.label1800{
+  display:flex;flex-direction:column;align-items:center;gap:2px;
+  padding:8px 18px;margin-top:4px;
+  border:2px solid var(--yellow);border-radius:4px;
+  background:
+    linear-gradient(180deg, rgba(255,230,0,.06), rgba(255,107,0,.06));
+  box-shadow:0 0 14px rgba(255,230,0,.4), inset 0 0 10px rgba(255,230,0,.08);
+  animation: labelIn .5s ease .8s backwards;
+  transform:rotate(2deg);
+}
+.label1800 .l-top, .label1800 .l-bot{
+  font-family:'Press Start 2P',monospace;
+  font-size:8px;letter-spacing:3px;color:var(--yellow);
+  text-shadow:0 0 6px var(--yellow);
+}
+.label1800 .l-big{
+  font-family:'DotGothic16',sans-serif;font-weight:900;
+  font-size:clamp(28px,8vw,42px);letter-spacing:4px;line-height:1;
+  background:linear-gradient(180deg, #fff 0%, var(--yellow) 50%, #ff6a00 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  filter:drop-shadow(0 0 10px rgba(255,230,0,.9)) drop-shadow(2px 2px 0 rgba(0,0,0,.8));
+  animation: num1800 .6s ease-in-out infinite alternate;
+}
+@keyframes labelIn{
+  from{opacity:0;transform:rotate(-15deg) scale(.5);}
+  to  {opacity:1;transform:rotate(2deg)   scale(1);}
+}
+@keyframes num1800{
+  from{filter:drop-shadow(0 0 8px rgba(255,230,0,.7)) drop-shadow(2px 2px 0 rgba(0,0,0,.8));}
+  to  {filter:drop-shadow(0 0 18px rgba(255,230,0,1)) drop-shadow(2px 2px 0 rgba(0,0,0,.8));}
 }
 @keyframes tqIn{
-  0%{transform:translate(-50%,-50%) rotate(-40deg) scale(.1);opacity:0;filter:blur(10px);}
-  50%{transform:translate(-50%,-50%) rotate(6deg)  scale(1.25);opacity:1;filter:blur(0);}
-  100%{transform:translate(-50%,-50%) rotate(-8deg) scale(1);opacity:1;}
+  0%{transform:rotate(-30deg) scale(.2);opacity:0;filter:blur(6px);}
+  50%{transform:rotate(4deg)  scale(1.15);opacity:1;filter:blur(0);}
+  100%{transform:rotate(-6deg) scale(1);opacity:1;}
 }
 @keyframes tqPulse{
-  from{filter:drop-shadow(0 0 14px rgba(255,230,0,.7)) drop-shadow(0 0 30px rgba(255,45,45,.55)) drop-shadow(6px 6px 0 rgba(0,0,0,.9));}
-  to  {filter:drop-shadow(0 0 28px rgba(255,230,0,1))  drop-shadow(0 0 60px rgba(255,45,45,.9))  drop-shadow(6px 6px 0 rgba(0,0,0,.9));}
+  from{filter:drop-shadow(0 0 10px rgba(255,230,0,.7)) drop-shadow(0 0 22px rgba(255,45,45,.5)) drop-shadow(4px 4px 0 rgba(0,0,0,.9));}
+  to  {filter:drop-shadow(0 0 22px rgba(255,230,0,1)) drop-shadow(0 0 40px rgba(255,45,45,.9))  drop-shadow(4px 4px 0 rgba(0,0,0,.9));}
 }
 
 /* 背景ストロボ */
 .strobe{
-  position:absolute;inset:0;z-index:1;pointer-events:none;
+  position:absolute;inset:0;z-index:0;pointer-events:none;
   background:radial-gradient(ellipse at center, rgba(255,45,45,.35) 0%, transparent 60%);
   animation: strobe .18s steps(2) 8;
 }
 @keyframes strobe{0%{opacity:1}100%{opacity:0}}
 
 .go-card{
-  position:relative;z-index:3;
-  width:100%;max-width:340px;background:#0a0818;
-  border:3px solid var(--red);border-radius:8px;padding:18px 16px;text-align:center;
-  box-shadow:0 0 30px rgba(255,45,45,.5), inset 0 0 30px rgba(255,45,45,.08);
-  margin-top:auto;margin-bottom:0;/* 下寄せ: 上半分はテキーラ演出の余白に */
+  position:relative;z-index:3;flex-shrink:0;
+  width:100%;max-width:340px;margin:0 auto;
+  background:#0a0818;
+  border:3px solid var(--red);border-radius:8px;padding:12px 14px;text-align:center;
+  box-shadow:0 0 20px rgba(255,45,45,.5), inset 0 0 20px rgba(255,45,45,.06);
+  animation: cardSlide .4s ease .5s backwards;
 }
-.go-card{animation: cardSlide .4s ease .6s backwards;}
 @keyframes cardSlide{from{transform:translateY(40px);opacity:0;}to{transform:translateY(0);opacity:1;}}
 .go-card h2{font-family:'Press Start 2P',monospace;font-size:18px;color:var(--red);
   text-shadow:0 0 15px var(--red), 3px 3px 0 #000;letter-spacing:3px;margin-bottom:6px;
@@ -323,7 +367,7 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9998;
     <div class="hud">
       <div class="row"><span class="lbl">COIN</span><span class="val coin" id="coinV">0</span></div>
       <div class="row"><span class="lbl">NEXT</span><span class="val next" id="nextV">1</span></div>
-      <div class="row"><span class="lbl">BPM</span><span class="val bpm" id="bpmV">100</span></div>
+      <div class="row"><span class="lbl">BPM</span><span class="val bpm" id="bpmV">60</span></div>
       <div class="row"><span class="lbl">BEST</span><span class="val best" id="bestV">0</span></div>
     </div>
 
@@ -337,10 +381,17 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9998;
       <!-- game over overlay inside screen -->
       <div id="gameover">
         <div class="strobe" id="strobe"></div>
-        <div class="slam">飲めよー！</div>
-        <div class="tequila">
-          テキーラ<br>一杯！
-          <small>★ TEQUILA SHOT ★</small>
+        <div class="go-stage">
+          <div class="slam">飲めよー！</div>
+          <div class="tequila">
+            テキーラ<br>一杯！
+            <small>★ TEQUILA SHOT ★</small>
+          </div>
+          <div class="label1800">
+            <span class="l-top">PREMIUM</span>
+            <span class="l-big">1800</span>
+            <span class="l-bot">AÑEJO &nbsp; TEQUILA</span>
+          </div>
         </div>
         <div class="go-card">
           <div class="go-reason" id="reason">—</div>
@@ -391,12 +442,17 @@ const S = {
 };
 
 /* テンポ設定 */
-const BPM_BASE = 100;
-const BPM_PER_STEP = 3;  // 1カウントごと+3 BPM
-const BPM_MAX = 260;
+const BPM_BASE = 60;    // 最初はゆっくり（1拍=1秒）
+const BPM_MAX  = 240;
+// 加速カーブ: 序盤ゆっくり、後半に加速する二次関数的増加
+function calcBPM(n){
+  // n=0 → 60, n=10 → 約78, n=20 → 約108, n=30 → 約150, n=40 → 約200, n=50以降 → 240
+  const k = 0.08;
+  return Math.min(BPM_MAX, BPM_BASE + k * n * n);
+}
 
 function setBPM(n){
-  S.bpm = Math.min(BPM_MAX, BPM_BASE + n * BPM_PER_STEP);
+  S.bpm = calcBPM(n);
   S.beatMs = 60000 / S.bpm;
   const el = document.getElementById('bpmV');
   if(el) el.textContent = Math.round(S.bpm);
@@ -404,9 +460,9 @@ function setBPM(n){
   const screen = document.querySelector('.screen');
   if(screen){
     screen.classList.remove('hot1','hot2','hot3');
-    if(S.bpm >= 220) screen.classList.add('hot3');
-    else if(S.bpm >= 170) screen.classList.add('hot2');
-    else if(S.bpm >= 130) screen.classList.add('hot1');
+    if(S.bpm >= 200) screen.classList.add('hot3');
+    else if(S.bpm >= 150) screen.classList.add('hot2');
+    else if(S.bpm >= 110) screen.classList.add('hot1');
   }
 }
 
@@ -635,11 +691,15 @@ function yourTurn(){
   const n = S.current;
   $('numBtnLabel').textContent = n;
   $('numBtn').disabled=false; $('clapBtn').disabled=false;
-  // 制限時間 = 1拍。最低350msは確保（BPMが上限に達しても操作可能に）
-  const lim = Math.max(350, S.beatMs);
+  // 制限時間 = 1.5拍（BGMの1小節弱）。最低500msは確保
+  const lim = Math.max(500, S.beatMs * 1.5);
   S.tStart = performance.now();
   S.tMaxCurrent = lim;
+  S.lastTickZone = 0; // カウントダウン発音用
+  S.tickNextAt = 0;
   $('tFill').style.transform = 'scaleX(1)';
+  const tb = document.querySelector('.tbar');
+  if(tb) tb.classList.remove('warn','danger');
   runTimer();
 }
 
@@ -649,6 +709,39 @@ function runTimer(){
   const elapsed = now - S.tStart;
   const ratio = Math.max(0, 1 - elapsed/S.tMaxCurrent);
   $('tFill').style.transform = `scaleX(${ratio})`;
+
+  // 残り時間に応じた警告音（ゾーンが変わった瞬間にだけ鳴らす）
+  // ゾーン: 3=残40%以下, 2=残20%以下, 1=残10%以下
+  let zone = 0;
+  if(ratio < 0.10) zone = 3;
+  else if(ratio < 0.20) zone = 2;
+  else if(ratio < 0.40) zone = 1;
+
+  if(zone > S.lastTickZone){
+    S.lastTickZone = zone;
+    if(zone === 1)      tone(600, .05, 'square', .14);
+    else if(zone === 2) tone(900, .05, 'square', .18);
+    else if(zone === 3) tone(1400, .06, 'square', .22);
+  }
+  // バー見た目もゾーンで切替
+  const tb = document.querySelector('.tbar');
+  if(tb){
+    tb.classList.toggle('warn',   zone >= 1 && zone < 3);
+    tb.classList.toggle('danger', zone === 3);
+  }
+  // ゾーン3では短い間隔で鳴らし続ける
+  if(zone === 3){
+    if(!S.tickNextAt || now >= S.tickNextAt){
+      tone(1400, .04, 'square', .20);
+      S.tickNextAt = now + 90;
+    }
+  } else if(zone === 2){
+    if(!S.tickNextAt || now >= S.tickNextAt){
+      tone(900, .04, 'square', .16);
+      S.tickNextAt = now + 180;
+    }
+  }
+
   if(ratio<=0){ gameOver('<b>時間切れ！</b><br>リズムが命やで。'); return; }
   S.tReq = requestAnimationFrame(runTimer);
 }
