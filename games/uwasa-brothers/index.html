@@ -12,7 +12,9 @@
   #game-container{position:relative;width:100vw;height:100vh;overflow:hidden;background:#0a0a1a;display:flex;align-items:center;justify-content:center;}
   #phaser-game{width:100%;height:100%;}
   #phaser-game canvas{display:block;image-rendering:auto;-webkit-font-smoothing:antialiased;}
-  #ui-overlay{position:absolute;top:0;left:0;right:0;padding:8px 10px;display:flex;justify-content:space-between;align-items:flex-start;pointer-events:none;z-index:10;gap:6px;}
+  /* デフォルトで UI を完全非表示。GameSceneで明示的に表示する */
+  #ui-overlay{position:absolute;top:0;left:0;right:0;padding:8px 10px;display:none;justify-content:space-between;align-items:flex-start;pointer-events:none;z-index:10;gap:6px;}
+  #ui-overlay.show{display:flex;}
   #ui-dist-block{order:1;}
   #stage-badge{order:2;}
   /* LIVESはCLOSEボタンとかぶらないよう下にずらす */
@@ -21,12 +23,14 @@
   .ui-block .val{color:#fff;font-size:13px;display:block;}
   #stage-badge{background:linear-gradient(135deg,#FF00FF,#9B59B6);border-color:#FF00FF;color:#fff;font-size:12px;text-align:center;box-shadow:0 0 10px #FF00FF66;}
   #power-badge{position:absolute;top:48px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.9);border:2px solid #FFD700;border-radius:16px;padding:4px 12px;color:#FFD700;font-size:11px;font-weight:900;letter-spacing:1px;z-index:10;display:none;box-shadow:0 0 15px currentColor;white-space:nowrap;}
-  #sound-toggle{position:absolute;bottom:10px;right:10px;background:rgba(0,0,0,.7);border:2px solid #FFD700;border-radius:50%;width:34px;height:34px;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:20;font-size:14px;color:#FFD700;}
-  #mobile-controls{position:absolute;bottom:14px;left:0;right:0;display:flex;justify-content:space-between;padding:0 14px;z-index:15;pointer-events:none;}
+  #sound-toggle{position:absolute;bottom:10px;right:10px;background:rgba(0,0,0,.7);border:2px solid #FFD700;border-radius:50%;width:34px;height:34px;display:none;align-items:center;justify-content:center;cursor:pointer;z-index:20;font-size:14px;color:#FFD700;}
+  #sound-toggle.show{display:flex;}
+  #mobile-controls{position:absolute;bottom:14px;left:0;right:0;display:none;justify-content:space-between;padding:0 14px;z-index:15;pointer-events:none;}
+  #mobile-controls.show{display:flex;}
   .mctrl{width:68px;height:68px;border-radius:50%;background:rgba(0,0,0,.55);border:2px solid #FFD700;color:#FFD700;font-size:24px;font-weight:900;display:flex;align-items:center;justify-content:center;pointer-events:auto;user-select:none;cursor:pointer;}
   .mctrl:active{background:rgba(255,215,0,.3);transform:scale(.92);}
   #btn-attack{border-color:#FF00FF;color:#FF00FF;}
-  @media(min-width:900px) and (min-height:540px){#mobile-controls{display:none;}}
+  @media(min-width:900px) and (min-height:540px){#mobile-controls.show{display:none;}}
 </style>
 </head>
 <body>
@@ -1605,12 +1609,14 @@ class TitleScene extends Phaser.Scene{
   create(){
     gameState={distance:0,stage:0,lives:3,score:0,coins:0,powersCollected:[]};
 
-    // タイトル画面ではゲームUIを完全に隠す
+    // タイトル画面ではゲームUIを完全に隠す（CSSデフォルトで非表示だが念のため）
     try{
       const ui=document.getElementById('ui-overlay');
-      if(ui)ui.style.display='none';
+      if(ui)ui.classList.remove('show');
       const mc=document.getElementById('mobile-controls');
-      if(mc)mc.style.display='none';
+      if(mc)mc.classList.remove('show');
+      const st=document.getElementById('sound-toggle');
+      if(st)st.classList.remove('show');
       const pb=document.getElementById('power-badge');
       if(pb)pb.style.display='none';
       // 隠しコマンド用の pointer-events もリセット（GameSceneで auto にされる可能性があるので）
@@ -1810,13 +1816,15 @@ class TitleScene extends Phaser.Scene{
     });
 
     const start=()=>{
+      // iOS対策：ユーザージェスチャが有効なうちにAudioを初期化
+      try{Audio.init();Audio.resume();}catch(e){}
       // 名前が未設定なら強制入力
       if(!getPlayerName()){
         showNameInput((name)=>{
           if(name){
             setPlayerName(name);
             refreshNameDisplay();
-            hideGamePanels();Audio.init();Audio.resume();Audio.SFX.start();setTimeout(()=>Audio.startBGM(),400);this.scene.start('Game');
+            hideGamePanels();Audio.SFX.start();setTimeout(()=>Audio.startBGM(),400);this.scene.start('Game');
           }
         },{
           title:'🎮 ようこそ！',
@@ -1826,7 +1834,7 @@ class TitleScene extends Phaser.Scene{
         });
         return;
       }
-      hideGamePanels();Audio.init();Audio.resume();Audio.SFX.start();setTimeout(()=>Audio.startBGM(),400);this.scene.start('Game');
+      hideGamePanels();Audio.SFX.start();setTimeout(()=>Audio.startBGM(),400);this.scene.start('Game');
     };
     btn.on('pointerdown',start);
     this.input.keyboard.on('keydown-SPACE',start);
@@ -1983,9 +1991,11 @@ class GameScene extends Phaser.Scene{
     // ゲームUIを表示
     try{
       const ui=document.getElementById('ui-overlay');
-      if(ui)ui.style.display='flex';
+      if(ui)ui.classList.add('show');
       const mc=document.getElementById('mobile-controls');
-      if(mc)mc.style.display='flex';
+      if(mc)mc.classList.add('show');
+      const st=document.getElementById('sound-toggle');
+      if(st)st.classList.add('show');
     }catch(e){}
 
     this.stageIdx=0;this.scrollSpeed=STAGES[0].speed;this.distance=0;
@@ -3471,8 +3481,12 @@ function showNameInput(onSubmit, opts){
   `;
   document.body.appendChild(ov);
   const inp=document.getElementById('name-input');
-  inp.focus();
-  if(defaultName)inp.select();
+  // iOS Safari 対策：自動focusはキーボードが出ない/レイアウトが崩れることがあるので、タップされるまで待つ
+  // ユーザーが input をタップすればキーボードが確実に出る
+  if(defaultName){
+    // デフォルト値がある場合はfocusして全選択（PC用）
+    setTimeout(()=>{try{inp.focus();inp.select();}catch(e){}},100);
+  }
   const submit=()=>{
     const name=(inp.value.trim()||'NONAME').substring(0,8);
     ov.remove();
@@ -3495,9 +3509,11 @@ class GameOverScene extends Phaser.Scene{
     // ゲームオーバー画面ではゲームUIを完全に隠す
     try{
       const ui=document.getElementById('ui-overlay');
-      if(ui)ui.style.display='none';
+      if(ui)ui.classList.remove('show');
       const mc=document.getElementById('mobile-controls');
-      if(mc)mc.style.display='none';
+      if(mc)mc.classList.remove('show');
+      const st=document.getElementById('sound-toggle');
+      if(st)st.classList.remove('show');
       const pb=document.getElementById('power-badge');
       if(pb)pb.style.display='none';
       // 隠しコマンド用の pointer-events もリセット
