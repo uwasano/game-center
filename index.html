@@ -238,7 +238,7 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9998;
   <div class="game-list">
 
     <!-- UWASA BROTHERS -->
-    <div class="game-card uwasa" onclick="openGame('uwasa-brothers-final.html')">
+    <div class="game-card uwasa" onclick="openGame('games/uwasa-brothers/index.html')">
       <div class="gc-screen">
         <span class="gc-emoji">🎮</span>
         <div class="px-runner"><span></span><span></span><span></span></div>
@@ -447,7 +447,7 @@ async function loadRanking(tab){
 // ── Keyboard ──
 document.addEventListener('keydown',e=>{
   const open=document.getElementById('gm').classList.contains('open');
-  if(!open&&(e.code==='Space'||e.code==='Enter')){e.preventDefault();openGame('uwasa-brothers-final.html');}
+  if(!open&&(e.code==='Space'||e.code==='Enter')){e.preventDefault();openGame('games/uwasa-brothers/index.html');}
   if(e.code==='Escape'&&open)closeGame();
 });
 
