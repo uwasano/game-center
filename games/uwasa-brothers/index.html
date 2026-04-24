@@ -1387,58 +1387,62 @@ class TitleScene extends Phaser.Scene{
     btn.setShadow(0,0,'#FF00FF',20,true,true);
     this.tweens.add({targets:btn,scale:{from:1,to:1.08},duration:600,yoyo:true,repeat:-1,ease:'Sine.easeInOut'});
 
-    const howtoBtn=this.add.text(W/2-120,520,'📖  HOW TO  PLAY',{
-      fontSize:'15px',
+    // ═══ LEFT-SIDE BUTTON STACK (縦並び大きめ) ═══
+    const leftX=130; // 画面左からの距離
+    const btnStyle={
+      fontSize:'18px',
       fontFamily:'Arial Black',
+      padding:{x:18,y:11},
+      letterSpacing:1,
+      strokeThickness:2
+    };
+
+    const howtoBtn=this.add.text(leftX,130,'📖  HOW TO\n     PLAY',{
+      ...btnStyle,
       color:'#FFFFFF',
       backgroundColor:'#00BFFF',
-      padding:{x:14,y:8},
-      letterSpacing:1,
       stroke:'#003366',
-      strokeThickness:2
+      align:'center'
     }).setOrigin(.5).setInteractive({useHandCursor:true});
-    howtoBtn.setShadow(0,0,'#00BFFF',12,true,true);
+    howtoBtn.setShadow(0,0,'#00BFFF',15,true,true);
 
-    const rankBtn=this.add.text(W/2+120,520,'🏆  RANKING  🏆',{
-      fontSize:'15px',
-      fontFamily:'Arial Black',
+    const rankBtn=this.add.text(leftX,230,'🏆  RANKING',{
+      ...btnStyle,
       color:'#000000',
       backgroundColor:'#FFD700',
-      padding:{x:14,y:8},
-      letterSpacing:1,
-      stroke:'#FF6600',
-      strokeThickness:2
+      stroke:'#FF6600'
     }).setOrigin(.5).setInteractive({useHandCursor:true});
-    rankBtn.setShadow(0,0,'#FFD700',12,true,true);
+    rankBtn.setShadow(0,0,'#FFD700',15,true,true);
+
+    const changeBtn=this.add.text(leftX,320,'✏  名前変更',{
+      ...btnStyle,
+      color:'#FFFFFF',
+      backgroundColor:'#AA00FF',
+      stroke:'#FFD700'
+    }).setOrigin(.5).setInteractive({useHandCursor:true});
+    changeBtn.setShadow(0,0,'#AA00FF',15,true,true);
 
     howtoBtn.on('pointerover',()=>howtoBtn.setScale(1.08));howtoBtn.on('pointerout',()=>howtoBtn.setScale(1));
     rankBtn.on('pointerover', ()=>rankBtn.setScale(1.08)); rankBtn.on('pointerout', ()=>rankBtn.setScale(1));
+    changeBtn.on('pointerover',()=>changeBtn.setScale(1.08));
+    changeBtn.on('pointerout',()=>changeBtn.setScale(1));
     howtoBtn.on('pointerdown',()=>showHowTo());
     rankBtn.on('pointerdown', ()=>showRankingPanel());
 
-    // プレイヤー名表示 & 変更ボタン (画面内に収める)
-    this.playerNameText=this.add.text(W/2-85,500,'',{
+    // プレイヤー名表示 (ボタンの下)
+    this.playerNameText=this.add.text(leftX,385,'',{
       fontSize:'13px',
       fontFamily:'Arial Black',
       color:'#FFFFFF',
       stroke:'#000',
-      strokeThickness:2
+      strokeThickness:2,
+      align:'center',
+      wordWrap:{width:200}
     }).setOrigin(.5);
-    const changeBtn=this.add.text(W/2+85,500,'✏ 名前変更',{
-      fontSize:'11px',
-      fontFamily:'Arial',
-      color:'#FFD700',
-      backgroundColor:'rgba(0,0,0,0.6)',
-      padding:{x:10,y:4},
-      stroke:'#FFD700',
-      strokeThickness:1
-    }).setOrigin(.5).setInteractive({useHandCursor:true});
-    changeBtn.on('pointerover',()=>changeBtn.setScale(1.1));
-    changeBtn.on('pointerout',()=>changeBtn.setScale(1));
 
     const refreshNameDisplay=()=>{
       const n=getPlayerName();
-      this.playerNameText.setText(n?`🎮 プレイヤー: ${n}`:'');
+      this.playerNameText.setText(n?`🎮 プレイヤー\n${n}`:'🎮 プレイヤー\n(未登録)');
     };
     refreshNameDisplay();
 
@@ -1480,9 +1484,9 @@ class TitleScene extends Phaser.Scene{
             this.gameStartInProgress=false;
           }
         },{
-          title:'🎮 ようこそ！',
-          desc:'プレイヤー名を入力してください<br>（最大8文字 / 後から変更可能）',
-          submitLabel:'▶ ゲームスタート！',
+          title:'🎮 プレイヤー名を入力',
+          desc:'ランキング登録に使う名前です<br>（最大8文字 / 後から変更できます）<br><br><b style="color:#FFD700">⚠ 名前の入力が必要です</b>',
+          submitLabel:'▶ 名前を決めてスタート！',
           skipAllowed:false
         });
         return;
@@ -1531,12 +1535,13 @@ function injectPanelStyles(){
     .boss-card{background:#0a0010;border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:10px 12px;position:relative;overflow:hidden;}
     .boss-card .bn{font-family:'Arial Black',sans-serif;font-size:10px;margin-bottom:4px;}
     .boss-card .bd{font-family:Arial,sans-serif;font-size:10px;color:rgba(255,255,255,.55);line-height:1.5;}
-    /* Locked boss cards - blurred/mosaic with lock overlay */
-    .boss-card.locked{filter:blur(7px) saturate(.4);user-select:none;pointer-events:none;}
-    .boss-card-wrap{position:relative;}
-    .boss-card-wrap .lock-overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:2;pointer-events:none;gap:4px;}
-    .boss-card-wrap .lock-overlay .lock-icon{font-size:26px;filter:drop-shadow(0 0 6px rgba(0,0,0,.8));}
-    .boss-card-wrap .lock-overlay .lock-text{font-family:'Arial Black',sans-serif;font-size:9px;color:#FFD700;letter-spacing:2px;text-shadow:0 0 6px #000,0 0 3px #000;}
+    .boss-card .bi{width:48px;height:72px;margin:4px auto 6px;display:block;image-rendering:pixelated;filter:drop-shadow(0 0 6px currentColor);}
+    /* Locked: ステージ名＆画像は出す／詳細のみモザイク */
+    .boss-card.locked .bd{filter:blur(6px) saturate(.3);user-select:none;color:#888;}
+    .boss-card.locked::after{
+      content:'🔒';position:absolute;bottom:8px;right:10px;font-size:16px;
+      filter:drop-shadow(0 0 4px rgba(0,0,0,.8));opacity:.8;
+    }
     .rtabs{display:flex;gap:6px;margin-bottom:10px;}
     .rtab-btn{font-family:'Arial Black',sans-serif;font-size:10px;padding:5px 12px;border-radius:4px;border:1px solid #333;color:rgba(255,255,255,.4);background:#111;cursor:pointer;transition:all .15s;}
     .rtab-btn.on-y{border-color:#FFE600;color:#FFE600;background:rgba(255,230,0,.1);}
@@ -1565,21 +1570,12 @@ function createPanelDOM(){
 
     <div style="font-family:'Arial Black',sans-serif;font-size:10px;color:#FFD700;margin:14px 0 8px;letter-spacing:2px">⚔ BOSS GUIDE</div>
     <div class="boss-grid">
-      <div class="boss-card"><div class="bn" style="color:#FFD700">STAGE 5 — RYOSUKE</div><div class="bd">HP:80 / 投擲2個<br>皿・ボウル・シーシャを投げて破片を撒く！<br>「いっっっって！！」</div></div>
-      <div class="boss-card"><div class="bn" style="color:#AA00FF">STAGE 10 — SHADOW KING</div><div class="bd">HP:150 / 投擲2個<br>顔が闇の王。「ばかな！！」</div></div>
-      <div class="boss-card"><div class="bn" style="color:#FF5500">STAGE 15 — FIRE GOD</div><div class="bd">HP:220 / 投擲3個<br>溶岩鎧の灼熱神。「あづっ！！」</div></div>
-      <div class="boss-card-wrap">
-        <div class="boss-card locked"><div class="bn" style="color:#AAEEFF">STAGE 20 — ICE QUEEN</div><div class="bd">HP:??? / 投擲???個<br>??????????????????????<br>「???????」</div></div>
-        <div class="lock-overlay"><div class="lock-icon">🔒</div><div class="lock-text">???</div></div>
-      </div>
-      <div class="boss-card-wrap">
-        <div class="boss-card locked"><div class="bn" style="color:#00FFFF">STAGE 25 — CYBER LORD</div><div class="bd">HP:??? / 投擲???個<br>??????????????????<br>「????????」</div></div>
-        <div class="lock-overlay"><div class="lock-icon">🔒</div><div class="lock-text">???</div></div>
-      </div>
-      <div class="boss-card-wrap">
-        <div class="boss-card locked"><div class="bn" style="color:#FF00FF">STAGE 30 — COSMIC GOD</div><div class="bd">HP:??? / 投擲???個<br>????????????<br>「????????」</div></div>
-        <div class="lock-overlay"><div class="lock-icon">🔒</div><div class="lock-text">???</div></div>
-      </div>
+      <div class="boss-card"><div class="bn" style="color:#FFD700">STAGE 5 — RYOSUKE</div><img class="bi" id="bi-ryosuke" style="color:#FFD700"><div class="bd">HP:80 / 投擲2個<br>皿・ボウル・シーシャを投げて破片を撒く！<br>「いっっっって！！」</div></div>
+      <div class="boss-card"><div class="bn" style="color:#AA00FF">STAGE 10 — SHADOW KING</div><img class="bi" id="bi-shadowking" style="color:#AA00FF"><div class="bd">HP:150 / 投擲2個<br>顔が闇の王。「ばかな！！」</div></div>
+      <div class="boss-card"><div class="bn" style="color:#FF5500">STAGE 15 — FIRE GOD</div><img class="bi" id="bi-firegod" style="color:#FF5500"><div class="bd">HP:220 / 投擲3個<br>溶岩鎧の灼熱神。「あづっ！！」</div></div>
+      <div class="boss-card locked"><div class="bn" style="color:#AAEEFF">STAGE 20 — ICE QUEEN</div><img class="bi" id="bi-icequeen" style="color:#AAEEFF"><div class="bd">HP:??? / 投擲???個<br>??????????????????????<br>「???????」</div></div>
+      <div class="boss-card locked"><div class="bn" style="color:#00FFFF">STAGE 25 — CYBER LORD</div><img class="bi" id="bi-cyberlord" style="color:#00FFFF"><div class="bd">HP:??? / 投擲???個<br>??????????????????<br>「????????」</div></div>
+      <div class="boss-card locked"><div class="bn" style="color:#FF00FF">STAGE 30 — COSMIC GOD</div><img class="bi" id="bi-cosmicgod" style="color:#FF00FF"><div class="bd">HP:??? / 投擲???個<br>????????????<br>「????????」</div></div>
     </div>
     <div style="margin-top:12px;font-family:Arial,sans-serif;font-size:11px;color:rgba(255,255,255,.4);text-align:center;line-height:1.8">
       石川県 奥能登→珠洲→輪島→七尾→和倉→羽咋→津幡→金沢→<b style="color:#FFD700">片町 U.S.B</b> を目指せ！
@@ -1609,7 +1605,36 @@ function createPanelDOM(){
   [h,r].forEach(el=>el.addEventListener('click',e=>{if(e.target===el)hideGamePanels();}));
 }
 
-function showHowTo(){createPanelDOM();document.getElementById('howto-panel').classList.add('open');}
+// Phaser テクスチャからボス画像をDataURLとして取り出し、imgタグにセット
+function loadBossImages(){
+  const game=window.__phaserGame;
+  if(!game||!game.textures)return;
+  const bosses=[
+    {id:'bi-ryosuke',tex:'boss_ryosuke_idle'},
+    {id:'bi-shadowking',tex:'boss_shadowking_idle'},
+    {id:'bi-firegod',tex:'boss_firegod_idle'},
+    {id:'bi-icequeen',tex:'boss_icequeen_idle'},
+    {id:'bi-cyberlord',tex:'boss_cyberlord_idle'},
+    {id:'bi-cosmicgod',tex:'boss_cosmicgod_idle'},
+  ];
+  bosses.forEach(b=>{
+    const img=document.getElementById(b.id);
+    if(!img||img.src&&img.src.startsWith('data:'))return;
+    try{
+      const tex=game.textures.get(b.tex);
+      if(!tex||tex.key==='__MISSING')return;
+      const src=tex.getSourceImage();
+      const canvas=document.createElement('canvas');
+      canvas.width=src.width;canvas.height=src.height;
+      const ctx=canvas.getContext('2d');
+      ctx.imageSmoothingEnabled=false;
+      ctx.drawImage(src,0,0);
+      img.src=canvas.toDataURL('image/png');
+    }catch(e){console.warn('boss img load failed',b.id,e);}
+  });
+}
+
+function showHowTo(){createPanelDOM();document.getElementById('howto-panel').classList.add('open');loadBossImages();}
 function showRankingPanel(){createPanelDOM();document.getElementById('ranking-panel').classList.add('open');loadGameRanking();}
 function hideGamePanels(){
   ['howto-panel','ranking-panel'].forEach(id=>{
@@ -3072,7 +3097,7 @@ const config={
   physics:{default:'arcade',arcade:{gravity:{y:0},debug:false}},
   scene:[BootScene,TitleScene,GameScene,GameOverScene]
 };
-new Phaser.Game(config);
+window.__phaserGame=new Phaser.Game(config);
 </script>
 </body>
 </html>
