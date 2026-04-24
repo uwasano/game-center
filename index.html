@@ -31,10 +31,80 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9998;
     var(--dark);
 }
 
+/* 🎵 BGM toggle */
+.bgm-toggle{
+  position:fixed;top:12px;left:12px;z-index:100;
+  width:44px;height:44px;border-radius:50%;
+  background:rgba(0,0,0,.78);
+  border:2px solid var(--yellow);
+  color:var(--yellow);font-size:20px;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;user-select:none;
+  box-shadow:0 0 12px rgba(255,230,0,.5);
+  transition:transform .1s;
+}
+.bgm-toggle:active{transform:scale(.9);}
+.bgm-toggle.muted{border-color:#555;color:#555;box-shadow:none;}
+.bgm-pulse{animation:bgmPulse 1.2s ease-in-out infinite;}
+@keyframes bgmPulse{
+  0%,100%{box-shadow:0 0 12px rgba(255,230,0,.5)}
+  50%{box-shadow:0 0 22px rgba(255,230,0,.9)}
+}
+
 /* MARQUEE */
 .marquee{width:100%;background:var(--pink);padding:5px 0;overflow:hidden;box-shadow:0 0 18px var(--pink);}
 .marquee-in{display:inline-block;white-space:nowrap;animation:mq 22s linear infinite;font-size:8px;color:#000;letter-spacing:2px;}
 @keyframes mq{from{transform:translateX(100vw)}to{transform:translateX(-100%)}}
+
+/* 🏆 CHAMPION BANNER */
+.champ-banner{
+  margin:14px 12px 0;padding:14px 16px;border-radius:12px;
+  background:linear-gradient(135deg,rgba(255,230,0,.15) 0%,rgba(255,45,120,.15) 100%);
+  border:2px solid var(--yellow);
+  box-shadow:0 0 20px rgba(255,230,0,.4),inset 0 0 14px rgba(255,230,0,.1);
+  text-align:center;position:relative;overflow:hidden;
+  animation:champGlow 2.4s ease-in-out infinite;
+}
+.champ-banner::before{
+  content:'';position:absolute;inset:-50%;
+  background:conic-gradient(from 0deg,transparent 0%,rgba(255,230,0,.2) 25%,transparent 50%,rgba(255,45,120,.2) 75%,transparent 100%);
+  animation:champSpin 6s linear infinite;z-index:0;pointer-events:none;
+}
+.champ-banner>*{position:relative;z-index:1;}
+@keyframes champGlow{
+  0%,100%{box-shadow:0 0 20px rgba(255,230,0,.4),inset 0 0 14px rgba(255,230,0,.1);}
+  50%{box-shadow:0 0 38px rgba(255,230,0,.75),inset 0 0 22px rgba(255,230,0,.25);}
+}
+@keyframes champSpin{to{transform:rotate(360deg);}}
+.champ-label{
+  font-family:'Press Start 2P',monospace;font-size:8px;
+  color:var(--yellow);letter-spacing:3px;
+  text-shadow:0 0 10px var(--yellow);margin-bottom:10px;
+}
+.champ-name{
+  font-family:'DotGothic16',sans-serif;font-size:24px;font-weight:bold;
+  color:#fff;text-shadow:0 0 10px var(--yellow),0 0 20px var(--pink);
+  letter-spacing:2px;margin-bottom:6px;word-break:break-all;
+}
+.champ-coins{
+  font-family:'DotGothic16',sans-serif;font-size:13px;
+  color:var(--yellow);text-shadow:0 0 6px var(--yellow);margin-bottom:12px;
+}
+.champ-congrats{
+  font-family:'DotGothic16',sans-serif;font-size:15px;font-weight:bold;
+  color:var(--pink);text-shadow:0 0 10px var(--pink);
+  letter-spacing:1px;line-height:1.5;margin-bottom:4px;
+}
+.champ-prize{
+  font-family:'DotGothic16',sans-serif;font-size:13px;
+  color:var(--cyan);text-shadow:0 0 8px var(--cyan);
+  letter-spacing:1px;
+}
+.champ-empty{
+  font-family:'DotGothic16',sans-serif;font-size:12px;
+  color:rgba(255,255,255,.55);line-height:1.8;padding:8px 0;
+}
+.champ-hidden{display:none;}
 
 /* TOP BAR */
 .topbar{width:100%;background:#000;padding:6px 14px;
@@ -105,7 +175,24 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9998;
 .game-card:active{transform:scale(.97)}
 .game-card.uwasa{border:2px solid var(--pink);  box-shadow:0 0 16px rgba(255,45,120,.5)}
 .game-card.nabe {border:2px solid var(--green); box-shadow:0 0 16px rgba(57,255,20,.45)}
-.game-card.soon {border:2px solid #333;         opacity:.55;cursor:default}
+/* POP Coming Soon — colorful teasers */
+.game-card.soon{
+  cursor:default;position:relative;overflow:hidden;
+  animation:soonFloat 3.2s ease-in-out infinite;
+}
+.game-card.soon::before{
+  content:'';position:absolute;inset:0;pointer-events:none;z-index:0;
+  background:repeating-linear-gradient(45deg,transparent 0 16px,rgba(255,255,255,.035) 16px 18px);
+  animation:soonStripe 8s linear infinite;
+}
+.game-card.soon>*{position:relative;z-index:1;}
+.game-card.soon-cyan  {border:2px solid var(--cyan);  box-shadow:0 0 14px rgba(0,245,255,.4)}
+.game-card.soon-purple{border:2px solid var(--purple);box-shadow:0 0 14px rgba(191,0,255,.45)}
+@keyframes soonFloat{
+  0%,100%{transform:translateY(0)}
+  50%{transform:translateY(-3px)}
+}
+@keyframes soonStripe{from{background-position:0 0}to{background-position:80px 0}}
 .game-card:hover.uwasa{box-shadow:0 0 28px rgba(255,45,120,.9),inset 0 0 20px rgba(255,45,120,.08)}
 .game-card:hover.nabe {box-shadow:0 0 28px rgba(57,255,20,.9),inset 0 0 20px rgba(57,255,20,.08)}
 
@@ -119,11 +206,18 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9998;
   background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,.12) 3px,rgba(0,0,0,.12) 4px);}
 .game-card.uwasa .gc-screen{background:linear-gradient(135deg,#1a0020,#2a0010)}
 .game-card.nabe  .gc-screen{background:linear-gradient(135deg,#001a0a,#003015)}
-.game-card.soon  .gc-screen{background:linear-gradient(135deg,#0a0a0a,#111)}
+.game-card.soon-cyan   .gc-screen{background:linear-gradient(135deg,#001a22,#003040)}
+.game-card.soon-purple .gc-screen{background:linear-gradient(135deg,#150025,#2a0045)}
 .gc-emoji{filter:drop-shadow(0 0 12px currentColor);animation:sf 2s ease-in-out infinite;}
 .game-card.uwasa .gc-emoji{color:var(--pink)}
 .game-card.nabe  .gc-emoji{color:var(--green)}
+.game-card.soon-cyan   .gc-emoji{color:var(--cyan);  animation:sfWobble 1.6s ease-in-out infinite}
+.game-card.soon-purple .gc-emoji{color:var(--purple);animation:sfWobble 1.6s ease-in-out infinite .3s}
 @keyframes sf{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+@keyframes sfWobble{
+  0%,100%{transform:translateY(0) rotate(-6deg)}
+  50%{transform:translateY(-5px) rotate(6deg)}
+}
 
 /* Pixel runner */
 .px-runner{position:absolute;bottom:6px;left:50%;transform:translateX(-50%);display:flex;gap:5px;}
@@ -138,14 +232,21 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9998;
 .gc-title{font-size:11px;margin-bottom:5px;line-height:1.4;}
 .game-card.uwasa .gc-title{color:var(--pink);text-shadow:0 0 8px var(--pink)}
 .game-card.nabe  .gc-title{color:var(--green);text-shadow:0 0 8px var(--green)}
-.game-card.soon  .gc-title{color:#444}
+.game-card.soon-cyan   .gc-title{color:var(--cyan);  text-shadow:0 0 8px var(--cyan)}
+.game-card.soon-purple .gc-title{color:var(--purple);text-shadow:0 0 8px var(--purple)}
 .gc-desc{font-family:'DotGothic16',sans-serif;font-size:11px;color:rgba(255,255,255,.5);line-height:1.5;}
 .gc-tags{margin-top:6px;display:flex;gap:6px;flex-wrap:wrap;}
 .tag{font-family:'DotGothic16',sans-serif;font-size:9px;padding:2px 6px;border-radius:3px;}
 .tag.hot {background:var(--pink); color:#fff;animation:badgep .6s steps(2) infinite}
 .tag.new {background:var(--green);color:#000}
 .tag.new2{background:var(--yellow);color:#000;animation:badgep .6s steps(2) infinite}
-.tag.soon{background:#222;       color:#555}
+.tag.soon-pop{
+  background:linear-gradient(90deg,var(--pink),var(--yellow),var(--cyan),var(--purple),var(--pink));
+  background-size:300% 100%;color:#000;font-weight:bold;
+  animation:tagRainbow 3s linear infinite;
+}
+.tag.coming{background:var(--purple);color:#fff;animation:badgep .6s steps(2) infinite}
+@keyframes tagRainbow{from{background-position:0% 0}to{background-position:300% 0}}
 @keyframes badgep{0%{opacity:1}100%{opacity:.4}}
 
 /* ── OVERALL RANKING ── */
@@ -207,6 +308,9 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9998;
 </style>
 </head>
 <body>
+<!-- 🎵 BGM toggle -->
+<div class="bgm-toggle muted" id="bgm-btn" onclick="toggleBGM()">🔇</div>
+
 <div class="wrap">
 
   <!-- MARQUEE -->
@@ -226,6 +330,12 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9998;
     <div class="sign-en">U . W A S A N O</div>
     <div class="sign-ja">うわさの<br>ゲームセンター</div>
     <div class="sign-stars">★ ★ ★ ★ ★</div>
+  </div>
+
+  <!-- 🏆 先週のチャンピオン -->
+  <div class="champ-banner champ-hidden" id="champ-banner">
+    <div class="champ-label">🏆 先週のチャンピオン 🏆</div>
+    <div id="champ-content"></div>
   </div>
 
   <!-- DECO LIGHTS -->
@@ -276,15 +386,32 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9998;
       </div>
     </div>
 
-    <!-- COMING SOON -->
-    <div class="game-card soon">
+    <!-- ══ COMING SOON LINEUP ══ -->
+    <div class="game-card soon soon-purple">
       <div class="gc-screen">
-        <span class="gc-emoji" style="font-size:32px;color:#333">❓</span>
+        <span class="gc-emoji">🎯</span>
       </div>
       <div class="gc-info">
-        <div class="gc-title">NEW GAME #3</div>
-        <div class="gc-desc">近日公開予定...</div>
-        <div class="gc-tags"><span class="tag soon">COMING SOON</span></div>
+        <div class="gc-title">SHISHA DARTS</div>
+        <div class="gc-desc">ダーツで煙リング勝負！<br>ブル連発で景品GET🎁</div>
+        <div class="gc-tags">
+          <span class="tag soon-pop">✨ COMING SOON</span>
+          <span class="tag coming">TEASER</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="game-card soon soon-cyan">
+      <div class="gc-screen">
+        <span class="gc-emoji">❓</span>
+      </div>
+      <div class="gc-info">
+        <div class="gc-title">???</div>
+        <div class="gc-desc">新作リクエスト募集中！<br>スタッフに伝えてね📢</div>
+        <div class="gc-tags">
+          <span class="tag soon-pop">✨ COMING SOON</span>
+          <span class="tag coming">???</span>
+        </div>
       </div>
     </div>
 
@@ -357,6 +484,141 @@ tick(); setInterval(tick,10000);
 })();
 
 // ── Coin SFX ──
+// ═══════════════════════════════════════════════════════
+// 🎵 ARCADE BGM — 8bit ゲームセンター風ループ
+// ═══════════════════════════════════════════════════════
+const BGM=(()=>{
+  let ctx=null,mg=null,musg=null,on=false,timer=null,mi=0,mr=0,bs=0;
+  const MELODY=[
+    {n:523,d:1},{n:659,d:1},{n:784,d:1},{n:1047,d:2},
+    {n:988,d:1},{n:784,d:1},{n:880,d:2},
+    {n:698,d:1},{n:880,d:1},{n:1047,d:1},{n:1175,d:2},
+    {n:1047,d:1},{n:880,d:1},{n:784,d:2},
+    {n:659,d:1},{n:784,d:1},{n:988,d:1},{n:1175,d:2},
+    {n:1319,d:1},{n:1175,d:1},{n:988,d:2},
+    {n:784,d:1},{n:988,d:1},{n:1175,d:1},{n:1319,d:2},
+    {n:1175,d:1},{n:988,d:1},{n:1047,d:2},
+    {n:1319,d:1},{n:1175,d:1},{n:1047,d:1},{n:988,d:1},
+    {n:880,d:1},{n:784,d:1},{n:698,d:1},{n:659,d:1},
+    {n:784,d:1},{n:880,d:1},{n:988,d:1},{n:1047,d:2},
+    {n:1319,d:1},{n:1568,d:1},{n:1319,d:2},
+  ];
+  const BASS=[131,131,165,165,196,196,165,165,147,147,175,175,196,196,131,131];
+  const tempo=165;
+
+  function ensureCtx(){
+    if(ctx)return;
+    try{
+      const AC=window.AudioContext||window.webkitAudioContext;
+      ctx=new AC();
+      mg=ctx.createGain(); mg.gain.value=.4; mg.connect(ctx.destination);
+      musg=ctx.createGain(); musg.gain.value=.22; musg.connect(mg);
+    }catch(e){}
+  }
+
+  function tick(){
+    if(!ctx||!on)return;
+    if(mr<=0){
+      const n=MELODY[mi%MELODY.length];
+      if(n){
+        const o=ctx.createOscillator(),g=ctx.createGain();
+        o.type='square'; o.frequency.value=n.n;
+        const d=n.d*tempo/1000;
+        g.gain.setValueAtTime(0,ctx.currentTime);
+        g.gain.linearRampToValueAtTime(.15,ctx.currentTime+.015);
+        g.gain.setValueAtTime(.15,ctx.currentTime+d*.7);
+        g.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+d);
+        o.connect(g); g.connect(musg);
+        o.start(); o.stop(ctx.currentTime+d);
+        mr=n.d; mi++;
+      }
+    }
+    mr--;
+    const bn=BASS[bs%BASS.length];
+    if(bn){
+      const o=ctx.createOscillator(),g=ctx.createGain();
+      o.type='triangle'; o.frequency.value=bn;
+      const d=tempo/1000*.85;
+      g.gain.setValueAtTime(0,ctx.currentTime);
+      g.gain.linearRampToValueAtTime(.22,ctx.currentTime+.01);
+      g.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+d);
+      o.connect(g); g.connect(musg);
+      o.start(); o.stop(ctx.currentTime+d);
+    }
+    if(bs%2===1){
+      try{
+        const sr=ctx.sampleRate, len=sr*.03;
+        const buf=ctx.createBuffer(1,len,sr);
+        const dt=buf.getChannelData(0);
+        for(let i=0;i<len;i++)dt[i]=Math.random()*2-1;
+        const s=ctx.createBufferSource(); s.buffer=buf;
+        const f=ctx.createBiquadFilter(); f.type='highpass'; f.frequency.value=6000;
+        const g=ctx.createGain();
+        g.gain.setValueAtTime(.08,ctx.currentTime);
+        g.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+.03);
+        s.connect(f); f.connect(g); g.connect(musg);
+        s.start();
+      }catch(e){}
+    }
+    if(bs%4===0){
+      const o=ctx.createOscillator(),g=ctx.createGain();
+      o.type='sine';
+      o.frequency.setValueAtTime(120,ctx.currentTime);
+      o.frequency.exponentialRampToValueAtTime(40,ctx.currentTime+.08);
+      g.gain.setValueAtTime(.3,ctx.currentTime);
+      g.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+.12);
+      o.connect(g); g.connect(musg);
+      o.start(); o.stop(ctx.currentTime+.12);
+    }
+    bs++;
+  }
+
+  function start(){
+    ensureCtx();
+    if(!ctx)return;
+    if(ctx.state==='suspended')ctx.resume();
+    if(on)return;
+    on=true; mi=0; mr=0; bs=0;
+    timer=setInterval(tick,tempo);
+  }
+  function stop(){
+    on=false;
+    if(timer){clearInterval(timer); timer=null;}
+  }
+  function isOn(){return on;}
+  function duck(v){if(mg)mg.gain.value=v;}
+  return {start,stop,isOn,duck};
+})();
+
+function toggleBGM(){
+  const btn=document.getElementById('bgm-btn');
+  if(BGM.isOn()){
+    BGM.stop();
+    btn.textContent='🔇';
+    btn.classList.add('muted');
+    btn.classList.remove('bgm-pulse');
+    try{localStorage.setItem('uwasa_bgm','off');}catch(e){}
+  }else{
+    BGM.start();
+    btn.textContent='🔊';
+    btn.classList.remove('muted');
+    btn.classList.add('bgm-pulse');
+    try{localStorage.setItem('uwasa_bgm','on');}catch(e){}
+  }
+}
+
+// First-interaction autostart
+let bgmArmed=false;
+function armBGM(){
+  if(bgmArmed)return;
+  bgmArmed=true;
+  try{if(localStorage.getItem('uwasa_bgm')==='off')return;}catch(e){}
+  toggleBGM();
+}
+['click','touchstart','keydown'].forEach(ev=>{
+  document.addEventListener(ev,armBGM,{once:true,passive:true});
+});
+
 function playCoin(){
   try{
     const ac=new(window.AudioContext||window.webkitAudioContext)();
@@ -375,6 +637,7 @@ function playCoin(){
 // ── Open game in iframe ──
 function openGame(src){
   playCoin();
+  BGM.duck(0); // mute launcher BGM while iframe game plays its own
   const fl=document.createElement('div');
   fl.style.cssText='position:fixed;inset:0;background:#fff;z-index:99999;opacity:.7;pointer-events:none;transition:opacity .25s';
   document.body.appendChild(fl);
@@ -390,6 +653,7 @@ function closeGame(){
   document.getElementById('gm').classList.remove('open');
   document.getElementById('gm-frame').src='';
   document.body.style.overflow='';
+  BGM.duck(.4); // restore launcher BGM
   loadRanking(currentTab);
 }
 
@@ -437,6 +701,44 @@ async function fetchRanking(game, limit=10){
   }catch(e){return null;}
 }
 
+// 🏆 先週の王者を取得（全ゲーム共通で最高コイン）
+async function fetchLastWeekChampion(){
+  if(!SUPABASE_URL||!SUPABASE_KEY) return null;
+  try{
+    const now=new Date();
+    const thisMon=new Date(now);
+    thisMon.setDate(now.getDate()-((now.getDay()+6)%7));
+    thisMon.setHours(0,0,0,0);
+    const lastMon=new Date(thisMon);
+    lastMon.setDate(lastMon.getDate()-7);
+    const url=SUPABASE_URL+'/rest/v1/scores?select=player_name,coins,game&created_at=gte.'+lastMon.toISOString()+'&created_at=lt.'+thisMon.toISOString()+'&order=coins.desc&limit=1';
+    const r=await fetch(url,{headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+SUPABASE_KEY}});
+    if(!r.ok) return null;
+    const data=await r.json();
+    return data && data.length>0 ? data[0] : null;
+  }catch(e){return null;}
+}
+
+async function showChampionBanner(){
+  const banner=document.getElementById('champ-banner');
+  const content=document.getElementById('champ-content');
+  if(!banner||!content) return;
+  const champ=await fetchLastWeekChampion();
+  if(champ && champ.player_name){
+    const gameIcon=champ.game==='count_up_aho'?'👏':champ.game==='uwasa_brothers'?'🎮':'🏆';
+    content.innerHTML=`
+      <div class="champ-name">${gameIcon} ${champ.player_name}</div>
+      <div class="champ-coins">🪙 ${champ.coins||0} コイン</div>
+      <div class="champ-congrats">おめでとう御座います‼️</div>
+      <div class="champ-prize">✨ シーシャ1台無料です ✨</div>
+    `;
+  }else{
+    content.innerHTML=`<div class="champ-empty">まだチャンピオンはいません<br>今週の1位を目指そう 🎮</div>`;
+  }
+  banner.classList.remove('champ-hidden');
+}
+showChampionBanner();
+
 async function loadRanking(tab){
   const el=document.getElementById('rank-list');
   el.innerHTML='<div class="rank-empty">読み込み中...</div>';
@@ -467,7 +769,7 @@ async function loadRanking(tab){
     const sub   = g==='count_up_aho'
       ? `→${row.distance||0}`
       : g==='uwasa_brothers'
-        ? `ST${(row.stage||0)+1}`
+        ? `ステージ${(row.stage||0)+1}`
         : '';
     return `<div class="rank-row">
       <span style="font-size:15px;width:28px">${medal}</span>
