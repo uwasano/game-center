@@ -1416,72 +1416,25 @@ class TitleScene extends Phaser.Scene{
     howtoBtn.on('pointerdown',()=>showHowTo());
     rankBtn.on('pointerdown', ()=>showRankingPanel());
 
-    this.playerNameText=this.add.text(W/2-70,555,'',{
+    // プレイヤー名表示 & 変更ボタン (画面内に収める)
+    this.playerNameText=this.add.text(W/2-85,500,'',{
       fontSize:'13px',
       fontFamily:'Arial Black',
       color:'#FFFFFF',
       stroke:'#000',
       strokeThickness:2
     }).setOrigin(.5);
-    const changeBtn=this.add.text(W/2+70,555,'✏ 名前変更',{
+    const changeBtn=this.add.text(W/2+85,500,'✏ 名前変更',{
       fontSize:'11px',
       fontFamily:'Arial',
       color:'#FFD700',
-      backgroundColor:'rgba(0,0,0,0.5)',
-      padding:{x:8,y:3}
+      backgroundColor:'rgba(0,0,0,0.6)',
+      padding:{x:10,y:4},
+      stroke:'#FFD700',
+      strokeThickness:1
     }).setOrigin(.5).setInteractive({useHandCursor:true});
     changeBtn.on('pointerover',()=>changeBtn.setScale(1.1));
     changeBtn.on('pointerout',()=>changeBtn.setScale(1));
-
-    const rankY=585;
-    const rankBg=this.add.rectangle(W/2,rankY+60,520,130,0x000000,.75).setStrokeStyle(2,0xFFD700);
-    rankBg.setDepth(5);
-    this.add.text(W/2,rankY,'🏆 WEEKLY TOP 5 🏆',{
-      fontSize:'14px',
-      fontFamily:'Arial Black',
-      color:'#FFD700',
-      stroke:'#FF00FF',
-      strokeThickness:2,
-      letterSpacing:2
-    }).setOrigin(.5).setDepth(6);
-
-    this.titleRankLines=[];
-    for(let i=0;i<5;i++){
-      const t=this.add.text(W/2,rankY+24+i*20,'読み込み中...',{
-        fontSize:'12px',
-        fontFamily:'Arial',
-        color:'#AAAAAA'
-      }).setOrigin(.5).setDepth(6);
-      this.titleRankLines.push(t);
-    }
-
-    sbFetchRanking().then(data=>{
-      if(!data){
-        this.titleRankLines[0].setText('⚠ ランキングを取得できませんでした').setStyle({color:'#888',fontSize:'11px'});
-        for(let i=1;i<5;i++)this.titleRankLines[i].setText('');
-        return;
-      }
-      if(!data.length){
-        this.titleRankLines[0].setText('まだ記録なし！').setStyle({color:'#888'});
-        this.titleRankLines[1].setText('最初のプレイヤーになろう 🎮').setStyle({color:'#FFD700',fontSize:'11px'});
-        for(let i=2;i<5;i++)this.titleRankLines[i].setText('');
-        return;
-      }
-      const medals=['🥇','🥈','🥉','4位','5位'];
-      const colors=['#FFD700','#C0C0C0','#CD7F32','#FFFFFF','#FFFFFF'];
-      for(let i=0;i<5;i++){
-        const row=data[i];
-        const t=this.titleRankLines[i];
-        if(row){
-          const name=(row.player_name||'???').substring(0,8);
-          t.setText(`${medals[i]}  ${name}   🪙 ${row.coins||0}`);
-          t.setStyle({color:colors[i],fontFamily:'Arial Black',fontSize:'13px',stroke:'#000',strokeThickness:2});
-        }else{
-          t.setText('—');
-          t.setStyle({color:'#444',fontSize:'11px'});
-        }
-      }
-    });
 
     const refreshNameDisplay=()=>{
       const n=getPlayerName();
@@ -1694,7 +1647,7 @@ async function loadGameRanking(){
       <span style="font-size:15px;width:26px">${medal}</span>
       <span style="font-size:14px;color:${col};flex:1;margin-left:6px">${name}</span>
       <span style="color:#FFE600;font-size:14px">🪙 ${row.coins||0}</span>
-      <span style="color:rgba(255,255,255,.3);font-size:10px;margin-left:7px">ST${(row.stage||0)+1}</span>
+      <span style="color:rgba(255,255,255,.3);font-size:10px;margin-left:7px">ステージ${(row.stage||0)+1}</span>
     </div>`;
   }).join('');
 }
@@ -2334,7 +2287,7 @@ class GameScene extends Phaser.Scene{
 
   collectCoin(pl,co){
     co.destroy();
-    this.coinsCollected++;gameState.coins=this.coinsCollected;gameState.score+=10;
+    this.coinsCollected+=10;gameState.coins=this.coinsCollected;gameState.score+=10;
     Audio.SFX.coin();
     const s=this.add.text(co.x,co.y,'+10',{fontSize:'20px',fontFamily:'Arial Black',color:'#FFD700',stroke:'#000',strokeThickness:3}).setOrigin(.5).setDepth(120);
     this.tweens.add({targets:s,y:s.y-40,alpha:0,scale:1.5,duration:700,onComplete:()=>s.destroy()});
