@@ -1881,18 +1881,9 @@ class GameScene extends Phaser.Scene{
     livesBlock.addEventListener('mousedown',onLivesTap);
   }
 
-  // Rain stars from sky for 3 seconds
+  // Rain stars from sky
   triggerStarRain(){
     Audio.SFX.cheer();
-    // "うおおおおおお‼️" shout
-    const shout=this.add.text(W/2,H/2-60,'うおおおおおお‼️',{
-      fontSize:'56px',fontFamily:'Arial Black',
-      color:'#FFD700',stroke:'#FF00FF',strokeThickness:8
-    }).setOrigin(.5).setDepth(300).setAlpha(0).setScale(.3);
-    this.tweens.add({targets:shout,alpha:1,scale:1.2,duration:400,ease:'Back.easeOut',onComplete:()=>{
-      this.tweens.add({targets:shout,scale:1,duration:200});
-      this.tweens.add({targets:shout,alpha:0,y:shout.y-30,delay:800,duration:400,onComplete:()=>shout.destroy()});
-    }});
     this.cameras.main.flash(300,255,255,0);
 
     // Drop 5 star powers over 2 seconds
@@ -1903,7 +1894,7 @@ class GameScene extends Phaser.Scene{
         const y=GROUND_Y-180-Phaser.Math.Between(0,60);
         const s=this.starPowers.create(x,y,'starpower');
         s.setScale(1.3);s.body.setAllowGravity(false);
-        s.body.setVelocityX(-this.scrollSpeed*.85);
+        s.body.setVelocityX(-this.getEffScrollSpeed()*.85);
         s.body.setSize(36,36);s.setDepth(60);
         this.tweens.add({targets:s,y:y-25,duration:500,yoyo:true,repeat:-1,ease:'Sine.easeInOut'});
         this.tweens.add({targets:s,angle:360,duration:900,repeat:-1});
@@ -1933,13 +1924,23 @@ class GameScene extends Phaser.Scene{
     Audio.stopBGM();
     this.time.delayedCall(100,()=>{if(this.superInvincible)Audio.startInvincibleBGM();});
 
-    // Big announcement
-    const ann=this.add.text(W/2,H/2-80,'⭐ INVINCIBLE! ⭐',{
-      fontSize:'42px',fontFamily:'Arial Black',
-      color:'#FFD700',stroke:'#FF00FF',strokeThickness:7
+    // "うおおおおおお‼️" shout on star collect
+    const shout=this.add.text(W/2,H/2-20,'うおおおおおお‼️',{
+      fontSize:'56px',fontFamily:'Arial Black',
+      color:'#FFD700',stroke:'#FF00FF',strokeThickness:8
     }).setOrigin(.5).setDepth(300).setAlpha(0).setScale(.3);
-    this.tweens.add({targets:ann,alpha:1,scale:1.2,duration:500,ease:'Back.easeOut'});
-    this.tweens.add({targets:ann,alpha:0,scale:1.5,delay:1500,duration:500,onComplete:()=>ann.destroy()});
+    this.tweens.add({targets:shout,alpha:1,scale:1.2,duration:400,ease:'Back.easeOut',onComplete:()=>{
+      this.tweens.add({targets:shout,scale:1,duration:200});
+      this.tweens.add({targets:shout,alpha:0,y:shout.y-40,delay:900,duration:500,onComplete:()=>shout.destroy()});
+    }});
+
+    // Big announcement
+    const ann=this.add.text(W/2,H/2-90,'⭐ INVINCIBLE! ⭐',{
+      fontSize:'38px',fontFamily:'Arial Black',
+      color:'#FFD700',stroke:'#FF00FF',strokeThickness:6
+    }).setOrigin(.5).setDepth(300).setAlpha(0).setScale(.3);
+    this.tweens.add({targets:ann,alpha:1,scale:1.1,duration:500,ease:'Back.easeOut'});
+    this.tweens.add({targets:ann,alpha:0,scale:1.4,delay:1500,duration:500,onComplete:()=>ann.destroy()});
 
     // Rainbow flash
     this.cameras.main.flash(500,255,215,0);
@@ -1958,6 +1959,9 @@ class GameScene extends Phaser.Scene{
       });
     }
 
+    // ★ SPEED 2x during invincible — apply to all moving entities
+    this.refreshAllSpeeds();
+
     // Make player tint cycle through rainbow
     this.rainbowCycle=this.time.addEvent({
       delay:80,repeat:-1,
@@ -1970,6 +1974,22 @@ class GameScene extends Phaser.Scene{
         this.tweens.add({targets:spk,alpha:0,scale:.1,angle:180,duration:400,onComplete:()=>spk.destroy()});
       }
     });
+  }
+
+  // Re-apply current effective scroll speed to all existing entities
+  refreshAllSpeeds(){
+    const eff=this.getEffScrollSpeed();
+    this.obstacles.getChildren().forEach(o=>o.body.setVelocityX(-eff));
+    this.enemies.getChildren().forEach(e=>{
+      // Approximate: use typical speedMul range
+      const vx=e.body.velocity.x;
+      const sign=vx<0?-1:1;
+      // Current ratio of |vx|/previous speed; just set to eff (close enough)
+      e.body.setVelocityX(sign*eff);
+    });
+    this.coins.getChildren().forEach(c=>c.body.setVelocityX(-eff));
+    this.powerups.getChildren().forEach(p=>p.body.setVelocityX(-eff));
+    this.starPowers.getChildren().forEach(s=>s.body.setVelocityX(-eff*.85));
   }
 
   drawBackground(){
@@ -2110,12 +2130,15 @@ class GameScene extends Phaser.Scene{
     }
   }
 
+  // Get effective scroll speed (accounts for super invincible 2x boost)
+  getEffScrollSpeed(){return this.scrollSpeed*(this.superInvincible?2:1);}
+
   spawnSpike(){
     if(this.gameOver)return;
     const o=this.obstacles.create(W+40,GROUND_Y-13,'obs_spike_wall');
     o.setScale(1.2);
     o.body.setAllowGravity(false);
-    o.body.setVelocityX(-this.scrollSpeed);
+    o.body.setVelocityX(-this.getEffScrollSpeed());
     o.body.setSize(70,24);
     o.setDepth(50);
     o.isSpike=true;
@@ -2135,7 +2158,7 @@ class GameScene extends Phaser.Scene{
     const e=this.enemies.create(W+40,t.y,t.key);
     e.setScale(t.scale);
     e.body.setAllowGravity(false);
-    e.body.setVelocityX(-this.scrollSpeed*t.speedMul);
+    e.body.setVelocityX(-this.getEffScrollSpeed()*t.speedMul);
     e.body.setSize(t.hitW,t.hitH);
     e.setDepth(50);
     e.hp=t.hp;
@@ -2152,7 +2175,7 @@ class GameScene extends Phaser.Scene{
     for(let i=0;i<c;i++){
       const y=GROUND_Y-90-Phaser.Math.Between(0,80);
       const co=this.coins.create(W+20+i*30,y,'coin');
-      co.body.setAllowGravity(false);co.body.setVelocityX(-this.scrollSpeed);
+      co.body.setAllowGravity(false);co.body.setVelocityX(-this.getEffScrollSpeed());
       co.setDepth(45);
       this.tweens.add({targets:co,y:y-6,duration:400,yoyo:true,repeat:-1,ease:'Sine.easeInOut'});
       this.tweens.add({targets:co,angle:360,duration:800,repeat:-1});
@@ -2176,7 +2199,7 @@ class GameScene extends Phaser.Scene{
     const y=GROUND_Y-140;
     const it=this.powerups.create(W+30,y,'power_'+k);
     it.setScale(1.6);it.body.setAllowGravity(false);
-    it.body.setVelocityX(-this.scrollSpeed);
+    it.body.setVelocityX(-this.getEffScrollSpeed());
     it.body.setSize(32,32);it.powerKey=k;it.setDepth(55);
     const au=this.add.circle(it.x,it.y,32,pu.color,.35).setDepth(54);
     it.aura=au;
@@ -2660,10 +2683,11 @@ class GameScene extends Phaser.Scene{
     if(n!==this.stageIdx){
       this.stageIdx=n;this.scrollSpeed=STAGES[n].speed;this.obstTimer.delay=STAGES[n].obstFreq;
       this.drawBackground();
-      this.obstacles.getChildren().forEach(o=>o.body.setVelocityX(-this.scrollSpeed));
-      this.enemies.getChildren().forEach(e=>e.body.setVelocityX(-this.scrollSpeed));
-      this.coins.getChildren().forEach(c=>c.body.setVelocityX(-this.scrollSpeed));
-      this.powerups.getChildren().forEach(p=>p.body.setVelocityX(-this.scrollSpeed));
+      const eff=this.getEffScrollSpeed();
+      this.obstacles.getChildren().forEach(o=>o.body.setVelocityX(-eff));
+      this.enemies.getChildren().forEach(e=>e.body.setVelocityX(-eff));
+      this.coins.getChildren().forEach(c=>c.body.setVelocityX(-eff));
+      this.powerups.getChildren().forEach(p=>p.body.setVelocityX(-eff));
       Audio.SFX.stageUp();
       const fullName=STAGES[n].name;
       const parts=fullName.split(' — ');
@@ -2721,7 +2745,8 @@ class GameScene extends Phaser.Scene{
     if(Phaser.Input.Keyboard.JustDown(this.cursors.up)||Phaser.Input.Keyboard.JustDown(this.spaceKey)||Phaser.Input.Keyboard.JustDown(this.wKey))this.doJump();
     if(Phaser.Input.Keyboard.JustDown(this.xKey)||Phaser.Input.Keyboard.JustDown(this.shiftKey))this.doAttack();
     const dt=delta/1000;
-    const effSpeed=this.bossActive?this.scrollSpeed*.15:this.scrollSpeed;
+    const speedBoost=this.superInvincible?2:1;
+    const effSpeed=(this.bossActive?this.scrollSpeed*.15:this.scrollSpeed)*speedBoost;
     this.distance+=(effSpeed/100)*dt;
     gameState.distance=this.distance;
     if(this.player.body.blocked.down||this.player.body.touching.down)this.doubleJumped=false;
@@ -2746,6 +2771,8 @@ class GameScene extends Phaser.Scene{
         if(this.player&&this.player.active)this.player.clearTint();
         // Cleanup remaining starpowers
         this.starPowers.getChildren().forEach(s=>{if(s.trailTimer)s.trailTimer.remove();s.destroy();});
+        // Restore normal speeds
+        this.refreshAllSpeeds();
         // Resume appropriate BGM
         Audio.stopBGM();
         if(this.bossActive)Audio.startBossBGM();else Audio.startBGM();
