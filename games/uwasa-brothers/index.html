@@ -1575,9 +1575,15 @@ function injectPanelStyles(){
     .htext h3{font-family:'Arial Black',sans-serif;font-size:8px;margin-bottom:4px;letter-spacing:1px;}
     .htext p{font-family:Arial,sans-serif;font-size:12px;color:rgba(255,255,255,.65);line-height:1.6;}
     .boss-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;}
-    .boss-card{background:#0a0010;border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:10px 12px;}
+    .boss-card{background:#0a0010;border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:10px 12px;position:relative;overflow:hidden;}
     .boss-card .bn{font-family:'Arial Black',sans-serif;font-size:10px;margin-bottom:4px;}
     .boss-card .bd{font-family:Arial,sans-serif;font-size:10px;color:rgba(255,255,255,.55);line-height:1.5;}
+    /* Locked boss cards - blurred/mosaic with lock overlay */
+    .boss-card.locked{filter:blur(7px) saturate(.4);user-select:none;pointer-events:none;}
+    .boss-card-wrap{position:relative;}
+    .boss-card-wrap .lock-overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:2;pointer-events:none;gap:4px;}
+    .boss-card-wrap .lock-overlay .lock-icon{font-size:26px;filter:drop-shadow(0 0 6px rgba(0,0,0,.8));}
+    .boss-card-wrap .lock-overlay .lock-text{font-family:'Arial Black',sans-serif;font-size:9px;color:#FFD700;letter-spacing:2px;text-shadow:0 0 6px #000,0 0 3px #000;}
     .rtabs{display:flex;gap:6px;margin-bottom:10px;}
     .rtab-btn{font-family:'Arial Black',sans-serif;font-size:10px;padding:5px 12px;border-radius:4px;border:1px solid #333;color:rgba(255,255,255,.4);background:#111;cursor:pointer;transition:all .15s;}
     .rtab-btn.on-y{border-color:#FFE600;color:#FFE600;background:rgba(255,230,0,.1);}
@@ -1609,9 +1615,18 @@ function createPanelDOM(){
       <div class="boss-card"><div class="bn" style="color:#FFD700">STAGE 5 — RYOSUKE</div><div class="bd">HP:80 / 投擲2個<br>皿・ボウル・シーシャを投げて破片を撒く！<br>「いっっっって！！」</div></div>
       <div class="boss-card"><div class="bn" style="color:#AA00FF">STAGE 10 — SHADOW KING</div><div class="bd">HP:150 / 投擲2個<br>顔が闇の王。「ばかな！！」</div></div>
       <div class="boss-card"><div class="bn" style="color:#FF5500">STAGE 15 — FIRE GOD</div><div class="bd">HP:220 / 投擲3個<br>溶岩鎧の灼熱神。「あづっ！！」</div></div>
-      <div class="boss-card"><div class="bn" style="color:#AAEEFF">STAGE 20 — ICE QUEEN</div><div class="bd">HP:300 / 投擲3個<br>氷の姫。「凍てつく！」</div></div>
-      <div class="boss-card"><div class="bn" style="color:#00FFFF">STAGE 25 — CYBER LORD</div><div class="bd">HP:400 / 投擲4個<br>デジタル覇者。「FATAL ERROR!!」</div></div>
-      <div class="boss-card"><div class="bn" style="color:#FF00FF">STAGE 30 — COSMIC GOD</div><div class="bd">HP:600 / 投擲5個<br>宇宙神。「人間ごときが」</div></div>
+      <div class="boss-card-wrap">
+        <div class="boss-card locked"><div class="bn" style="color:#AAEEFF">STAGE 20 — ICE QUEEN</div><div class="bd">HP:??? / 投擲???個<br>??????????????????????<br>「???????」</div></div>
+        <div class="lock-overlay"><div class="lock-icon">🔒</div><div class="lock-text">???</div></div>
+      </div>
+      <div class="boss-card-wrap">
+        <div class="boss-card locked"><div class="bn" style="color:#00FFFF">STAGE 25 — CYBER LORD</div><div class="bd">HP:??? / 投擲???個<br>??????????????????<br>「????????」</div></div>
+        <div class="lock-overlay"><div class="lock-icon">🔒</div><div class="lock-text">???</div></div>
+      </div>
+      <div class="boss-card-wrap">
+        <div class="boss-card locked"><div class="bn" style="color:#FF00FF">STAGE 30 — COSMIC GOD</div><div class="bd">HP:??? / 投擲???個<br>????????????<br>「????????」</div></div>
+        <div class="lock-overlay"><div class="lock-icon">🔒</div><div class="lock-text">???</div></div>
+      </div>
     </div>
     <div style="margin-top:12px;font-family:Arial,sans-serif;font-size:11px;color:rgba(255,255,255,.4);text-align:center;line-height:1.8">
       石川県 奥能登→珠洲→輪島→七尾→和倉→羽咋→津幡→金沢→<b style="color:#FFD700">片町 U.S.B</b> を目指せ！
