@@ -30,7 +30,31 @@
   #ui-coins-block .val{color:#FFD700;text-shadow:0 0 6px #FFD700;}
   #stage-badge{background:linear-gradient(135deg,#FF00FF,#9B59B6);border-color:#FF00FF;color:#fff;font-size:12px;text-align:center;box-shadow:0 0 10px #FF00FF66;}
   #power-badge{position:absolute;top:48px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.9);border:2px solid #FFD700;border-radius:16px;padding:4px 12px;color:#FFD700;font-size:11px;font-weight:900;letter-spacing:1px;z-index:10;display:none;box-shadow:0 0 15px currentColor;white-space:nowrap;}
-  #sound-toggle{position:absolute;bottom:10px;right:10px;background:rgba(0,0,0,.7);border:2px solid #FFD700;border-radius:50%;width:34px;height:34px;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:20;font-size:14px;color:#FFD700;}
+  #sound-toggle{position:absolute;top:10px;right:10px;background:rgba(0,0,0,.78);border:2px solid #FFD700;border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:20;font-size:14px;color:#FFD700;pointer-events:auto;}
+  #back-btn{
+    position:absolute;top:10px;right:54px;z-index:20;pointer-events:auto;
+    background:rgba(0,0,0,.78);border:2px solid #FF3366;border-radius:6px;
+    padding:6px 10px;font-size:11px;font-weight:900;color:#FF3366;
+    letter-spacing:1px;cursor:pointer;display:none;user-select:none;
+    box-shadow:0 0 8px rgba(255,51,102,.5);
+  }
+  #back-btn.show{display:block;}
+  #back-btn:active{transform:scale(.92);}
+  #invincible-counter{
+    position:absolute;top:54px;left:50%;transform:translateX(-50%);
+    background:rgba(0,0,0,.85);border:2px solid #FFD700;border-radius:20px;
+    padding:6px 14px;z-index:15;display:none;
+    font-family:'Arial Black',sans-serif;font-size:14px;
+    color:#FFD700;text-shadow:0 0 8px #FFD700;letter-spacing:1px;
+    white-space:nowrap;pointer-events:none;
+    box-shadow:0 0 16px rgba(255,215,0,.7);
+    animation:invPulse 1s ease-in-out infinite;
+  }
+  #invincible-counter.show{display:block;}
+  @keyframes invPulse{
+    0%,100%{box-shadow:0 0 16px rgba(255,215,0,.7);}
+    50%{box-shadow:0 0 28px rgba(255,0,255,.9);}
+  }
   /* BUG FIX: mobile-controls hidden by default, shown only during GameScene via .show class */
   #mobile-controls{position:absolute;bottom:14px;left:0;right:0;display:none;justify-content:space-between;padding:0 14px;z-index:15;pointer-events:none;}
   #mobile-controls.show{display:flex;}
@@ -57,6 +81,8 @@
     <div class="mctrl" id="btn-attack">⚡</div>
   </div>
   <div id="sound-toggle" onclick="window.toggleSound && window.toggleSound()">🔊</div>
+  <div id="back-btn" onclick="window.__uwasa_backToTitle && window.__uwasa_backToTitle()">◀ 戻る</div>
+  <div id="invincible-counter">⭐ INVINCIBLE <span id="inv-time">60</span>s</div>
 </div>
 
 <script>
@@ -64,6 +90,9 @@
 window.__uwasa_showMobile=function(v){
   const el=document.getElementById('mobile-controls');
   if(el){if(v)el.classList.add('show');else el.classList.remove('show');}
+  // Show/hide back button together with game (shown in Game scene only)
+  const back=document.getElementById('back-btn');
+  if(back){if(v)back.classList.add('show');else back.classList.remove('show');}
 };
 window.__uwasa_cleanupOverlays=function(){
   ['howto-panel','ranking-panel','name-overlay'].forEach(id=>{
@@ -71,8 +100,30 @@ window.__uwasa_cleanupOverlays=function(){
     if(el){if(id==='name-overlay')el.remove();else el.classList.remove('open');}
   });
   window.__uwasa_nameOverlayOpen=false;
+  // Hide invincible counter on scene change
+  const inv=document.getElementById('invincible-counter');
+  if(inv)inv.classList.remove('show');
 };
 window.__uwasa_nameOverlayOpen=false;
+
+// Invincible counter helpers
+window.__uwasa_showInvincible=function(seconds){
+  const el=document.getElementById('invincible-counter');
+  const t=document.getElementById('inv-time');
+  if(el){el.classList.add('show');}
+  if(t){t.textContent=Math.ceil(seconds);}
+};
+window.__uwasa_hideInvincible=function(){
+  const el=document.getElementById('invincible-counter');
+  if(el)el.classList.remove('show');
+};
+
+// Back-to-title handler (set by GameScene)
+window.__uwasa_backToTitle=function(){
+  if(window.__uwasa_activeGameScene){
+    window.__uwasa_activeGameScene.exitToTitle();
+  }
+};
 
 // AUDIO
 const Audio=(()=>{let ctx=null,mg=null,musg=null,sg=null,en=true,bgm=null;
@@ -1811,6 +1862,7 @@ class GameScene extends Phaser.Scene{
     window.__uwasa_showMobile(true);
     window.__uwasa_cleanupOverlays();
     hideGamePanels();
+    window.__uwasa_activeGameScene=this; // for back button
 
     this.stageIdx=0;this.scrollSpeed=STAGES[0].speed;this.distance=0;
     this.lives=gameState.lives;this.gameOver=false;this.invincible=false;
@@ -3116,9 +3168,30 @@ class GameScene extends Phaser.Scene{
     g.lineStyle(1,0xFFD700);g.strokeRoundedRect(x-2,y-2,bw+4,bh+4,4);
   }
 
+  exitToTitle(){
+    if(this.gameOver)return;
+    // Clean up all state
+    this.gameOver=true;
+    Audio.stopBGM();
+    if(this.rainbowCycle){this.rainbowCycle.remove();this.rainbowCycle=null;}
+    this.superInvincible=false;
+    if(this.starPowers)this.starPowers.getChildren().forEach(s=>{if(s.trailTimer)s.trailTimer.remove();s.destroy();});
+    if(this.bossAttackTimer)this.bossAttackTimer.remove();
+    if(this.bossSpecialTimer)this.bossSpecialTimer.remove();
+    this.blackholeActive=false;
+    window.__uwasa_hideInvincible();
+    window.__uwasa_activeGameScene=null;
+    // Reset game state
+    gameState={distance:0,stage:0,lives:3,score:0,coins:0,powersCollected:[]};
+    // Go to title
+    this.scene.start('Title');
+  }
+
   endGame(){
     this.gameOver=true;this.physics.pause();
     Audio.stopBGM();Audio.SFX.gameover();
+    window.__uwasa_hideInvincible();
+    window.__uwasa_activeGameScene=null;
     // Clean up super invincible
     if(this.rainbowCycle){this.rainbowCycle.remove();this.rainbowCycle=null;}
     this.superInvincible=false;
@@ -3155,9 +3228,12 @@ class GameScene extends Phaser.Scene{
     // ═══ SUPER INVINCIBLE (hidden command) ═══
     if(this.superInvincible){
       this.superInvincibleTimer-=delta;
+      // Update the HTML counter
+      window.__uwasa_showInvincible(this.superInvincibleTimer/1000);
       if(this.superInvincibleTimer<=0){
         this.superInvincible=false;
         this.superInvincibleTimer=0;
+        window.__uwasa_hideInvincible();
         if(this.rainbowCycle){this.rainbowCycle.remove();this.rainbowCycle=null;}
         if(this.player&&this.player.active)this.player.clearTint();
         // Cleanup remaining starpowers
