@@ -883,108 +883,139 @@ function makeTextures(s){
     else if(frame==='throw2')armY=6;
     else if(frame==='idle2')yo=-2;
 
-    // ═══ ゆるキャラヤクザ — 九谷焼風のだるまボス ═══
-    // Outer aura (金色)
-    g.fillStyle(0xFFD700,.25);g.fillCircle(48,60,58);
+    // ═══ ゆるキャラヤクザ — 九谷焼だるまボス (正しい版) ═══
+    // Outer soft aura
+    g.fillStyle(0xFFD700,.2);g.fillEllipse(48,62,70,78);
 
-    // 脚 (金色)
-    g.fillStyle(0xB8860B);
-    g.fillRect(32,96+yo,12,16);g.fillRect(52,96+yo,12,16);
-    g.fillStyle(0x8B6508);
-    g.fillRect(30,108+yo,16,4);g.fillRect(50,108+yo,16,4);
+    // ═══ 金色のショートブーツ (下に突き出る) ═══
+    g.fillStyle(0xC8A13A);
+    g.fillEllipse(36,104+yo,14,12); // 左足
+    g.fillEllipse(60,104+yo,14,12); // 右足
+    // ブーツの影
+    g.fillStyle(0x8B7024);
+    g.fillEllipse(36,108+yo,14,4);
+    g.fillEllipse(60,108+yo,14,4);
+    // ブーツハイライト
+    g.fillStyle(0xE8C048);
+    g.fillEllipse(33,101+yo,5,4);
+    g.fillEllipse(57,101+yo,5,4);
 
-    // ═══ 胴体 (下半分: 花柄・緑の庭) ═══
-    // Base gold
-    g.fillStyle(0xD4A017);
-    g.fillEllipse(48,78+yo,64,48);
-    // Green garden (松・竹)
+    // ═══ だるま胴体 (丸みのある逆おにぎり型) ═══
+    // Body base (金色)
+    g.fillStyle(0xC8A13A);
+    g.fillEllipse(48,76+yo,72,56);
+    // 胴体のハイライト(上部)
+    g.fillStyle(0xE8C048);
+    g.fillEllipse(42,62+yo,28,14);
+    // 胴体の影(下部)
+    g.fillStyle(0x9B7824);
+    g.fillEllipse(54,92+yo,40,18);
+
+    // 胴体の花柄 (九谷焼風)
+    // 緑の松・竹 (中央下部)
     g.fillStyle(0x2E8B57);
-    g.fillEllipse(30,84+yo,16,10);
-    g.fillEllipse(48,88+yo,22,12);
-    g.fillEllipse(66,84+yo,16,10);
-    // Pink peonies (牡丹) on body
+    g.fillEllipse(48,86+yo,22,10);
+    g.fillEllipse(32,82+yo,12,8);
+    g.fillEllipse(64,82+yo,12,8);
+    g.fillStyle(0x3CB371);
+    g.fillCircle(46,85+yo,2);g.fillCircle(50,88+yo,2);
+    // ピンクの梅・牡丹
     g.fillStyle(0xFF1493);
-    g.fillCircle(22,80+yo,4);g.fillCircle(72,82+yo,4);
-    g.fillCircle(38,92+yo,3);g.fillCircle(58,92+yo,3);
+    g.fillCircle(22,76+yo,3.5);g.fillCircle(74,76+yo,3.5);
+    g.fillCircle(28,92+yo,3);g.fillCircle(68,92+yo,3);
     g.fillStyle(0xFF69B4);
-    g.fillCircle(22,80+yo,2);g.fillCircle(72,82+yo,2);
-    // Orange chrysanthemums
-    g.fillStyle(0xFF8C00);
-    g.fillCircle(15,78+yo,3);g.fillCircle(78,78+yo,3);
-    g.fillStyle(0xFFD700);
-    g.fillCircle(15,78+yo,1);g.fillCircle(78,78+yo,1);
-
-    // ═══ 頭部 (上半分: 顔の白 + 金地の額) ═══
-    // Gold head background with cherry blossoms
-    g.fillStyle(0xD4A017);
-    g.fillEllipse(48,36+yo,60,46);
-    // Pink cherry blossom pattern on head
-    g.fillStyle(0xFF1493);
-    g.fillCircle(22,20+yo,3);g.fillCircle(74,22+yo,3);
-    g.fillCircle(18,34+yo,2);g.fillCircle(78,36+yo,2);
-    g.fillCircle(26,10+yo,2);g.fillCircle(70,12+yo,2);
+    g.fillCircle(22,76+yo,1.5);g.fillCircle(74,76+yo,1.5);
     g.fillStyle(0xFFB6C1);
-    g.fillCircle(22,20+yo,1);g.fillCircle(74,22+yo,1);
-    // White crane (鶴) on top-right
+    g.fillCircle(17,82+yo,2);g.fillCircle(79,82+yo,2);
+    // オレンジの菊
+    g.fillStyle(0xFF8C00);
+    g.fillCircle(16,72+yo,2.5);g.fillCircle(80,72+yo,2.5);
+    g.fillStyle(0xFFD700);
+    g.fillCircle(16,72+yo,1);g.fillCircle(80,72+yo,1);
+    // 白い小花アクセント
     g.fillStyle(0xFFFFFF);
-    g.fillRect(62,8+yo,8,3);
-    g.fillRect(66,6+yo,3,4);
-    g.fillStyle(0xFF0000);
-    g.fillRect(69,5+yo,2,2);
+    g.fillCircle(38,74+yo,1.5);g.fillCircle(58,74+yo,1.5);
+    g.fillCircle(36,96+yo,1);g.fillCircle(60,96+yo,1);
 
-    // 顔の白い部分 (ひょうたん型)
-    g.fillStyle(0xFFFFFF);
-    g.fillEllipse(48,38+yo,38,40);
-
-    // 額の金丸 (2つ)
-    g.fillStyle(0xFFA500);
-    g.fillCircle(42,24+yo,2);g.fillCircle(54,24+yo,2);
-
-    // ═══ 目 (大きくて愛嬌のある黒目) ═══
-    g.fillStyle(0x000000);
-    g.fillEllipse(38,36+yo,9,11);g.fillEllipse(58,36+yo,9,11);
-    // 白ハイライト
-    g.fillStyle(0xFFFFFF);
-    g.fillCircle(35,33+yo,2);g.fillCircle(55,33+yo,2);
-
-    // ═══ 立派な黒い口ひげ (ヤクザっぽい) ═══
-    g.fillStyle(0x000000);
-    // Central mustache
-    g.fillEllipse(48,48+yo,22,5);
-    g.fillEllipse(38,50+yo,10,4);
-    g.fillEllipse(58,50+yo,10,4);
-    // Twirled ends
-    g.fillRect(30,49+yo,3,2);
-    g.fillRect(63,49+yo,3,2);
-
-    // 口 (ひげの下、にこやか)
-    g.fillStyle(0x8B0000);
-    g.fillRect(44,54+yo,8,2);
-
-    // ═══ 腕 (金色、投げる時に動く) ═══
-    g.fillStyle(0xB8860B);
+    // ═══ 腕 (金色、胴体から短く突き出る) ═══
+    g.fillStyle(0xC8A13A);
     if(frame==='throw1'){
-      // Arm raised
-      g.fillEllipse(78,58+armY,10,14);
-      g.fillCircle(82,50+armY,6); // hand
+      g.fillEllipse(80,62+armY,10,14); // 右腕上げ
+      g.fillCircle(82,54+armY,5);
     }else if(frame==='throw2'){
-      // Arm thrown forward
-      g.fillEllipse(82,66+armY,12,10);
-      g.fillCircle(88,66+armY,6); // hand
+      g.fillEllipse(84,72+armY,14,10); // 右腕前
+      g.fillCircle(90,72+armY,5);
     }else{
-      // idle - arm at side
-      g.fillEllipse(78,72+yo,8,14);
-      g.fillCircle(80,80+yo,5);
+      g.fillEllipse(82,74+yo,10,14); // 右腕休
+      g.fillCircle(84,82+yo,5);
     }
-    // Left arm (static)
-    g.fillEllipse(18,72+yo,8,14);
-    g.fillCircle(16,80+yo,5);
+    // 左腕
+    g.fillEllipse(14,74+yo,10,14);
+    g.fillCircle(12,82+yo,5);
+    // 腕ハイライト
+    g.fillStyle(0xE8C048);
+    g.fillCircle(11,76+yo,2);
 
-    // 紋付き (家紋風の丸)
-    g.fillStyle(0xFFFFFF,.9);
-    g.fillCircle(48,78+yo,3);
-    g.fillStyle(0xB8860B);
-    g.fillCircle(48,78+yo,1.5);
+    // ═══ 頭部 (白い逆ひょうたん型 - 中央広く上下すぼまる) ═══
+    // Gold head outline (背景の金色枠)
+    g.fillStyle(0xC8A13A);
+    g.fillEllipse(48,32+yo,48,48);
+    // Head flower decorations (金部分に花模様)
+    g.fillStyle(0xFF1493);
+    g.fillCircle(20,22+yo,3);g.fillCircle(76,22+yo,3);
+    g.fillCircle(24,12+yo,2);g.fillCircle(72,12+yo,2);
+    g.fillStyle(0xFFB6C1);
+    g.fillCircle(20,22+yo,1);g.fillCircle(76,22+yo,1);
+    g.fillStyle(0xFF8C00);
+    g.fillCircle(18,42+yo,2);g.fillCircle(78,42+yo,2);
+
+    // ═══ 顔の白い部分 (特徴的な逆ひょうたん型) ═══
+    g.fillStyle(0xFFFFFF);
+    // 上部(狭い) + 中央(広い) + 下部(狭い) で逆ひょうたん
+    g.fillEllipse(48,22+yo,24,16);  // 上(額)
+    g.fillEllipse(48,36+yo,34,22);  // 中央(顔)
+    g.fillEllipse(48,48+yo,22,12);  // 下(顎)
+    // つなぎ目をスムーズに
+    g.fillRect(36,22+yo,24,28);
+
+    // ═══ 額の2つのオレンジ点 (だるまの特徴) ═══
+    g.fillStyle(0xFF8C00);
+    g.fillCircle(44,20+yo,1.8);
+    g.fillCircle(52,20+yo,1.8);
+
+    // ═══ 目 (大きくて丸い黒目、ぱっちり) ═══
+    g.fillStyle(0x000000);
+    // Eyes - round and chunky
+    g.fillCircle(40,32+yo,4);
+    g.fillCircle(56,32+yo,4);
+    // 上瞼 (ちょっと垂れ目風)
+    g.fillRect(36,30+yo,8,1);
+    g.fillRect(52,30+yo,8,1);
+    // White highlight
+    g.fillStyle(0xFFFFFF);
+    g.fillCircle(38,30+yo,1.2);
+    g.fillCircle(54,30+yo,1.2);
+
+    // ═══ 立派な黒い口ひげ (両端カールアップ、ヤクザ風) ═══
+    g.fillStyle(0x000000);
+    // 中央の太い部分
+    g.fillEllipse(48,44+yo,22,6);
+    // 左右に広がる
+    g.fillEllipse(38,44+yo,10,5);
+    g.fillEllipse(58,44+yo,10,5);
+    // 両端のカールアップ (特徴的)
+    g.fillCircle(32,42+yo,2.5);
+    g.fillCircle(64,42+yo,2.5);
+    g.fillRect(30,40+yo,4,3);
+    g.fillRect(62,40+yo,4,3);
+    // ひげ下の口(隙間)
+    g.fillStyle(0xFFFFFF);
+    g.fillRect(44,48+yo,8,1);
+
+    // 頬紅(うっすら)
+    g.fillStyle(0xFFB6C1,.5);
+    g.fillCircle(32,38+yo,3);
+    g.fillCircle(64,38+yo,3);
   }
   ['idle','idle2','throw1','throw2'].forEach(fr=>{
     const g=s.add.graphics();drawShadowKing(g,fr);
