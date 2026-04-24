@@ -13,13 +13,14 @@
   #phaser-game{width:100%;height:100%;}
   #phaser-game canvas{display:block;image-rendering:auto;-webkit-font-smoothing:antialiased;}
   #ui-overlay{position:absolute;top:0;left:0;right:0;padding:8px 10px;display:flex;justify-content:space-between;align-items:flex-start;pointer-events:none;z-index:10;gap:6px;}
+  #ui-left{display:flex;flex-direction:column;gap:6px;}
   /* Secret command: STAGE & LIVES tappable */
   #stage-badge,#ui-lives-block{pointer-events:auto;cursor:pointer;user-select:none;-webkit-user-select:none;}
-  #ui-dist-block{order:1;}
-  #stage-badge{order:2;}
-  #ui-lives-block{order:3;margin-top:48px;}
+  #ui-lives-block{margin-top:48px;}
   .ui-block{background:rgba(0,0,0,.78);border:2px solid #FFD700;border-radius:6px;padding:4px 8px;color:#FFD700;font-size:9px;font-weight:900;letter-spacing:1px;line-height:1.4;}
   .ui-block .val{color:#fff;font-size:13px;display:block;}
+  #ui-coins-block{border-color:#FFD700;background:rgba(40,30,0,.85);}
+  #ui-coins-block .val{color:#FFD700;text-shadow:0 0 6px #FFD700;}
   #stage-badge{background:linear-gradient(135deg,#FF00FF,#9B59B6);border-color:#FF00FF;color:#fff;font-size:12px;text-align:center;box-shadow:0 0 10px #FF00FF66;}
   #power-badge{position:absolute;top:48px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.9);border:2px solid #FFD700;border-radius:16px;padding:4px 12px;color:#FFD700;font-size:11px;font-weight:900;letter-spacing:1px;z-index:10;display:none;box-shadow:0 0 15px currentColor;white-space:nowrap;}
   #sound-toggle{position:absolute;bottom:10px;right:10px;background:rgba(0,0,0,.7);border:2px solid #FFD700;border-radius:50%;width:34px;height:34px;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:20;font-size:14px;color:#FFD700;}
@@ -35,7 +36,10 @@
 <body>
 <div id="game-container">
   <div id="ui-overlay">
-    <div class="ui-block" id="ui-dist-block"><span>📏</span><span class="val" id="ui-dist">0.0 m</span></div>
+    <div id="ui-left">
+      <div class="ui-block" id="ui-dist-block"><span>📏</span><span class="val" id="ui-dist">0.0 m</span></div>
+      <div class="ui-block" id="ui-coins-block"><span>🪙</span><span class="val" id="ui-coins">0</span></div>
+    </div>
     <div class="ui-block" id="stage-badge"><span id="ui-stage">STAGE 1</span></div>
     <div class="ui-block" id="ui-lives-block"><span>❤️</span><span class="val" id="ui-lives">♥♥♥</span></div>
   </div>
@@ -262,6 +266,8 @@ const BOSSES={
     throwTypes:['plate','bowl','hookah'],
     attackDelay:900,
     projectileCount:2,
+    specialType:'none',
+    specialInterval:0,
     shoutLight:['いってぇ！','いたぁ！','くっ！','うっ！','ちっ！','あちっ！'],
     shoutMid:['いってぇ！！','いたいっ！','ぐああっ！','やめろ！','うわっ！！'],
     shoutHeavy:['いっっっって！！','まじいたい！','ぐはっ！','おい！！','ぎゃあああ！','ふざけんな！'],
@@ -269,30 +275,34 @@ const BOSSES={
     nameColor:'#FFD700',nameStroke:'#FF00FF',
   },
   shadowking:{
-    name:'SHADOW KING',
-    title:'👑 青柏祭の闇の王 👑',
+    name:'ゆるキャラヤクザ',
+    title:'🎎 九谷焼の極道親分 🎎',
     hp:150,
     throwTypes:['skull','dagger','bomb'],
     attackDelay:700,
     projectileCount:2,
-    shoutLight:['ぐっ','ちぃ','ぬう','はっ'],
-    shoutMid:['ぐおおっ','やるじゃない','小賢しい','ぐぬぬ'],
-    shoutHeavy:['ぎゃあああああ','ありえない','ばかな！！','うわあああ'],
-    shoutDefeat:['闇に還る…','敗北…','まだ…だ…'],
-    nameColor:'#AA00FF',nameStroke:'#000000',
+    specialType:'teleport',     // 🌀 ワープして突然現れる
+    specialInterval:4500,
+    shoutLight:['おどりゃ！','ちっ','ほう','やるやんけ'],
+    shoutMid:['なめとんのか！','こらぁ！','ワレどつくぞ！','ぐぬぬ'],
+    shoutHeavy:['ワレぇぇぇ！','カチコミじゃあ！','組の名折れや！','ばかな！！'],
+    shoutDefeat:['おどれ…覚えとけよ…','盃を返すわい…','まいった…'],
+    nameColor:'#FFD700',nameStroke:'#FF1493',
   },
   firegod:{
-    name:'FIRE GOD',
-    title:'🔥 宝達山の灼熱神 🔥',
+    name:'干された者の恨み',
+    title:'😠 宝達山に潜む有名人 😠',
     hp:220,
     throwTypes:['fireball','lava','meteor'],
     attackDelay:600,
     projectileCount:3,
-    shoutLight:['熱っ','ちっ！','むっ！'],
-    shoutMid:['熱いっ！','ぐあああ','やめろ！'],
-    shoutHeavy:['あづっ！！','燃える！','焼けるうう！'],
-    shoutDefeat:['鎮火…','消えゆく…'],
-    nameColor:'#FF5500',nameStroke:'#FFFF00',
+    specialType:'flame_beam',   // 🔥 横一文字ファイアブレス (恨みの一撃)
+    specialInterval:5000,
+    shoutLight:['ふふ…','にこっ','うふふ','おほほ'],
+    shoutMid:['わたしは悪くない','なぜ干すのか','納得いかぬ','解せぬ'],
+    shoutHeavy:['干された恨み！！','復讐の炎！！','忘れぬぞ！','釈明させろ！！'],
+    shoutDefeat:['また干されるのか…','無念…','認められたかった…','世間が悪い…'],
+    nameColor:'#FFC800',nameStroke:'#000000',
   },
   icequeen:{
     name:'ICE QUEEN',
@@ -301,6 +311,8 @@ const BOSSES={
     throwTypes:['ice_spike','snowball','icicle'],
     attackDelay:550,
     projectileCount:3,
+    specialType:'ice_rain',     // ❄ 空から氷柱弾幕
+    specialInterval:4500,
     shoutLight:['冷っ','ひっ','くうっ'],
     shoutMid:['しまった','やるわね','ぐっ…'],
     shoutHeavy:['凍てつく！','氷が割れる！','さむいっ！'],
@@ -314,6 +326,8 @@ const BOSSES={
     throwTypes:['laser_orb','glitch','data_shard'],
     attackDelay:500,
     projectileCount:4,
+    specialType:'glitch_storm', // ⚡ 予告線レーザー弾幕
+    specialInterval:4000,
     shoutLight:['エラー','警告','ノイズ'],
     shoutMid:['システム異常！','データ破損！','クラッシュ！'],
     shoutHeavy:['FATAL ERROR!!','回路焼損！','プロセス崩壊！'],
@@ -327,6 +341,8 @@ const BOSSES={
     throwTypes:['blackhole','star','nebula'],
     attackDelay:450,
     projectileCount:5,
+    specialType:'blackhole',    // 🌌 ブラックホール吸引＋放射弾
+    specialInterval:5000,
     shoutLight:['ほう','ふむ','面白い'],
     shoutMid:['人間ごときが','まだ足りぬ','愚かな'],
     shoutHeavy:['ありえぬ！！','宇宙が歪む！','何奴！？'],
@@ -863,74 +879,112 @@ function makeTextures(s){
   function drawShadowKing(g,frame){
     g.clear();
     let yo=0,armY=0;
-    if(frame==='throw1')armY=-8;
-    else if(frame==='throw2')armY=4;
+    if(frame==='throw1')armY=-10;
+    else if(frame==='throw2')armY=6;
     else if(frame==='idle2')yo=-2;
 
-    g.fillStyle(0xAA00FF,.3);g.fillCircle(48,54,60);
-    g.fillStyle(0x000000,.4);g.fillCircle(48,54,50);
+    // ═══ ゆるキャラヤクザ — 九谷焼風のだるまボス ═══
+    // Outer aura (金色)
+    g.fillStyle(0xFFD700,.25);g.fillCircle(48,60,58);
 
-    g.fillStyle(0x1a0033);
-    g.fillRect(28,80+yo,18,26);g.fillRect(50,80+yo,18,26);
-    g.fillStyle(0x000000);
-    g.fillRect(26,102+yo,22,6);g.fillRect(48,102+yo,22,6);
+    // 脚 (金色)
+    g.fillStyle(0xB8860B);
+    g.fillRect(32,96+yo,12,16);g.fillRect(52,96+yo,12,16);
+    g.fillStyle(0x8B6508);
+    g.fillRect(30,108+yo,16,4);g.fillRect(50,108+yo,16,4);
 
-    g.fillStyle(0x220044);
-    g.fillRect(18,44+yo,60,44);
-    g.fillStyle(0x110022);
-    g.fillRect(18,44+yo,5,44);g.fillRect(73,44+yo,5,44);
-    g.fillStyle(0xAA00FF);
-    g.fillRect(18,86+yo,60,3);
-    g.fillRect(45,44+yo,6,44);
-
-    g.fillStyle(0xAAAAAA);
-    for(let i=0;i<5;i++)g.fillRect(46+i*1.5,58+yo,1,2);
-    g.fillStyle(0xDDDDDD);
-    g.fillCircle(48,70+yo,5);
-    g.fillStyle(0x000000);
-    g.fillRect(46,69+yo,2,2);g.fillRect(50,69+yo,2,2);
-
-    g.fillStyle(0x220044);
-    if(frame==='throw1'){g.fillRect(70,52+armY,14,18);g.fillRect(78,42+armY,14,14);}
-    else if(frame==='throw2'){g.fillRect(70,60+armY,20,12);g.fillRect(84,54+armY,12,16);}
-    else{g.fillRect(68,58,10,26);}
-    g.fillRect(18,58+yo,10,26);
-    g.fillStyle(0xEEEEEE);
-    if(frame==='throw1'){g.fillRect(82,40+armY,6,8);}
-    else if(frame==='throw2'){g.fillRect(88,52+armY,8,8);}
-    else{g.fillRect(68,82,10,6);}
-
+    // ═══ 胴体 (下半分: 花柄・緑の庭) ═══
+    // Base gold
+    g.fillStyle(0xD4A017);
+    g.fillEllipse(48,78+yo,64,48);
+    // Green garden (松・竹)
+    g.fillStyle(0x2E8B57);
+    g.fillEllipse(30,84+yo,16,10);
+    g.fillEllipse(48,88+yo,22,12);
+    g.fillEllipse(66,84+yo,16,10);
+    // Pink peonies (牡丹) on body
+    g.fillStyle(0xFF1493);
+    g.fillCircle(22,80+yo,4);g.fillCircle(72,82+yo,4);
+    g.fillCircle(38,92+yo,3);g.fillCircle(58,92+yo,3);
+    g.fillStyle(0xFF69B4);
+    g.fillCircle(22,80+yo,2);g.fillCircle(72,82+yo,2);
+    // Orange chrysanthemums
+    g.fillStyle(0xFF8C00);
+    g.fillCircle(15,78+yo,3);g.fillCircle(78,78+yo,3);
     g.fillStyle(0xFFD700);
-    g.fillRect(28,0+yo,40,8);
-    g.fillRect(30,-4+yo,4,4);g.fillRect(40,-6+yo,4,4);
-    g.fillRect(50,-6+yo,4,4);g.fillRect(60,-4+yo,4,4);
-    g.fillStyle(0xFF0000);g.fillRect(46,-2+yo,4,2);
-    g.fillStyle(0x00AAFF);g.fillRect(32,0+yo,2,2);g.fillRect(62,0+yo,2,2);
+    g.fillCircle(15,78+yo,1);g.fillCircle(78,78+yo,1);
 
-    g.fillStyle(0x000000);
-    g.fillRect(14,8+yo,68,50);
-    g.fillRect(18,4+yo,60,6);
-    g.fillRect(24,2+yo,48,4);
-
-    g.fillStyle(0x0a0022);
-    g.fillRect(24,14+yo,48,40);
-
+    // ═══ 頭部 (上半分: 顔の白 + 金地の額) ═══
+    // Gold head background with cherry blossoms
+    g.fillStyle(0xD4A017);
+    g.fillEllipse(48,36+yo,60,46);
+    // Pink cherry blossom pattern on head
+    g.fillStyle(0xFF1493);
+    g.fillCircle(22,20+yo,3);g.fillCircle(74,22+yo,3);
+    g.fillCircle(18,34+yo,2);g.fillCircle(78,36+yo,2);
+    g.fillCircle(26,10+yo,2);g.fillCircle(70,12+yo,2);
+    g.fillStyle(0xFFB6C1);
+    g.fillCircle(22,20+yo,1);g.fillCircle(74,22+yo,1);
+    // White crane (鶴) on top-right
+    g.fillStyle(0xFFFFFF);
+    g.fillRect(62,8+yo,8,3);
+    g.fillRect(66,6+yo,3,4);
     g.fillStyle(0xFF0000);
-    g.fillRect(32,30+yo,10,3);g.fillRect(54,30+yo,10,3);
-    g.fillStyle(0xFFAA00);
-    g.fillRect(34,31+yo,6,1);g.fillRect(56,31+yo,6,1);
-    g.fillStyle(0xFFFFFF);
-    g.fillRect(36,31+yo,2,1);g.fillRect(58,31+yo,2,1);
+    g.fillRect(69,5+yo,2,2);
 
-    g.fillStyle(0xAA00FF,.7);
-    g.fillRect(20,20+yo,3,4);g.fillRect(73,22+yo,3,4);
-    g.fillStyle(0x8800CC,.5);
-    g.fillRect(26,10+yo,2,3);g.fillRect(68,12+yo,2,3);
-
-    g.fillStyle(0xFF0033);
-    g.fillRect(42,45+yo,12,3);
+    // 顔の白い部分 (ひょうたん型)
     g.fillStyle(0xFFFFFF);
-    g.fillRect(43,46+yo,2,3);g.fillRect(48,46+yo,2,3);g.fillRect(52,46+yo,2,3);
+    g.fillEllipse(48,38+yo,38,40);
+
+    // 額の金丸 (2つ)
+    g.fillStyle(0xFFA500);
+    g.fillCircle(42,24+yo,2);g.fillCircle(54,24+yo,2);
+
+    // ═══ 目 (大きくて愛嬌のある黒目) ═══
+    g.fillStyle(0x000000);
+    g.fillEllipse(38,36+yo,9,11);g.fillEllipse(58,36+yo,9,11);
+    // 白ハイライト
+    g.fillStyle(0xFFFFFF);
+    g.fillCircle(35,33+yo,2);g.fillCircle(55,33+yo,2);
+
+    // ═══ 立派な黒い口ひげ (ヤクザっぽい) ═══
+    g.fillStyle(0x000000);
+    // Central mustache
+    g.fillEllipse(48,48+yo,22,5);
+    g.fillEllipse(38,50+yo,10,4);
+    g.fillEllipse(58,50+yo,10,4);
+    // Twirled ends
+    g.fillRect(30,49+yo,3,2);
+    g.fillRect(63,49+yo,3,2);
+
+    // 口 (ひげの下、にこやか)
+    g.fillStyle(0x8B0000);
+    g.fillRect(44,54+yo,8,2);
+
+    // ═══ 腕 (金色、投げる時に動く) ═══
+    g.fillStyle(0xB8860B);
+    if(frame==='throw1'){
+      // Arm raised
+      g.fillEllipse(78,58+armY,10,14);
+      g.fillCircle(82,50+armY,6); // hand
+    }else if(frame==='throw2'){
+      // Arm thrown forward
+      g.fillEllipse(82,66+armY,12,10);
+      g.fillCircle(88,66+armY,6); // hand
+    }else{
+      // idle - arm at side
+      g.fillEllipse(78,72+yo,8,14);
+      g.fillCircle(80,80+yo,5);
+    }
+    // Left arm (static)
+    g.fillEllipse(18,72+yo,8,14);
+    g.fillCircle(16,80+yo,5);
+
+    // 紋付き (家紋風の丸)
+    g.fillStyle(0xFFFFFF,.9);
+    g.fillCircle(48,78+yo,3);
+    g.fillStyle(0xB8860B);
+    g.fillCircle(48,78+yo,1.5);
   }
   ['idle','idle2','throw1','throw2'].forEach(fr=>{
     const g=s.add.graphics();drawShadowKing(g,fr);
@@ -940,74 +994,107 @@ function makeTextures(s){
   function drawFireGod(g,frame){
     g.clear();
     let yo=0,armY=0;
-    if(frame==='throw1')armY=-8;
-    else if(frame==='throw2')armY=4;
+    if(frame==='throw1')armY=-10;
+    else if(frame==='throw2')armY=6;
     else if(frame==='idle2')yo=-2;
 
-    g.fillStyle(0xFF0000,.4);g.fillCircle(48,54,62);
-    g.fillStyle(0xFFAA00,.3);g.fillCircle(48,54,52);
-    g.fillStyle(0xFFFF00,.2);g.fillCircle(48,54,42);
+    // ═══ 干された者の恨み — 黒髪お坊ちゃんキャラ ═══
+    // Dark red aura (恨みのオーラ)
+    g.fillStyle(0x8B0000,.3);g.fillCircle(48,60,60);
+    g.fillStyle(0x660000,.2);g.fillCircle(48,60,50);
 
-    g.fillStyle(0x660000);
-    g.fillRect(28,82+yo,18,24);g.fillRect(50,82+yo,18,24);
-    g.fillStyle(0xFF5500);
-    g.fillRect(30,88+yo,14,4);g.fillRect(52,88+yo,14,4);
-    g.fillStyle(0xFFAA00);
-    g.fillRect(32,90+yo,10,1);g.fillRect(54,90+yo,10,1);
+    // ═══ 脚 (黒) ═══
     g.fillStyle(0x000000);
-    g.fillRect(26,104+yo,22,4);g.fillRect(48,104+yo,22,4);
+    g.fillRect(34,94+yo,10,18);g.fillRect(52,94+yo,10,18);
+    // 靴 (黒)
+    g.fillStyle(0x1a1a1a);
+    g.fillEllipse(39,112+yo,14,4);g.fillEllipse(57,112+yo,14,4);
 
-    g.fillStyle(0xAA0000);
-    g.fillRect(20,46+yo,56,40);
-    g.fillStyle(0xFF2200);
-    g.fillRect(22,48+yo,52,3);
-    g.fillStyle(0xFF6600);
-    g.fillRect(26,56+yo,8,2);g.fillRect(40,62+yo,12,2);
-    g.fillRect(58,54+yo,10,2);g.fillRect(32,70+yo,6,2);
-    g.fillRect(48,76+yo,14,2);
-    g.fillStyle(0xFFFF00);
-    g.fillRect(28,57+yo,4,1);g.fillRect(42,63+yo,6,1);
-
-    g.fillStyle(0x880000);
-    if(frame==='throw1'){g.fillRect(70,52+armY,14,18);g.fillRect(78,42+armY,14,14);}
-    else if(frame==='throw2'){g.fillRect(70,60+armY,20,12);g.fillRect(84,54+armY,12,16);}
-    else{g.fillRect(68,58,10,26);}
-    g.fillRect(18,58+yo,10,26);
-    g.fillStyle(0xFF6600);
-    g.fillRect(16,56+yo,4,6);g.fillRect(76,56+yo,4,6);
-
-    g.fillStyle(0x660000);
-    g.fillRect(22,12+yo,52,38);
-    g.fillStyle(0x440000);
-    g.fillRect(22,12+yo,5,38);g.fillRect(69,12+yo,5,38);
-
+    // ═══ 胴体 (黄色いオムスビ型) ═══
+    g.fillStyle(0xFFC800);
+    g.fillEllipse(48,80+yo,38,42);
+    // ハイライト(黄色)
     g.fillStyle(0xFFD700);
-    g.fillRect(18,4+yo,6,14);g.fillRect(72,4+yo,6,14);
-    g.fillRect(16,0+yo,4,6);g.fillRect(76,0+yo,4,6);
-    g.fillStyle(0xFFAA00);
-    g.fillRect(20,6+yo,2,10);g.fillRect(74,6+yo,2,10);
+    g.fillEllipse(40,72+yo,10,16);
+    // 影 (オレンジ寄り)
+    g.fillStyle(0xE8A000);
+    g.fillEllipse(58,88+yo,10,16);
 
-    g.fillStyle(0xFF0000);
-    g.fillRect(32,0+yo,4,8);g.fillRect(46,-2+yo,4,10);g.fillRect(60,0+yo,4,8);
-    g.fillStyle(0xFFAA00);
-    g.fillRect(33,2+yo,2,5);g.fillRect(47,0+yo,2,7);g.fillRect(61,2+yo,2,5);
-    g.fillStyle(0xFFFFFF);
-    g.fillRect(47,2+yo,1,3);
-
-    g.fillStyle(0xFFFF00);
-    g.fillRect(30,28+yo,12,7);g.fillRect(54,28+yo,12,7);
-    g.fillStyle(0xFF0000);
-    g.fillRect(33,30+yo,6,3);g.fillRect(57,30+yo,6,3);
-    g.fillStyle(0xFFFFFF);
-    g.fillRect(35,31+yo,2,1);g.fillRect(59,31+yo,2,1);
-
+    // ═══ 腕 (黒) ═══
     g.fillStyle(0x000000);
-    g.fillRect(34,40+yo,28,8);
-    g.fillStyle(0xFFFFFF);
-    g.fillRect(36,40+yo,3,5);g.fillRect(42,40+yo,3,4);
-    g.fillRect(51,40+yo,3,4);g.fillRect(57,40+yo,3,5);
-    g.fillStyle(0xFF0000);
-    g.fillRect(40,46+yo,16,2);
+    if(frame==='throw1'){
+      // 振り上げた右腕
+      g.fillEllipse(76,64+armY,10,16);
+      g.fillCircle(80,56+armY,5);
+    }else if(frame==='throw2'){
+      // 投げ終わった右腕
+      g.fillEllipse(82,76+armY,14,10);
+      g.fillCircle(90,74+armY,5);
+    }else{
+      // 通常時
+      g.fillEllipse(74,78+yo,8,18);
+      g.fillCircle(76,88+yo,5);
+    }
+    // 左腕 (静止)
+    g.fillEllipse(22,78+yo,8,18);
+    g.fillCircle(20,88+yo,5);
+
+    // ═══ 顔 (ベージュ/肌色の楕円) ═══
+    g.fillStyle(0xFDE5B0);
+    g.fillEllipse(48,34+yo,40,44);
+
+    // 顎のハイライト
+    g.fillStyle(0xFFF0C8);
+    g.fillEllipse(44,30+yo,12,16);
+
+    // ═══ 黒髪 (特徴的なおかっぱ/ボブ) ═══
+    g.fillStyle(0x000000);
+    // てっぺんのモッサリ部分
+    g.fillEllipse(48,4+yo,52,22);
+    // 左サイドの長い髪 (肩まで垂れる)
+    g.fillEllipse(20,22+yo,18,38);
+    g.fillEllipse(16,34+yo,14,24);
+    // 右サイドの髪
+    g.fillEllipse(78,14+yo,16,22);
+    // 前髪 (額を隠す)
+    g.fillRect(26,14+yo,44,6);
+    g.fillEllipse(48,16+yo,44,10);
+
+    // ═══ 顔パーツ ═══
+    // 目 (小さな黒丸、離れ気味)
+    g.fillStyle(0x000000);
+    g.fillCircle(38,30+yo,2.5);
+    g.fillCircle(58,30+yo,2.5);
+
+    // 鼻 (小さな点3つ)
+    g.fillStyle(0x000000);
+    g.fillRect(46,38+yo,1,1);
+    g.fillRect(48,38+yo,1,1);
+    g.fillRect(50,38+yo,1,1);
+
+    // 口 (にっこり半円)
+    g.fillStyle(0x000000);
+    // 半月形の口
+    g.fillRect(42,44+yo,12,2);
+    g.fillRect(41,43+yo,2,2);
+    g.fillRect(53,43+yo,2,2);
+    g.fillRect(43,45+yo,10,1);
+
+    // 頬の赤み (うっすら)
+    g.fillStyle(0xFFB6A0,.5);
+    g.fillCircle(33,38+yo,3);
+    g.fillCircle(63,38+yo,3);
+
+    // ═══ 恨みの表現: 目の下のクマ (投げる時のみ) ═══
+    if(frame==='throw1'||frame==='throw2'){
+      g.fillStyle(0x660033,.4);
+      g.fillEllipse(38,34+yo,6,3);
+      g.fillEllipse(58,34+yo,6,3);
+      // 目に怒りのハイライト(赤)
+      g.fillStyle(0xFF0000);
+      g.fillCircle(38,29+yo,1);
+      g.fillCircle(58,29+yo,1);
+    }
   }
   ['idle','idle2','throw1','throw2'].forEach(fr=>{
     const g=s.add.graphics();drawFireGod(g,fr);
@@ -1313,6 +1400,8 @@ function updateUI(){
   const stageName=STAGES[Math.min(gameState.stage||0,STAGES.length-1)].name;
   document.getElementById('ui-stage').textContent=stageName.split(' — ')[0];
   document.getElementById('ui-lives').textContent='♥'.repeat(Math.max(gameState.lives,0))||'✕';
+  const coinEl=document.getElementById('ui-coins');
+  if(coinEl)coinEl.textContent=(gameState.coins||0);
 }
 function showPowerBadge(form){
   const el=document.getElementById('power-badge');
@@ -1571,8 +1660,8 @@ function createPanelDOM(){
     <div style="font-family:'Arial Black',sans-serif;font-size:10px;color:#FFD700;margin:14px 0 8px;letter-spacing:2px">⚔ BOSS GUIDE</div>
     <div class="boss-grid">
       <div class="boss-card"><div class="bn" style="color:#FFD700">STAGE 5 — RYOSUKE</div><img class="bi" id="bi-ryosuke" style="color:#FFD700"><div class="bd">HP:80 / 投擲2個<br>皿・ボウル・シーシャを投げて破片を撒く！<br>「いっっっって！！」</div></div>
-      <div class="boss-card"><div class="bn" style="color:#AA00FF">STAGE 10 — SHADOW KING</div><img class="bi" id="bi-shadowking" style="color:#AA00FF"><div class="bd">HP:150 / 投擲2個<br>顔が闇の王。「ばかな！！」</div></div>
-      <div class="boss-card"><div class="bn" style="color:#FF5500">STAGE 15 — FIRE GOD</div><img class="bi" id="bi-firegod" style="color:#FF5500"><div class="bd">HP:220 / 投擲3個<br>溶岩鎧の灼熱神。「あづっ！！」</div></div>
+      <div class="boss-card"><div class="bn" style="color:#FFD700">STAGE 10 — ゆるキャラヤクザ</div><img class="bi" id="bi-shadowking" style="color:#FFD700"><div class="bd">HP:150 / 投擲2個<br>九谷焼の極道親分。テレポート急襲！<br>「ワレぇぇぇ！」</div></div>
+      <div class="boss-card"><div class="bn" style="color:#FFC800">STAGE 15 — 干された者の恨み</div><img class="bi" id="bi-firegod" style="color:#FFC800"><div class="bd">HP:220 / 投擲3個<br>恨みの炎で横一文字ブレス！<br>「干された恨み！！」</div></div>
       <div class="boss-card locked"><div class="bn" style="color:#AAEEFF">STAGE 20 — ICE QUEEN</div><img class="bi" id="bi-icequeen" style="color:#AAEEFF"><div class="bd">HP:??? / 投擲???個<br>??????????????????????<br>「???????」</div></div>
       <div class="boss-card locked"><div class="bn" style="color:#00FFFF">STAGE 25 — CYBER LORD</div><img class="bi" id="bi-cyberlord" style="color:#00FFFF"><div class="bd">HP:??? / 投擲???個<br>??????????????????<br>「????????」</div></div>
       <div class="boss-card locked"><div class="bn" style="color:#FF00FF">STAGE 30 — COSMIC GOD</div><img class="bi" id="bi-cosmicgod" style="color:#FF00FF"><div class="bd">HP:??? / 投擲???個<br>????????????<br>「????????」</div></div>
@@ -2381,6 +2470,275 @@ class GameScene extends Phaser.Scene{
     this.bossAttackTimer=this.time.addEvent({delay:delay,callback:()=>this.bossDoAttack(),callbackScope:this,loop:true});
     this.bossMoveTween=this.tweens.add({targets:this.boss,y:{from:GROUND_Y-140,to:GROUND_Y-50},duration:2500,yoyo:true,repeat:-1,ease:'Sine.easeInOut'});
     if(this.bossIdleTween){this.bossIdleTween.stop();}
+
+    // ═══ SPECIAL ATTACK TIMER ═══
+    if(this.bossData&&this.bossData.specialInterval>0){
+      this.bossSpecialTimer=this.time.addEvent({
+        delay:this.bossData.specialInterval,
+        callback:()=>this.bossDoSpecialAttack(),
+        callbackScope:this,
+        loop:true,
+        startAt:this.bossData.specialInterval*.5 // 先取り実行でテンポ良く
+      });
+    }
+  }
+
+  bossDoSpecialAttack(){
+    if(!this.bossActive||this.gameOver||!this.boss||!this.boss.active)return;
+    const st=this.bossData.specialType;
+    if(st==='teleport')this.bossSpecialTeleport();
+    else if(st==='flame_beam')this.bossSpecialFlameBeam();
+    else if(st==='ice_rain')this.bossSpecialIceRain();
+    else if(st==='glitch_storm')this.bossSpecialGlitchStorm();
+    else if(st==='blackhole')this.bossSpecialBlackhole();
+  }
+
+  // ═══ SHADOW KING: テレポート → 画面上部から急降下弾 ═══
+  bossSpecialTeleport(){
+    if(!this.boss||!this.boss.active)return;
+    const boss=this.boss;
+    Audio.SFX.shadow&&Audio.SFX.shadow();
+    // Fade out with dark ring
+    const ring=this.add.circle(boss.x,boss.y,10,0xAA00FF,.7).setDepth(78);
+    this.tweens.add({targets:ring,scale:15,alpha:0,duration:400,onComplete:()=>ring.destroy()});
+    this.tweens.add({targets:boss,alpha:0,duration:350,onComplete:()=>{
+      if(!boss.active)return;
+      // Teleport to a random upper position
+      const targets=[
+        {x:W-120,y:GROUND_Y-200},
+        {x:W-200,y:GROUND_Y-280},
+        {x:W-300,y:GROUND_Y-180},
+        {x:this.bossAnchorX,y:GROUND_Y-250},
+      ];
+      const t=targets[Phaser.Math.Between(0,targets.length-1)];
+      boss.x=t.x; boss.y=t.y;
+      // Appearing effect
+      const ring2=this.add.circle(boss.x,boss.y,10,0xAA00FF,.9).setDepth(78);
+      this.tweens.add({targets:ring2,scale:15,alpha:0,duration:400,onComplete:()=>ring2.destroy()});
+      this.tweens.add({targets:boss,alpha:1,duration:350,onComplete:()=>{
+        if(!boss.active)return;
+        // Dive bombing shots - 3 quick shots directed down at player
+        for(let i=0;i<3;i++){
+          this.time.delayedCall(i*150,()=>{
+            if(!boss.active)return;
+            const proj=this.bossProjectiles.create(boss.x,boss.y+20,'proj_shadow');
+            proj.setDepth(85);
+            proj.body.setAllowGravity(false);
+            proj.setScale(1.6);
+            proj.setTint(0xAA00FF);
+            const dx=(PLAYER_X+Phaser.Math.Between(-40,40))-boss.x;
+            const dy=(GROUND_Y-40)-boss.y;
+            const dist=Math.hypot(dx,dy);
+            proj.body.setVelocityX(dx/dist*650);
+            proj.body.setVelocityY(dy/dist*650);
+            proj.body.setSize(22,22);
+            this.tweens.add({targets:proj,angle:720,duration:800,repeat:-1});
+            proj.hasHit=false;
+            this.time.delayedCall(2500,()=>{if(proj.active)proj.destroy();});
+          });
+        }
+        // Then return to anchor
+        this.time.delayedCall(900,()=>{
+          if(!boss.active)return;
+          this.tweens.add({targets:boss,x:this.bossAnchorX,y:this.bossAnchorY,duration:600,ease:'Cubic.easeInOut'});
+        });
+      }});
+    }});
+  }
+
+  // ═══ FIRE GOD: 横一文字ファイアブレス ═══
+  bossSpecialFlameBeam(){
+    if(!this.boss||!this.boss.active)return;
+    const boss=this.boss;
+    const beamY=Phaser.Math.Between(0,1)? GROUND_Y-80 : GROUND_Y-180; // 低or高
+    // Warning line - 1.2 秒
+    const warn=this.add.rectangle(W/2,beamY,W,6,0xFF3300,.4).setDepth(82);
+    warn.setStrokeStyle(1,0xFFFF00,.8);
+    this.tweens.add({targets:warn,alpha:{from:.4,to:.9},duration:120,yoyo:true,repeat:4});
+    const warnTxt=this.add.text(boss.x-40,beamY-26,'⚠ FIRE!',{fontSize:'18px',fontFamily:'Arial Black',color:'#FFFF00',stroke:'#FF0000',strokeThickness:3}).setOrigin(1,.5).setDepth(220);
+    this.time.delayedCall(1200,()=>{
+      warn.destroy(); warnTxt.destroy();
+      if(!boss.active)return;
+      Audio.SFX.fire&&Audio.SFX.fire();
+      this.cameras.main.shake(400,.012);
+      // The beam itself - a rectangle that exists for 500ms
+      const beam=this.add.rectangle(W/2,beamY,W,36,0xFF5500,.85).setDepth(84);
+      beam.setStrokeStyle(3,0xFFFF00,1);
+      this.physics.add.existing(beam);
+      beam.body.setAllowGravity(false);
+      beam.body.setSize(W,36);
+      beam.isFireBeam=true;
+      this.bossProjectiles.add(beam);
+      // Flicker
+      this.tweens.add({targets:beam,alpha:{from:.7,to:1},duration:60,yoyo:true,repeat:7});
+      // Particles along the beam
+      for(let i=0;i<30;i++){
+        const px=Phaser.Math.Between(0,W),py=beamY+Phaser.Math.Between(-18,18);
+        const p=this.add.circle(px,py,Phaser.Math.Between(4,10),0xFFAA00,.9).setDepth(85);
+        this.tweens.add({targets:p,scale:.1,alpha:0,y:py-30,duration:500,onComplete:()=>p.destroy()});
+      }
+      this.time.delayedCall(500,()=>{if(beam.active)beam.destroy();});
+    });
+  }
+
+  // ═══ ICE QUEEN: 空から氷柱弾幕 ═══
+  bossSpecialIceRain(){
+    if(!this.boss||!this.boss.active)return;
+    // 6本の氷柱が頭上から降ってくる。予告マークあり。
+    const cols=6;
+    for(let i=0;i<cols;i++){
+      this.time.delayedCall(i*180,()=>{
+        if(!this.bossActive)return;
+        const x=Phaser.Math.Between(50,W-250);
+        // Warning marker on ground
+        const marker=this.add.circle(x,GROUND_Y-8,20,0xAAEEFF,.4).setDepth(80);
+        marker.setStrokeStyle(2,0x00FFFF,.9);
+        this.tweens.add({targets:marker,scale:{from:.5,to:1.3},alpha:{from:.4,to:.9},duration:200,yoyo:true,repeat:2});
+        this.time.delayedCall(700,()=>{
+          marker.destroy();
+          if(!this.bossActive)return;
+          // Ice spike falls from the sky
+          Audio.SFX.ice&&Audio.SFX.ice();
+          const proj=this.bossProjectiles.create(x,-30,'proj_ice');
+          proj.setDepth(85);
+          proj.setScale(2);
+          proj.setTint(0x88DDFF);
+          proj.body.setAllowGravity(false);
+          proj.body.setVelocityY(700);
+          proj.body.setVelocityX(0);
+          proj.body.setSize(22,28);
+          proj.angle=90;
+          proj.hasHit=false;
+          // Shatter when hits ground
+          proj.groundCheckTimer=this.time.addEvent({
+            delay:20,repeat:-1,
+            callback:()=>{
+              if(!proj.active)return;
+              if(proj.y>=GROUND_Y-14){
+                this.shatterBossObject({x:proj.x,y:proj.y,throwType:'ice_spike',active:true,destroy:()=>proj.destroy(),groundCheckTimer:proj.groundCheckTimer});
+              }
+            }
+          });
+          this.time.delayedCall(3000,()=>{if(proj.active)proj.destroy();});
+        });
+      });
+    }
+  }
+
+  // ═══ CYBER LORD: 予告線付きグリッチ弾幕 ═══
+  bossSpecialGlitchStorm(){
+    if(!this.boss||!this.boss.active)return;
+    const boss=this.boss;
+    const numLines=5;
+    for(let i=0;i<numLines;i++){
+      this.time.delayedCall(i*120,()=>{
+        if(!this.bossActive)return;
+        // Random angle toward left half
+        const angle=Phaser.Math.FloatBetween(Math.PI*.85,Math.PI*1.15);
+        const len=700;
+        const ex=boss.x+Math.cos(angle)*len;
+        const ey=boss.y+Math.sin(angle)*len;
+        // Warning line
+        const line=this.add.line(0,0,boss.x,boss.y,ex,ey,0x00FFFF,.7).setOrigin(0,0).setDepth(82);
+        line.setLineWidth(3);
+        this.tweens.add({targets:line,alpha:{from:.3,to:.9},duration:100,yoyo:true,repeat:3});
+        this.time.delayedCall(800,()=>{
+          line.destroy();
+          if(!boss.active)return;
+          // Fire laser orb along the line
+          Audio.SFX.laser&&Audio.SFX.laser();
+          const proj=this.bossProjectiles.create(boss.x,boss.y,'power_laser');
+          proj.setDepth(85);
+          proj.setScale(1.3);
+          proj.setTint(0x00FFFF);
+          proj.body.setAllowGravity(false);
+          const vx=Math.cos(angle)*600;
+          const vy=Math.sin(angle)*600;
+          proj.body.setVelocityX(vx);
+          proj.body.setVelocityY(vy);
+          proj.body.setSize(22,22);
+          proj.hasHit=false;
+          // Glitch particle trail
+          proj.trailTimer=this.time.addEvent({
+            delay:40,repeat:30,
+            callback:()=>{
+              if(!proj.active)return;
+              const cs=[0x00FFFF,0xFF00FF,0xFFFF00,0xFFFFFF];
+              const t=this.add.rectangle(proj.x+Phaser.Math.Between(-8,8),proj.y+Phaser.Math.Between(-8,8),
+                Phaser.Math.Between(4,10),Phaser.Math.Between(2,6),cs[Phaser.Math.Between(0,3)],.7).setDepth(83);
+              this.tweens.add({targets:t,alpha:0,duration:200,onComplete:()=>t.destroy()});
+            }
+          });
+          this.time.delayedCall(2500,()=>{
+            if(proj.trailTimer)proj.trailTimer.remove();
+            if(proj.active)proj.destroy();
+          });
+        });
+      });
+    }
+    this.cameras.main.flash(80,0,255,255);
+  }
+
+  // ═══ COSMIC GOD: ブラックホール吸引＋放射弾 ═══
+  bossSpecialBlackhole(){
+    if(!this.boss||!this.boss.active)return;
+    // Summon blackhole in the middle-left area
+    const bhx=W/2-30, bhy=GROUND_Y-150;
+    const bh=this.add.image(bhx,bhy,'power_cosmic').setDepth(82).setScale(0).setAlpha(.9);
+    bh.setTint(0xFF00FF);
+    // Swirl rotation
+    this.tweens.add({targets:bh,angle:720,duration:1600,repeat:-1});
+    this.tweens.add({targets:bh,scale:3.5,duration:500,ease:'Back.easeOut'});
+    // Suction effect on player
+    this.blackholeActive=true;
+    this.blackholePos={x:bhx,y:bhy};
+    const suctionTimer=this.time.addEvent({
+      delay:30,repeat:80,
+      callback:()=>{
+        if(!this.player||!this.player.active||this.gameOver||!this.blackholeActive){return;}
+        const dx=bhx-this.player.x, dy=bhy-this.player.y;
+        const dist=Math.max(30,Math.hypot(dx,dy));
+        if(dist<280){
+          const force=(280-dist)*8;
+          this.player.body.velocity.x+=(dx/dist)*force*.03;
+          this.player.body.velocity.y+=(dy/dist)*force*.03;
+        }
+        // Accretion disk particles
+        if(Math.random()<.6){
+          const a=Math.random()*Math.PI*2;
+          const r=Phaser.Math.Between(60,120);
+          const cs=[0xFF00FF,0x8A2BE2,0x00FFFF,0xFFFFFF];
+          const p=this.add.circle(bhx+Math.cos(a)*r,bhy+Math.sin(a)*r,
+            Phaser.Math.Between(2,5),cs[Phaser.Math.Between(0,3)],.9).setDepth(81);
+          this.tweens.add({targets:p,x:bhx,y:bhy,alpha:0,scale:.1,duration:600,onComplete:()=>p.destroy()});
+        }
+      }
+    });
+    // After 1 second, release radial burst
+    this.time.delayedCall(1200,()=>{
+      if(!this.bossActive)return;
+      Audio.SFX.cosmic&&Audio.SFX.cosmic();
+      this.cameras.main.shake(400,.015);
+      this.cameras.main.flash(300,255,0,255);
+      // 8-way radial projectiles
+      for(let i=0;i<8;i++){
+        const a=(i/8)*Math.PI*2;
+        const proj=this.bossProjectiles.create(bhx,bhy,'proj_cosmic');
+        proj.setDepth(85);
+        proj.setScale(1.5);
+        proj.setTint(0xFF00FF);
+        proj.body.setAllowGravity(false);
+        proj.body.setVelocityX(Math.cos(a)*450);
+        proj.body.setVelocityY(Math.sin(a)*450);
+        proj.body.setSize(24,24);
+        proj.hasHit=false;
+        this.tweens.add({targets:proj,angle:1080,duration:2500,repeat:-1});
+        this.time.delayedCall(3000,()=>{if(proj.active)proj.destroy();});
+      }
+      // Collapse blackhole
+      this.tweens.add({targets:bh,scale:0,alpha:0,duration:400,onComplete:()=>bh.destroy()});
+      this.time.delayedCall(100,()=>{this.blackholeActive=false;suctionTimer.remove();});
+    });
   }
 
   bossDoAttack(){
@@ -2629,6 +2987,8 @@ class GameScene extends Phaser.Scene{
     boss.active=false;
     this.bossDefeatedStages[this.bossStageIdx]=true;
     if(this.bossAttackTimer)this.bossAttackTimer.remove();
+    if(this.bossSpecialTimer)this.bossSpecialTimer.remove();
+    this.blackholeActive=false;
     if(this.bossMoveTween)this.bossMoveTween.stop();
     Audio.SFX.bossDefeat();
     const defeatLines=(this.bossData&&this.bossData.shoutDefeat)||['もう無理…','負けた…'];
