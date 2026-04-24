@@ -381,7 +381,7 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9998;
     <div class="hud">
       <div class="row"><span class="lbl">COIN</span><span class="val coin" id="coinV">0</span></div>
       <div class="row"><span class="lbl">NEXT</span><span class="val next" id="nextV">1</span></div>
-      <div class="row"><span class="lbl">BPM</span><span class="val bpm" id="bpmV">60</span></div>
+      <div class="row"><span class="lbl">BPM</span><span class="val bpm" id="bpmV">50</span></div>
       <div class="row"><span class="lbl">BEST</span><span class="val best" id="bestV">0</span></div>
     </div>
 
@@ -456,12 +456,12 @@ const S = {
 };
 
 /* テンポ設定 */
-const BPM_BASE = 60;    // 最初はゆっくり（1拍=1秒）
-const BPM_MAX  = 240;
+const BPM_BASE = 50;    // 最初はゆっくり（1拍=1.2秒）
+const BPM_MAX  = 200;
 // 加速カーブ: 序盤ゆっくり、後半に加速する二次関数的増加
 function calcBPM(n){
-  // n=0 → 60, n=10 → 約78, n=20 → 約108, n=30 → 約150, n=40 → 約200, n=50以降 → 240
-  const k = 0.08;
+  // n=0 → 50, n=10 → 54, n=20 → 66, n=30 → 86, n=40 → 114, n=50 → 150, n=60以降 → 200
+  const k = 0.04;
   return Math.min(BPM_MAX, BPM_BASE + k * n * n);
 }
 
@@ -706,11 +706,11 @@ function yourTurn(){
   const n = S.current;
   $('numBtnLabel').textContent = n;
   $('numBtn').disabled=false; $('clapBtn').disabled=false;
-  // 制限時間 = 1.5拍（BGMの1小節弱）。最低500msは確保
-  const lim = Math.max(500, S.beatMs * 1.5);
+  // 制限時間 = 2拍（かなり余裕を持たせる）。最低700msは確保
+  const lim = Math.max(700, S.beatMs * 2);
   S.tStart = performance.now();
   S.tMaxCurrent = lim;
-  S.lastTickZone = 0; // カウントダウン発音用
+  S.lastTickZone = 0;
   S.tickNextAt = 0;
   $('tFill').style.transform = 'scaleX(1)';
   const tb = document.querySelector('.tbar');
