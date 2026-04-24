@@ -12,25 +12,22 @@
   #game-container{position:relative;width:100vw;height:100vh;overflow:hidden;background:#0a0a1a;display:flex;align-items:center;justify-content:center;}
   #phaser-game{width:100%;height:100%;}
   #phaser-game canvas{display:block;image-rendering:auto;-webkit-font-smoothing:antialiased;}
-  /* デフォルトで UI を完全非表示。GameSceneで明示的に表示する */
-  #ui-overlay{position:absolute;top:0;left:0;right:0;padding:8px 10px;display:none;justify-content:space-between;align-items:flex-start;pointer-events:none;z-index:10;gap:6px;}
-  #ui-overlay.show{display:flex;}
+  #ui-overlay{position:absolute;top:0;left:0;right:0;padding:8px 10px;display:flex;justify-content:space-between;align-items:flex-start;pointer-events:none;z-index:10;gap:6px;}
   #ui-dist-block{order:1;}
   #stage-badge{order:2;}
-  /* LIVESはCLOSEボタンとかぶらないよう下にずらす */
   #ui-lives-block{order:3;margin-top:48px;}
   .ui-block{background:rgba(0,0,0,.78);border:2px solid #FFD700;border-radius:6px;padding:4px 8px;color:#FFD700;font-size:9px;font-weight:900;letter-spacing:1px;line-height:1.4;}
   .ui-block .val{color:#fff;font-size:13px;display:block;}
   #stage-badge{background:linear-gradient(135deg,#FF00FF,#9B59B6);border-color:#FF00FF;color:#fff;font-size:12px;text-align:center;box-shadow:0 0 10px #FF00FF66;}
   #power-badge{position:absolute;top:48px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.9);border:2px solid #FFD700;border-radius:16px;padding:4px 12px;color:#FFD700;font-size:11px;font-weight:900;letter-spacing:1px;z-index:10;display:none;box-shadow:0 0 15px currentColor;white-space:nowrap;}
-  #sound-toggle{position:absolute;bottom:10px;right:10px;background:rgba(0,0,0,.7);border:2px solid #FFD700;border-radius:50%;width:34px;height:34px;display:none;align-items:center;justify-content:center;cursor:pointer;z-index:20;font-size:14px;color:#FFD700;}
-  #sound-toggle.show{display:flex;}
+  #sound-toggle{position:absolute;bottom:10px;right:10px;background:rgba(0,0,0,.7);border:2px solid #FFD700;border-radius:50%;width:34px;height:34px;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:20;font-size:14px;color:#FFD700;}
+  /* BUG FIX: mobile-controls hidden by default, shown only during GameScene via .show class */
   #mobile-controls{position:absolute;bottom:14px;left:0;right:0;display:none;justify-content:space-between;padding:0 14px;z-index:15;pointer-events:none;}
   #mobile-controls.show{display:flex;}
   .mctrl{width:68px;height:68px;border-radius:50%;background:rgba(0,0,0,.55);border:2px solid #FFD700;color:#FFD700;font-size:24px;font-weight:900;display:flex;align-items:center;justify-content:center;pointer-events:auto;user-select:none;cursor:pointer;}
   .mctrl:active{background:rgba(255,215,0,.3);transform:scale(.92);}
   #btn-attack{border-color:#FF00FF;color:#FF00FF;}
-  @media(min-width:900px) and (min-height:540px){#mobile-controls.show{display:none;}}
+  @media(min-width:900px) and (min-height:540px){#mobile-controls.show{display:flex;}}
 </style>
 </head>
 <body>
@@ -50,6 +47,20 @@
 </div>
 
 <script>
+// ═══ BUG FIX: Global helpers for scene transitions ═══
+window.__uwasa_showMobile=function(v){
+  const el=document.getElementById('mobile-controls');
+  if(el){if(v)el.classList.add('show');else el.classList.remove('show');}
+};
+window.__uwasa_cleanupOverlays=function(){
+  ['howto-panel','ranking-panel','name-overlay'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el){if(id==='name-overlay')el.remove();else el.classList.remove('open');}
+  });
+  window.__uwasa_nameOverlayOpen=false;
+};
+window.__uwasa_nameOverlayOpen=false;
+
 // AUDIO
 const Audio=(()=>{let ctx=null,mg=null,musg=null,sg=null,en=true,bgm=null;
 function init(){if(ctx)return;const A=window.AudioContext||window.webkitAudioContext;ctx=new A();mg=ctx.createGain();mg.gain.value=.5;mg.connect(ctx.destination);musg=ctx.createGain();musg.gain.value=.22;musg.connect(mg);sg=ctx.createGain();sg.gain.value=.7;sg.connect(mg);}
@@ -95,137 +106,17 @@ if(bs%4===0){const o=ctx.createOscillator(),g=ctx.createGain();o.type='sine';o.f
 bs++;},sm);}
 function stopBGM(){if(bgm){clearInterval(bgm);bgm=null;}}
 
-// 🌟 INVINCIBILITY BGM (マリオのスター風 - 本物に近い)
-// オリジナルの旋律: C#G-C#G-EG-BG (ギャロップリズム)
-const STAR_MELODY=[
-  // 1小節目 (fast tempo, 16分音符)
-  [554,0],[1109,0],[831,1],[554,0],[1109,0],[831,1],[698,0],[1397,0],
-  // 2小節目
-  [1047,1],[554,0],[1109,0],[831,1],[554,0],[1109,0],[831,1],[698,0],
-  // 3小節目 (上昇)
-  [1175,0],[932,1],[622,0],[1245,0],[932,1],[622,0],[1245,0],[932,1],
-  // 4小節目 (頂点)
-  [932,0],[1175,0],[1397,0],[1568,0],[1760,1],[1568,0],[1397,0],[1175,0],
-];
-// 各音: [freq, isAccent(1=強拍)]
-
-function startStarBGM(){
-  if(!ctx||!en||bgm)return;
-  const noteDur=85; // 85ms per 16th note = 176BPM相当
-  let mi=0;
-  bgm=setInterval(()=>{
-    if(!en||!ctx)return;
-    const note=STAR_MELODY[mi%STAR_MELODY.length];
-    const f=note[0],accent=note[1];
-    if(f>0){
-      const d=(noteDur-10)/1000;
-      // メロディ (square + saw)
-      const o=ctx.createOscillator(),g=ctx.createGain();
-      o.type='square';o.frequency.value=f;
-      g.gain.setValueAtTime(0,ctx.currentTime);
-      g.gain.linearRampToValueAtTime(accent?.25:.15,ctx.currentTime+.005);
-      g.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+d);
-      o.connect(g);g.connect(musg);
-      o.start();o.stop(ctx.currentTime+d);
-      // ハーモニー (5度下)
-      const o2=ctx.createOscillator(),g2=ctx.createGain();
-      o2.type='square';o2.frequency.value=f*.67;
-      g2.gain.setValueAtTime(0,ctx.currentTime);
-      g2.gain.linearRampToValueAtTime(accent?.12:.07,ctx.currentTime+.005);
-      g2.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+d);
-      o2.connect(g2);g2.connect(musg);
-      o2.start();o2.stop(ctx.currentTime+d);
-    }
-    // ベース (キック+ベース交互)
-    if(mi%2===0){
-      const bf=mi%4===0?165:220;
-      const o3=ctx.createOscillator(),g3=ctx.createGain();
-      o3.type='triangle';o3.frequency.value=bf;
-      g3.gain.setValueAtTime(.3,ctx.currentTime);
-      g3.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+.15);
-      o3.connect(g3);g3.connect(musg);
-      o3.start();o3.stop(ctx.currentTime+.15);
-    }
-    // ハイハット (裏拍)
-    if(mi%2===1){
-      const bn=ctx.createBuffer(1,ctx.sampleRate*.03,ctx.sampleRate);
-      const bd=bn.getChannelData(0);
-      for(let i=0;i<bd.length;i++)bd[i]=(Math.random()*2-1)*.3;
-      const bs=ctx.createBufferSource();bs.buffer=bn;
-      const bg=ctx.createGain();
-      bg.gain.setValueAtTime(.15,ctx.currentTime);
-      bg.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+.04);
-      bs.connect(bg);bg.connect(musg);
-      bs.start();
-    }
-    mi++;
-  },noteDur);
-}
-
-// 🔊 「うぉぉぉぉぉ！」叫び声風サウンド
-function playHypeShout(){
-  if(!ctx||!en)return;
-  const dur=1.2;
-  // ノイズベース（叫び声の息遣い）
-  const bn=ctx.createBuffer(1,ctx.sampleRate*dur,ctx.sampleRate);
-  const bd=bn.getChannelData(0);
-  for(let i=0;i<bd.length;i++){
-    const t=i/ctx.sampleRate;
-    // ピッチが上がっていくモーション
-    const env=Math.min(1,t*3)*Math.max(0,1-(t-.3)/(dur-.3))*.8;
-    bd[i]=(Math.random()*2-1)*env;
-  }
-  const bs=ctx.createBufferSource();bs.buffer=bn;
-  // バンドパスフィルター（声っぽさ）
-  const bp=ctx.createBiquadFilter();
-  bp.type='bandpass';bp.frequency.value=800;bp.Q.value=3;
-  // ピッチ上昇
-  bp.frequency.setValueAtTime(400,ctx.currentTime);
-  bp.frequency.exponentialRampToValueAtTime(2000,ctx.currentTime+dur*.7);
-  const bg=ctx.createGain();
-  bg.gain.setValueAtTime(.4,ctx.currentTime);
-  bg.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+dur);
-  bs.connect(bp);bp.connect(bg);bg.connect(musg);
-  bs.start();
-  // オシレーター追加（低音の迫力）
-  const o=ctx.createOscillator(),og=ctx.createGain();
-  o.type='sawtooth';
-  o.frequency.setValueAtTime(80,ctx.currentTime);
-  o.frequency.exponentialRampToValueAtTime(250,ctx.currentTime+dur*.6);
-  o.frequency.exponentialRampToValueAtTime(120,ctx.currentTime+dur);
-  og.gain.setValueAtTime(0,ctx.currentTime);
-  og.gain.linearRampToValueAtTime(.25,ctx.currentTime+.05);
-  og.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+dur);
-  o.connect(og);og.connect(musg);
-  o.start();o.stop(ctx.currentTime+dur);
-  // ライザー（テンション爆上げ）
-  const o2=ctx.createOscillator(),og2=ctx.createGain();
-  o2.type='sawtooth';
-  o2.frequency.setValueAtTime(200,ctx.currentTime);
-  o2.frequency.exponentialRampToValueAtTime(3000,ctx.currentTime+dur*.8);
-  og2.gain.setValueAtTime(0,ctx.currentTime);
-  og2.gain.linearRampToValueAtTime(.15,ctx.currentTime+dur*.5);
-  og2.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+dur);
-  o2.connect(og2);og2.connect(musg);
-  o2.start();o2.stop(ctx.currentTime+dur);
-}
-
-// BOSS BGM — heavier, faster, minor-key tension theme
 const BOSS_MELODY=[
-  // Urgent descending minor riff
-  {n:415,d:1},{n:370,d:1},{n:311,d:1},{n:277,d:1}, // Ab G Eb C#
+  {n:415,d:1},{n:370,d:1},{n:311,d:1},{n:277,d:1},
   {n:311,d:1},{n:370,d:1},{n:415,d:2},
-  {n:466,d:1},{n:415,d:1},{n:370,d:1},{n:415,d:2}, // Bb Ab G Ab
-  // Aggressive motif
+  {n:466,d:1},{n:415,d:1},{n:370,d:1},{n:415,d:2},
   {n:622,d:1},{n:554,d:1},{n:466,d:1},{n:415,d:1},
   {n:370,d:1},{n:415,d:1},{n:466,d:2},
   {n:554,d:1},{n:466,d:1},{n:415,d:1},{n:370,d:2},
-  // Climax
   {n:831,d:1},{n:740,d:1},{n:622,d:1},{n:554,d:1},
   {n:466,d:2},{n:415,d:2},
 ];
 const BOSS_BASS=[
-  // Lower, tenser bass (C#m pattern)
   138,138,138,138, 116,116,116,116, 138,138,155,155,
   184,184,138,138, 116,116,138,138, 155,155,116,116
 ];
@@ -234,14 +125,13 @@ let bossBgmActive=false;
 function startBossBGM(){
   if(!ctx||!en||bgm)return;
   bossBgmActive=true;
-  const sm=140; // faster tempo
+  const sm=140;
   let mi=0,mr=0,bs=0;
   bgm=setInterval(()=>{
     if(!en||!ctx)return;
     if(mr<=0){
       const n=BOSS_MELODY[mi%BOSS_MELODY.length];
       if(n){
-        // Two oscillators for richer sound — square + sawtooth
         const o=ctx.createOscillator(),g=ctx.createGain();
         o.type='sawtooth';o.frequency.value=n.n;
         const d=n.d*sm/1000;
@@ -251,8 +141,6 @@ function startBossBGM(){
         g.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+d);
         o.connect(g);g.connect(musg);
         o.start();o.stop(ctx.currentTime+d);
-
-        // Harmony oscillator (octave)
         const o2=ctx.createOscillator(),g2=ctx.createGain();
         o2.type='square';o2.frequency.value=n.n/2;
         g2.gain.setValueAtTime(0,ctx.currentTime);
@@ -260,12 +148,10 @@ function startBossBGM(){
         g2.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+d);
         o2.connect(g2);g2.connect(musg);
         o2.start();o2.stop(ctx.currentTime+d);
-
         mr=n.d;mi++;
       }
     }
     mr--;
-    // Heavy bass (triangle + square mix)
     const bn=BOSS_BASS[bs%BOSS_BASS.length];
     if(bn){
       const o=ctx.createOscillator(),g=ctx.createGain();
@@ -277,9 +163,7 @@ function startBossBGM(){
       o.connect(g);g.connect(musg);
       o.start();o.stop(ctx.currentTime+d);
     }
-    // Aggressive hi-hat every step
     if(bs%1===0)noise(.025,.12,5000);
-    // Double kick
     if(bs%2===0){
       const o=ctx.createOscillator(),g=ctx.createGain();
       o.type='sine';
@@ -290,7 +174,6 @@ function startBossBGM(){
       o.connect(g);g.connect(musg);
       o.start();o.stop(ctx.currentTime+.12);
     }
-    // Snare on off-beats
     if(bs%4===2){
       noise(.08,.3,2000);
     }
@@ -298,12 +181,11 @@ function startBossBGM(){
   },sm);
 }
 function setEnabled(v){en=v;if(!v){if(mg)mg.gain.value=0;stopBGM();}else{if(mg)mg.gain.value=.5;}}
-return{init,resume,SFX,startBGM,startBossBGM,startStarBGM,playHypeShout,stopBGM,setEnabled};})();
+return{init,resume,SFX,startBGM,startBossBGM,stopBGM,setEnabled};})();
 
 let soundOn=true;
 window.toggleSound=function(){soundOn=!soundOn;Audio.setEnabled(soundOn);document.getElementById('sound-toggle').textContent=soundOn?'🔊':'🔇';};
 
-// CONFIG
 const W=960,H=540,GROUND_Y=440,PLAYER_X=160;
 
 const POWERUPS={
@@ -319,9 +201,6 @@ const POWERUPS={
   cosmic:{emoji:'🌌',name:'COSMIC GOD',color:0xFF00FF,glow:'#FF00FF'},
 };
 
-// ═══════════════════════════════════════════════════════
-// BOSS DB — each boss has unique name, HP, colors, attack style
-// ═══════════════════════════════════════════════════════
 const BOSSES={
   ryosuke:{
     name:'RYOSUKE',
@@ -329,7 +208,7 @@ const BOSSES={
     hp:80,
     throwTypes:['plate','bowl','hookah'],
     attackDelay:900,
-    projectileCount:2, // throws 2 at once
+    projectileCount:2,
     shoutLight:['いってぇ！','いたぁ！','くっ！','うっ！','ちっ！','あちっ！'],
     shoutMid:['いってぇ！！','いたいっ！','ぐああっ！','やめろ！','うわっ！！'],
     shoutHeavy:['いっっっって！！','まじいたい！','ぐはっ！','おい！！','ぎゃあああ！','ふざけんな！'],
@@ -404,49 +283,36 @@ const BOSSES={
 };
 
 const STAGES=[
-  // ═══ 奥能登 (1-6): 最北端から南下開始。海沿い・岬・漁港 ═══
-  {name:'STAGE 1 — 禄剛埼灯台',      dist:0,    speed:240, obstFreq:2000, bgTop:0x3a5a7a, bgBot:0x5a8ab0, powerupKey:'fire'},     // 朝焼けの海と灯台
-  {name:'STAGE 2 — 珠洲 見附島',     dist:50,   speed:290, obstFreq:1700, bgTop:0x2a4a6a, bgBot:0x6aaaca, powerupKey:'dragon'},   // 軍艦島と青い海
-  {name:'STAGE 3 — 珠洲 揚浜塩田',   dist:120,  speed:340, obstFreq:1450, bgTop:0xc47a3a, bgBot:0x9aaa8a, powerupKey:'devil'},   // 夕日の塩田
-  {name:'STAGE 4 — 輪島 白米千枚田',  dist:210,  speed:380, obstFreq:1250, bgTop:0x4a8a4a, bgBot:0x2a5a8a, powerupKey:'angel'},   // 棚田と海
-  {name:'STAGE 5 — 輪島朝市',        dist:320,  speed:420, obstFreq:1080, bgTop:0x6a4a2a, bgBot:0x3a2a1a, powerupKey:'laser', boss:'ryosuke'},  // 朝市・木造町家
-  {name:'STAGE 6 — 輪島 ごじんじょ太鼓', dist:450,  speed:460, obstFreq: 950, bgTop:0x1a1a3a, bgBot:0x2a0a3a, powerupKey:'ice'},  // 夜の海岸・御陣乗太鼓
-
-  // ═══ 能登中部 (7-10): 穴水・七尾・和倉 ═══
-  {name:'STAGE 7 — 穴水 ボラ待ちやぐら', dist:600,  speed:500, obstFreq: 850, bgTop:0x7a5a3a, bgBot:0x4a7a9a, powerupKey:'thunder'},  // 穴水湾
-  {name:'STAGE 8 — 七尾 一本杉通り',  dist:780,  speed:540, obstFreq: 780, bgTop:0x3a2a1a, bgBot:0x1a1a2a, powerupKey:'shadow'},   // 古い町並み・夕闇
-  {name:'STAGE 9 — 和倉温泉',        dist:1000, speed:580, obstFreq: 720, bgTop:0x5a3a5a, bgBot:0x7a5a8a, powerupKey:'golden'},  // 温泉街・湯気
-  {name:'STAGE 10 — 七尾 青柏祭',    dist:1300, speed:620, obstFreq: 670, bgTop:0x4a0a1a, bgBot:0x2a0a1a, powerupKey:'cosmic', boss:'shadowking'}, // 山車と赤提灯の夜祭
-
-  // ═══ 能登南部 (11-14): 志賀・羽咋 ═══
-  {name:'STAGE 11 — 志賀 厳門',       dist:1650, speed:660, obstFreq: 620, bgTop:0x2a3a5a, bgBot:0x4a6a8a, powerupKey:'fire'},    // 荒々しい海岸岩
-  {name:'STAGE 12 — 能登金剛',        dist:2050, speed:700, obstFreq: 580, bgTop:0x1a2a4a, bgBot:0x3a4a6a, powerupKey:'dragon'}, // 断崖絶壁
-  {name:'STAGE 13 — 羽咋 千里浜',     dist:2500, speed:740, obstFreq: 540, bgTop:0xc4a47a, bgBot:0x7aa4c4, powerupKey:'devil'},  // なぎさドライブウェイ
-  {name:'STAGE 14 — 羽咋 気多大社',   dist:3000, speed:780, obstFreq: 510, bgTop:0xc48a4a, bgBot:0x6a4a2a, powerupKey:'angel'},  // 朱鳥居と森
-
-  // ═══ 内灘・津幡・河北 (15-17) ═══
-  {name:'STAGE 15 — 宝達山',          dist:3550, speed:820, obstFreq: 480, bgTop:0x4a6a3a, bgBot:0x2a4a1a, powerupKey:'laser', boss:'firegod'}, // 石川最高峰・霧
-  {name:'STAGE 16 — 津幡 河北潟',     dist:4150, speed:860, obstFreq: 450, bgTop:0x5a7a8a, bgBot:0x3a5a6a, powerupKey:'ice'},   // 潟と水田
-  {name:'STAGE 17 — 内灘砂丘',        dist:4800, speed:900, obstFreq: 420, bgTop:0xcaa48a, bgBot:0x9a7a5a, powerupKey:'thunder'}, // 砂丘・嵐
-
-  // ═══ 金沢北部 (18-22): 卯辰山・ひがし茶屋街・金沢城 ═══
-  {name:'STAGE 18 — 金沢 卯辰山',     dist:5500, speed:940, obstFreq: 400, bgTop:0x3a4a2a, bgBot:0x1a2a0a, powerupKey:'shadow'}, // 夜桜・山
-  {name:'STAGE 19 — ひがし茶屋街',    dist:6250, speed:980, obstFreq: 380, bgTop:0x8a4a2a, bgBot:0x4a2a1a, powerupKey:'golden'}, // 紅殻格子・提灯
-  {name:'STAGE 20 — 主計町茶屋街',    dist:7050, speed:1020,obstFreq: 360, bgTop:0x5a2a3a, bgBot:0x2a0a1a, powerupKey:'cosmic', boss:'icequeen'}, // 浅野川の夜
-  {name:'STAGE 21 — 金沢城石川門',    dist:7900, speed:1070,obstFreq: 345, bgTop:0x4a5a3a, bgBot:0x2a3a1a, powerupKey:'fire'},   // 白い石垣
-  {name:'STAGE 22 — 兼六園',          dist:8800, speed:1120,obstFreq: 330, bgTop:0x2a5a3a, bgBot:0x4a7a5a, powerupKey:'dragon'}, // 雪吊り・池
-
-  // ═══ 金沢中心部 (23-28): 近江町・尾山神社・繁華街 ═══
-  {name:'STAGE 23 — 近江町市場',      dist:9750, speed:1170,obstFreq: 315, bgTop:0xc47a2a, bgBot:0x6a3a1a, powerupKey:'devil'},   // 魚屋・提灯
-  {name:'STAGE 24 — 尾山神社',        dist:10750,speed:1220,obstFreq: 300, bgTop:0xcaa46a, bgBot:0x8a5a2a, powerupKey:'angel'},  // ステンドグラス神門
-  {name:'STAGE 25 — 21世紀美術館',    dist:11800,speed:1270,obstFreq: 290, bgTop:0xcadcea, bgBot:0x8aaac4, powerupKey:'laser', boss:'cyberlord'}, // 白い円形建築
-  {name:'STAGE 26 — 長町武家屋敷',    dist:12900,speed:1320,obstFreq: 280, bgTop:0x8a7a5a, bgBot:0x4a3a2a, powerupKey:'ice'},    // 土塀・用水
-  {name:'STAGE 27 — 金沢駅 鼓門',     dist:14050,speed:1370,obstFreq: 270, bgTop:0x7a3a2a, bgBot:0x3a1a1a, powerupKey:'thunder'},// 赤い鼓門
-  {name:'STAGE 28 — 香林坊',          dist:15250,speed:1420,obstFreq: 260, bgTop:0x3a3a5a, bgBot:0x1a1a2a, powerupKey:'shadow'}, // ネオン繁華街
-
-  // ═══ 最終決戦 (29-30): 片町 ═══
-  {name:'STAGE 29 — 片町 スクランブル', dist:16500,speed:1470,obstFreq: 250, bgTop:0x2a2a4a, bgBot:0x0a0a2a, powerupKey:'golden'}, // 金土の喧騒
-  {name:'STAGE 30 — 片町 U.S.B本店',  dist:17800,speed:1550,obstFreq: 240, bgTop:0x1a001a, bgBot:0x0a000a, powerupKey:'cosmic', boss:'cosmicgod'}, // ラスボス
+  {name:'STAGE 1 — 禄剛埼灯台',      dist:0,    speed:240, obstFreq:2000, bgTop:0x3a5a7a, bgBot:0x5a8ab0, powerupKey:'fire'},
+  {name:'STAGE 2 — 珠洲 見附島',     dist:50,   speed:290, obstFreq:1700, bgTop:0x2a4a6a, bgBot:0x6aaaca, powerupKey:'dragon'},
+  {name:'STAGE 3 — 珠洲 揚浜塩田',   dist:120,  speed:340, obstFreq:1450, bgTop:0xc47a3a, bgBot:0x9aaa8a, powerupKey:'devil'},
+  {name:'STAGE 4 — 輪島 白米千枚田',  dist:210,  speed:380, obstFreq:1250, bgTop:0x4a8a4a, bgBot:0x2a5a8a, powerupKey:'angel'},
+  {name:'STAGE 5 — 輪島朝市',        dist:320,  speed:420, obstFreq:1080, bgTop:0x6a4a2a, bgBot:0x3a2a1a, powerupKey:'laser', boss:'ryosuke'},
+  {name:'STAGE 6 — 輪島 ごじんじょ太鼓', dist:450,  speed:460, obstFreq: 950, bgTop:0x1a1a3a, bgBot:0x2a0a3a, powerupKey:'ice'},
+  {name:'STAGE 7 — 穴水 ボラ待ちやぐら', dist:600,  speed:500, obstFreq: 850, bgTop:0x7a5a3a, bgBot:0x4a7a9a, powerupKey:'thunder'},
+  {name:'STAGE 8 — 七尾 一本杉通り',  dist:780,  speed:540, obstFreq: 780, bgTop:0x3a2a1a, bgBot:0x1a1a2a, powerupKey:'shadow'},
+  {name:'STAGE 9 — 和倉温泉',        dist:1000, speed:580, obstFreq: 720, bgTop:0x5a3a5a, bgBot:0x7a5a8a, powerupKey:'golden'},
+  {name:'STAGE 10 — 七尾 青柏祭',    dist:1300, speed:620, obstFreq: 670, bgTop:0x4a0a1a, bgBot:0x2a0a1a, powerupKey:'cosmic', boss:'shadowking'},
+  {name:'STAGE 11 — 志賀 厳門',       dist:1650, speed:660, obstFreq: 620, bgTop:0x2a3a5a, bgBot:0x4a6a8a, powerupKey:'fire'},
+  {name:'STAGE 12 — 能登金剛',        dist:2050, speed:700, obstFreq: 580, bgTop:0x1a2a4a, bgBot:0x3a4a6a, powerupKey:'dragon'},
+  {name:'STAGE 13 — 羽咋 千里浜',     dist:2500, speed:740, obstFreq: 540, bgTop:0xc4a47a, bgBot:0x7aa4c4, powerupKey:'devil'},
+  {name:'STAGE 14 — 羽咋 気多大社',   dist:3000, speed:780, obstFreq: 510, bgTop:0xc48a4a, bgBot:0x6a4a2a, powerupKey:'angel'},
+  {name:'STAGE 15 — 宝達山',          dist:3550, speed:820, obstFreq: 480, bgTop:0x4a6a3a, bgBot:0x2a4a1a, powerupKey:'laser', boss:'firegod'},
+  {name:'STAGE 16 — 津幡 河北潟',     dist:4150, speed:860, obstFreq: 450, bgTop:0x5a7a8a, bgBot:0x3a5a6a, powerupKey:'ice'},
+  {name:'STAGE 17 — 内灘砂丘',        dist:4800, speed:900, obstFreq: 420, bgTop:0xcaa48a, bgBot:0x9a7a5a, powerupKey:'thunder'},
+  {name:'STAGE 18 — 金沢 卯辰山',     dist:5500, speed:940, obstFreq: 400, bgTop:0x3a4a2a, bgBot:0x1a2a0a, powerupKey:'shadow'},
+  {name:'STAGE 19 — ひがし茶屋街',    dist:6250, speed:980, obstFreq: 380, bgTop:0x8a4a2a, bgBot:0x4a2a1a, powerupKey:'golden'},
+  {name:'STAGE 20 — 主計町茶屋街',    dist:7050, speed:1020,obstFreq: 360, bgTop:0x5a2a3a, bgBot:0x2a0a1a, powerupKey:'cosmic', boss:'icequeen'},
+  {name:'STAGE 21 — 金沢城石川門',    dist:7900, speed:1070,obstFreq: 345, bgTop:0x4a5a3a, bgBot:0x2a3a1a, powerupKey:'fire'},
+  {name:'STAGE 22 — 兼六園',          dist:8800, speed:1120,obstFreq: 330, bgTop:0x2a5a3a, bgBot:0x4a7a5a, powerupKey:'dragon'},
+  {name:'STAGE 23 — 近江町市場',      dist:9750, speed:1170,obstFreq: 315, bgTop:0xc47a2a, bgBot:0x6a3a1a, powerupKey:'devil'},
+  {name:'STAGE 24 — 尾山神社',        dist:10750,speed:1220,obstFreq: 300, bgTop:0xcaa46a, bgBot:0x8a5a2a, powerupKey:'angel'},
+  {name:'STAGE 25 — 21世紀美術館',    dist:11800,speed:1270,obstFreq: 290, bgTop:0xcadcea, bgBot:0x8aaac4, powerupKey:'laser', boss:'cyberlord'},
+  {name:'STAGE 26 — 長町武家屋敷',    dist:12900,speed:1320,obstFreq: 280, bgTop:0x8a7a5a, bgBot:0x4a3a2a, powerupKey:'ice'},
+  {name:'STAGE 27 — 金沢駅 鼓門',     dist:14050,speed:1370,obstFreq: 270, bgTop:0x7a3a2a, bgBot:0x3a1a1a, powerupKey:'thunder'},
+  {name:'STAGE 28 — 香林坊',          dist:15250,speed:1420,obstFreq: 260, bgTop:0x3a3a5a, bgBot:0x1a1a2a, powerupKey:'shadow'},
+  {name:'STAGE 29 — 片町 スクランブル', dist:16500,speed:1470,obstFreq: 250, bgTop:0x2a2a4a, bgBot:0x0a0a2a, powerupKey:'golden'},
+  {name:'STAGE 30 — 片町 U.S.B本店',  dist:17800,speed:1550,obstFreq: 240, bgTop:0x1a001a, bgBot:0x0a000a, powerupKey:'cosmic', boss:'cosmicgod'},
 ];
 
 let gameState={distance:0,stage:0,lives:3,score:0,coins:0,powersCollected:[]};
@@ -560,7 +426,6 @@ function makeTextures(s){
   const frames=['idle','run1','run2','jump'];
   forms.forEach(f=>frames.forEach(fr=>{const g=s.add.graphics();drawP(g,f,fr);g.generateTexture(`bro_${f}_${fr}`,PW,PH);g.destroy();}));
 
-  // Obstacles
   {const g=s.add.graphics();
   g.fillStyle(0xDAA520);g.fillRect(6,42,24,6);
   g.fillStyle(0xFFD700);g.fillRect(8,40,20,4);
@@ -594,7 +459,6 @@ function makeTextures(s){
   mp('golden',g=>{g.fillStyle(0xFFD700,.5);g.fillCircle(20,20,18);g.fillStyle(0xFFD700);g.fillRect(8,18,24,12);g.fillRect(8,12,4,8);g.fillRect(18,8,4,10);g.fillRect(28,12,4,8);g.fillStyle(0xFF0000);g.fillCircle(20,24,2);g.fillStyle(0xCC9900);g.fillRect(8,28,24,2);});
   mp('cosmic',g=>{g.fillStyle(0xFF00FF,.4);g.fillCircle(20,20,18);g.fillStyle(0x4B0082);g.fillCircle(20,20,15);g.fillStyle(0x8A2BE2);g.fillCircle(20,20,10);g.fillStyle(0xFF00FF);g.fillCircle(20,20,6);g.fillStyle(0xFFFFFF);g.fillCircle(20,20,2);g.lineStyle(1,0x00FFFF,.8);g.strokeCircle(20,20,12);});
 
-  // Projectiles
   {const g=s.add.graphics();g.fillStyle(0xFF5500);g.fillCircle(14,10,10);g.fillStyle(0xFFAA00);g.fillCircle(12,10,6);g.fillStyle(0xFFFF00);g.fillCircle(10,10,3);g.generateTexture('proj_fire',28,20);g.destroy();}
   {const g=s.add.graphics();g.fillStyle(0x00FF88);g.fillCircle(16,14,14);g.fillStyle(0x00CC66);g.fillCircle(14,14,10);g.fillStyle(0xFFFF00);g.fillCircle(12,14,5);g.generateTexture('proj_dragon',32,28);g.destroy();}
   {const g=s.add.graphics();g.fillStyle(0x660000);g.fillCircle(14,12,12);g.fillStyle(0xFF0066);g.fillCircle(13,12,8);g.fillStyle(0x000000);g.fillCircle(12,12,4);g.fillStyle(0xFF0000);g.fillCircle(11,11,1);g.fillCircle(13,11,1);g.generateTexture('proj_devil',28,24);g.destroy();}
@@ -606,64 +470,46 @@ function makeTextures(s){
   {const g=s.add.graphics();g.fillStyle(0xFFFF00);g.fillCircle(16,14,14);g.fillStyle(0xFFD700);g.fillCircle(14,14,10);g.fillStyle(0xFFFFFF);g.fillCircle(12,14,4);g.fillStyle(0xCC9900);g.fillRect(13,8,2,12);g.fillRect(10,10,8,2);g.fillRect(10,16,8,2);g.generateTexture('proj_golden',32,28);g.destroy();}
   {const g=s.add.graphics();g.fillStyle(0xFF00FF);g.fillCircle(18,16,16);g.fillStyle(0x4B0082);g.fillCircle(16,16,12);g.fillStyle(0x00FFFF);g.fillCircle(14,16,7);g.fillStyle(0xFFFFFF);g.fillCircle(12,16,3);g.generateTexture('proj_cosmic',36,32);g.destroy();}
 
-  // Environment
   {const g=s.add.graphics();g.fillStyle(0x2a1a3a);g.fillRect(0,0,64,80);g.fillStyle(0x1a0a2a);g.fillRect(0,0,64,4);g.fillStyle(0xFFD700);g.fillRect(0,0,64,2);g.fillStyle(0x1a0a2a);g.fillRect(0,20,32,2);g.fillRect(32,40,32,2);g.fillRect(0,60,32,2);g.generateTexture('ground_tile',64,80);g.destroy();}
   [{k:'cloud_cyan',c:0x00BFFF},{k:'cloud_yellow',c:0xFFE600},{k:'cloud_pink',c:0xFF00FF}].forEach(({k,c})=>{const g=s.add.graphics();g.fillStyle(c,.7);g.fillCircle(35,22,22);g.fillCircle(58,20,16);g.fillCircle(14,22,14);g.fillCircle(40,12,14);g.generateTexture(k,80,44);g.destroy();});
-  // Ishikawa-themed background buildings
-  // Type A: Wajima machiya (black tile roof, wooden facade, lit windows)
   {const g=s.add.graphics();
-  // Wooden wall
   g.fillStyle(0x3a1a0a);g.fillRect(0,20,100,70);
   g.fillStyle(0x2a1005);g.fillRect(0,20,100,3);
-  // Vertical wood slats
   for(let x=4;x<100;x+=8){g.fillStyle(0x2a1005);g.fillRect(x,24,1,64);}
-  // Black tile roof (kawara)
   g.fillStyle(0x1a1a1a);g.fillRect(0,0,100,22);
   g.fillStyle(0x0a0a0a);g.fillRect(0,0,100,3);
-  // Roof ridge tiles
   g.fillStyle(0x3a3a3a);
   for(let x=4;x<100;x+=10){g.fillRect(x,3,6,2);}
-  // Lit paper windows (warm orange glow)
   g.fillStyle(0xFFAA44);
   g.fillRect(12,40,14,14);g.fillRect(36,40,14,14);g.fillRect(60,40,14,14);g.fillRect(84,40,12,14);
   g.fillStyle(0xFF8822);
   g.fillRect(12,40,14,2);g.fillRect(36,40,14,2);g.fillRect(60,40,14,2);g.fillRect(84,40,12,2);
-  // Window lattice
   g.fillStyle(0x2a1005);
   for(let i=0;i<4;i++){
     g.fillRect(12+i*24,44,14,1);g.fillRect(12+i*24,50,14,1);
     g.fillRect(18+i*24,40,1,14);
   }
-  // Lower wall
   g.fillStyle(0x2a1005);g.fillRect(0,66,100,4);
-  // Noren (door curtain) center
   g.fillStyle(0x1a3a5a);g.fillRect(44,70,14,20);
   g.fillStyle(0xFFFFFF);g.fillRect(48,74,2,4);g.fillRect(52,74,2,4);
   g.generateTexture('building',100,90);
   g.destroy();}
 
-  // Type B: Chaya (tea house, red lacquer, paper lanterns)
   {const g=s.add.graphics();
-  // Red lacquered facade (higashi chaya-gai style)
   g.fillStyle(0x6a1a1a);g.fillRect(0,24,80,96);
   g.fillStyle(0x4a0a0a);g.fillRect(0,24,80,3);
-  // Dark roof
   g.fillStyle(0x1a0a05);g.fillRect(0,0,80,24);
   g.fillStyle(0x0a0000);g.fillRect(0,0,80,3);
-  // Kimusuko (fine wooden lattice)
   g.fillStyle(0x3a0a05);
   for(let x=2;x<78;x+=3){g.fillRect(x,30,1,40);}
-  // Paper lanterns (round, glowing)
   g.fillStyle(0xFF6644);
   g.fillCircle(14,78,7);g.fillCircle(40,78,7);g.fillCircle(66,78,7);
   g.fillStyle(0xFF2222);
   g.fillCircle(14,80,5);g.fillCircle(40,80,5);g.fillCircle(66,80,5);
   g.fillStyle(0xFFFFFF);
   g.fillRect(12,75,4,1);g.fillRect(38,75,4,1);g.fillRect(64,75,4,1);
-  // Lantern strings
   g.fillStyle(0x000000);
   g.fillRect(14,70,1,2);g.fillRect(40,70,1,2);g.fillRect(66,70,1,2);
-  // Lit windows upstairs
   g.fillStyle(0xFFCC66);
   g.fillRect(10,94,18,18);g.fillRect(34,94,18,18);g.fillRect(58,94,16,18);
   g.fillStyle(0x4a2a0a);
@@ -672,34 +518,25 @@ function makeTextures(s){
   g.generateTexture('building2',80,120);
   g.destroy();}
 
-  // Type C: Shrine torii gate + forest shrine
   {const g=s.add.graphics();
-  // Dark forest background
   g.fillStyle(0x1a2a1a);g.fillRect(0,0,90,110);
-  // Torii gate (vermillion red)
   g.fillStyle(0xCC2222);
-  // Top crossbar
   g.fillRect(10,20,70,8);
   g.fillStyle(0x881111);
   g.fillRect(10,24,70,4);
-  // Second bar
   g.fillStyle(0xCC2222);
   g.fillRect(18,34,54,5);
-  // Pillars
   g.fillRect(20,20,8,86);
   g.fillRect(62,20,8,86);
   g.fillStyle(0x881111);
   g.fillRect(26,26,2,80);g.fillRect(68,26,2,80);
-  // Top edge
   g.fillStyle(0xFF4433);
   g.fillRect(10,20,70,2);
   g.fillRect(18,34,54,1);
-  // Gold inscription plate
   g.fillStyle(0xFFD700);
   g.fillRect(38,25,14,6);
   g.fillStyle(0x000000);
   g.fillRect(40,27,3,2);g.fillRect(46,27,3,2);
-  // Lantern hanging
   g.fillStyle(0xFFCC44);
   g.fillCircle(45,50,6);
   g.fillStyle(0x000000);
@@ -707,95 +544,46 @@ function makeTextures(s){
   g.generateTexture('building3',90,110);
   g.destroy();}
 
-  // Type D: Traditional Kanazawa castle gate (Ishikawamon style - white with dark roof)
   {const g=s.add.graphics();
-  // Stone base
   g.fillStyle(0x9a9a9a);g.fillRect(0,70,110,40);
-  // Stone blocks pattern
   g.fillStyle(0x6a6a6a);
   for(let y=72;y<108;y+=6){for(let x=0;x<110;x+=10){g.fillRect(x,y,9,1);}}
   g.fillStyle(0x4a4a4a);
   for(let x=0;x<110;x+=10){g.fillRect(x,70,1,40);}
-  // White plaster walls
   g.fillStyle(0xEEEEEE);g.fillRect(10,40,90,32);
   g.fillStyle(0xCCCCCC);g.fillRect(10,40,90,2);
-  // Latticed windows (thin dark)
   g.fillStyle(0x1a1a1a);g.fillRect(20,50,14,14);g.fillRect(48,50,14,14);g.fillRect(76,50,14,14);
   g.fillStyle(0xFFAA44);g.fillRect(22,52,10,10);g.fillRect(50,52,10,10);g.fillRect(78,52,10,10);
   g.fillStyle(0x000000);
   for(let wx of [22,50,78]){g.fillRect(wx,57,10,1);g.fillRect(wx+4,52,1,10);}
-  // Dark tile roof (curving upward at ends)
   g.fillStyle(0x2a2a2a);g.fillRect(0,20,110,22);
   g.fillStyle(0x1a1a1a);
   g.fillRect(0,20,110,3);
-  // Roof ridge with shachihoko silhouette
   g.fillStyle(0x3a3a3a);
   for(let x=2;x<110;x+=8){g.fillRect(x,23,5,2);}
-  // Upper tier
   g.fillStyle(0xEEEEEE);g.fillRect(25,8,60,14);
   g.fillStyle(0x2a2a2a);g.fillRect(20,0,70,10);
-  // Shachihoko (golden fish decoration on roof)
   g.fillStyle(0xFFD700);
   g.fillRect(28,-4,4,6);g.fillRect(78,-4,4,6);
   g.generateTexture('building4',110,110);
   g.destroy();}
-  // Star (bg decoration)
   {const g=s.add.graphics();g.fillStyle(0xFFFFFF);g.fillRect(1,0,1,3);g.fillRect(0,1,3,1);g.generateTexture('star',3,3);g.destroy();}
 
-  // 🌟 大きな無敵スター (マリオ風)
   {const g=s.add.graphics();
-    // 5角星を描画
-    const cx=24,cy=24,rOut=22,rIn=9;
-    const pts=[];
-    for(let i=0;i<10;i++){
-      const a=(i/10)*Math.PI*2-Math.PI/2;
-      const r=(i%2===0)?rOut:rIn;
-      pts.push({x:cx+Math.cos(a)*r,y:cy+Math.sin(a)*r});
-    }
-    // 外周の黒
-    g.fillStyle(0x000000);
-    g.beginPath();
-    g.moveTo(pts[0].x,pts[0].y);
-    for(let i=1;i<pts.length;i++)g.lineTo(pts[i].x,pts[i].y);
-    g.closePath();g.fillPath();
-    // 内側の金
-    g.fillStyle(0xFFD700);
-    const pts2=pts.map(p=>({x:cx+(p.x-cx)*.85,y:cy+(p.y-cy)*.85}));
-    g.beginPath();
-    g.moveTo(pts2[0].x,pts2[0].y);
-    for(let i=1;i<pts2.length;i++)g.lineTo(pts2[i].x,pts2[i].y);
-    g.closePath();g.fillPath();
-    // 目
-    g.fillStyle(0x000000);
-    g.fillRect(18,22,3,5);g.fillRect(27,22,3,5);
-    // ハイライト
-    g.fillStyle(0xFFFFFF);
-    g.fillRect(18,22,1,2);g.fillRect(27,22,1,2);
-    g.generateTexture('star_invincible',48,48);
-    g.destroy();
-  }
-
-  // Basic punch (normal attack)
-  {const g=s.add.graphics();
-  // Fist shape (yellow/cream)
   g.fillStyle(0xFBD5A6);g.fillCircle(14,12,10);
   g.fillStyle(0xD4A373);g.fillCircle(14,15,8);
-  // Knuckles
   g.fillStyle(0xFFFFFF);
   g.fillRect(10,8,2,2);g.fillRect(14,7,2,2);g.fillRect(18,8,2,2);
-  // Impact lines
   g.fillStyle(0xFFD700);
   g.fillRect(24,12,6,2);g.fillRect(22,6,4,2);g.fillRect(22,18,4,2);
   g.fillStyle(0xFFFFFF);
   g.fillRect(26,12,4,1);
   g.generateTexture('proj_punch',32,24);g.destroy();}
 
-  // Enemy: Spiked ball (rolling enemy)
   {const g=s.add.graphics();
   g.fillStyle(0x333333);g.fillCircle(18,18,15);
   g.fillStyle(0x555555);g.fillCircle(16,16,11);
   g.fillStyle(0x777777);g.fillCircle(14,14,5);
-  // Spikes around
   g.fillStyle(0x222222);
   g.fillTriangle(18,0,14,8,22,8);
   g.fillTriangle(18,36,14,28,22,28);
@@ -805,74 +593,58 @@ function makeTextures(s){
   g.fillTriangle(31,5,25,11,33,11);
   g.fillTriangle(5,31,11,25,3,25);
   g.fillTriangle(31,31,25,25,33,25);
-  // Eyes (angry)
   g.fillStyle(0xFF0000);
   g.fillRect(13,15,3,3);g.fillRect(20,15,3,3);
   g.fillStyle(0xFFFF00);
   g.fillRect(14,16,1,1);g.fillRect(21,16,1,1);
   g.generateTexture('enemy_spiked',36,36);g.destroy();}
 
-  // Enemy: Flying ghost (cute but dangerous)
   {const g=s.add.graphics();
   g.fillStyle(0xFFFFFF,.9);
   g.fillCircle(18,16,14);
   g.fillRect(4,16,28,14);
-  // Wavy bottom
   g.fillStyle(0xFFFFFF,.9);
   g.fillTriangle(4,28,8,34,12,28);
   g.fillTriangle(12,28,16,34,20,28);
   g.fillTriangle(20,28,24,34,28,28);
   g.fillTriangle(28,28,32,34,36,28);
-  // Eyes (creepy)
   g.fillStyle(0x000000);
   g.fillRect(11,14,5,7);g.fillRect(21,14,5,7);
   g.fillStyle(0xFF0000);
   g.fillRect(12,16,3,3);g.fillRect(22,16,3,3);
-  // Mouth (little o)
   g.fillStyle(0x000000);
   g.fillRect(17,22,4,3);
   g.generateTexture('enemy_ghost',40,36);g.destroy();}
 
-  // Enemy: Angry coal (ground enemy, walks)
   {const g=s.add.graphics();
   g.fillStyle(0x222222);g.fillCircle(16,20,14);
   g.fillStyle(0x111111);g.fillRect(2,22,28,10);
-  // Glowing cracks
   g.fillStyle(0xFF6600);
   g.fillRect(8,18,3,2);g.fillRect(14,22,4,2);g.fillRect(20,16,3,2);
   g.fillRect(10,26,3,1);g.fillRect(18,28,3,1);
   g.fillStyle(0xFFAA00);
   g.fillRect(9,19,1,1);g.fillRect(15,23,1,1);
-  // Angry eyes
   g.fillStyle(0xFFFF00);
   g.fillRect(10,14,4,4);g.fillRect(18,14,4,4);
   g.fillStyle(0x000000);
   g.fillRect(11,15,2,2);g.fillRect(19,15,2,2);
-  // Feet
   g.fillStyle(0x000000);
   g.fillRect(4,30,8,4);g.fillRect(20,30,8,4);
   g.generateTexture('enemy_coal',32,34);g.destroy();}
 
-  // SPIKE obstacle (proper ground spike wall)
   {const g=s.add.graphics();
-  // Base row
   g.fillStyle(0x555555);g.fillRect(0,20,64,6);
   g.fillStyle(0x777777);g.fillRect(0,20,64,2);
-  // Spikes
   g.fillStyle(0x888888);
   for(let i=0;i<8;i++){g.fillTriangle(i*8,20,i*8+4,0,i*8+8,20);}
   g.fillStyle(0xAAAAAA);
   for(let i=0;i<8;i++){g.fillTriangle(i*8+2,20,i*8+4,4,i*8+6,20);}
   g.fillStyle(0xFFFFFF);
   for(let i=0;i<8;i++){g.fillRect(i*8+3,6,1,3);}
-  // Blood tips (red)
   g.fillStyle(0xCC0033);
   for(let i=0;i<8;i++){g.fillRect(i*8+3,0,2,3);}
   g.generateTexture('obs_spike_wall',64,26);g.destroy();}
 
-  // ══════════════════════════════════════════════════
-  // BOSS 1 — Hooded thrower (STAGE 5)
-  // ══════════════════════════════════════════════════
   function drawBoss1(g,frame){
     g.clear();
     let yo=0,armY=0;
@@ -880,164 +652,126 @@ function makeTextures(s){
     else if(frame==='throw2'){armY=4;}
     else if(frame==='idle2'){yo=-2;}
 
-    // Subtle aura
     g.fillStyle(0x00BFFF,.12);g.fillCircle(48,54,56);
 
-    // Legs
     g.fillStyle(0x1a1a2a);
     g.fillRect(32,82+yo,12,22);g.fillRect(52,82+yo,12,22);
     g.fillStyle(0x000000);
     g.fillRect(28,100+yo,18,8);g.fillRect(50,100+yo,18,8);
     g.fillStyle(0xFFD700);g.fillRect(28,106+yo,18,2);g.fillRect(50,106+yo,18,2);
 
-    // Torso (black hoodie) — visible below face
     g.fillStyle(0x1a1a1a);
     g.fillRect(20,60+yo,56,26);
     g.fillStyle(0x000000);
     g.fillRect(20,60+yo,4,26);g.fillRect(72,60+yo,4,26);
 
-    // Silver zipper chain (teeth pattern)
     g.fillStyle(0xC0C0C0);g.fillRect(46,62+yo,4,24);
     g.fillStyle(0xFFFFFF);
     for(let zi=0;zi<6;zi++){g.fillRect(46,63+yo+zi*4,4,1);}
 
-    // Arms
     g.fillStyle(0x1a1a1a);
     if(frame==='throw1'){g.fillRect(70,56+armY,10,18);g.fillRect(76,50+armY,14,10);}
     else if(frame==='throw2'){g.fillRect(70,64+armY,18,10);g.fillRect(84,60+armY,10,14);}
     else{g.fillRect(68,62,8,22);}
     g.fillRect(20,62+yo,8,22);
 
-    // Blue puffy collar/jacket (right shoulder - CP company style)
     g.fillStyle(0x1FB4E8);
     g.fillRect(56,58+yo,20,16);
     g.fillStyle(0x0095C4);
     g.fillRect(56,72+yo,20,4);
     g.fillStyle(0x4DD0F0);
     g.fillRect(58,60+yo,4,10);
-    // CP badge (black circle)
     g.fillStyle(0x000000);g.fillCircle(67,66+yo,4);
     g.fillStyle(0xFFFFFF);g.fillRect(65,64+yo,1,1);g.fillRect(68,64+yo,1,1);
     g.fillRect(66,67+yo,3,1);
 
-    // ═══ HEAD / HOOD ═══
-    // Hood — big, oversized, wraps around
     g.fillStyle(0x0a0a0a);
-    // Hood outer shell
     g.fillRect(14,8+yo,68,50);
     g.fillRect(18,4+yo,60,6);
     g.fillRect(24,2+yo,48,4);
-    // Hood bottom rolls/folds near collar
     g.fillRect(16,54+yo,16,8);
     g.fillRect(64,54+yo,16,8);
-    // Inner hood shadow
     g.fillStyle(0x000000);
     g.fillRect(14,8+yo,6,50);g.fillRect(76,8+yo,6,50);
 
-    // Face oval — Korean/Asian skin tone, soft
     g.fillStyle(0xE8C9A8);
     g.fillRect(28,20+yo,40,30);
     g.fillRect(26,24+yo,44,22);
     g.fillRect(30,48+yo,36,6);
-    // Face shading (left side, under hood)
     g.fillStyle(0xC9A585);
     g.fillRect(26,24+yo,5,22);
     g.fillRect(28,20+yo,3,4);
 
-    // ═══ HAIR — brown/black, swept side bangs ═══
     g.fillStyle(0x2a1510);
-    // Main top
     g.fillRect(28,18+yo,40,10);
-    // Right side sweep (longer)
     g.fillRect(56,20+yo,16,14);
     g.fillRect(60,28+yo,12,8);
-    // Left side (shorter)
     g.fillRect(28,24+yo,8,8);
-    // Bangs coming down over forehead
     g.fillRect(32,24+yo,28,4);
     g.fillRect(36,26+yo,22,3);
-    // Hair strands falling into eye area
     g.fillRect(42,28+yo,4,3);
     g.fillRect(52,28+yo,4,3);
-    // Highlight (slight shine)
     g.fillStyle(0x4a2a1a);
     g.fillRect(40,20+yo,14,2);
     g.fillRect(58,22+yo,10,2);
 
-    // ═══ EYES — dark, slightly narrow, upper lid heavy ═══
-    // Eye whites
     g.fillStyle(0xFFFFFF);
     g.fillRect(34,33+yo,8,4);
     g.fillRect(50,33+yo,8,4);
-    // Upper eyelid (dark - eyeliner effect)
     g.fillStyle(0x0a0000);
     g.fillRect(34,32+yo,9,1);
     g.fillRect(50,32+yo,9,1);
-    // Iris (dark brown)
     g.fillStyle(0x2a1005);
     g.fillRect(36,33+yo,5,4);
     g.fillRect(52,33+yo,5,4);
-    // Pupil (black)
     g.fillStyle(0x000000);
     g.fillRect(37,34+yo,3,3);
     g.fillRect(53,34+yo,3,3);
-    // Tiny catchlight
     g.fillStyle(0xFFFFFF);
     g.fillRect(38,34+yo,1,1);
     g.fillRect(54,34+yo,1,1);
-    // Lower lash line (subtle)
     g.fillStyle(0x4a2818);
     g.fillRect(34,37+yo,9,1);
     g.fillRect(50,37+yo,9,1);
 
-    // Eyebrows (straight, slightly thick, dark)
     g.fillStyle(0x1a0a05);
     g.fillRect(34,30+yo,8,2);
     g.fillRect(50,30+yo,8,2);
 
-    // ═══ NOSE — small, slim bridge ═══
     g.fillStyle(0xD4A885);
     g.fillRect(45,37+yo,2,6);
     g.fillStyle(0xB8906A);
     g.fillRect(45,42+yo,2,1);
-    // Nostrils shadow
     g.fillStyle(0x9A7555);
     g.fillRect(44,43+yo,1,1);
     g.fillRect(47,43+yo,1,1);
 
-    // ═══ LIPS — full, soft pink ═══
     g.fillStyle(0xC97575);
     g.fillRect(40,46+yo,12,3);
     g.fillStyle(0xA85555);
     g.fillRect(40,48+yo,12,1);
     g.fillStyle(0xD88888);
     g.fillRect(42,46+yo,8,1);
-    // Slight cupid's bow
     g.fillStyle(0xE8C9A8);
     g.fillRect(45,45+yo,2,1);
 
-    // ═══ SUBTLE CHEEK BLUSH ═══
     g.fillStyle(0xE8A896);
     g.fillRect(31,42+yo,3,2);
     g.fillRect(62,42+yo,3,2);
 
-    // ═══ LEFT AIRPOD (visible white earbud) ═══
     g.fillStyle(0xFFFFFF);
     g.fillRect(28,36+yo,4,10);
     g.fillStyle(0xDDDDDD);
     g.fillRect(28,36+yo,4,2);
     g.fillStyle(0xEEEEEE);
     g.fillRect(28,46+yo,4,2);
-    // Airpod stem
     g.fillStyle(0xFFFFFF);
     g.fillRect(29,46+yo,2,4);
 
-    // Jaw line shadow (subtle)
     g.fillStyle(0xC9A585);
     g.fillRect(30,50+yo,36,2);
     g.fillRect(32,52+yo,32,2);
 
-    // Neck
     g.fillStyle(0xD4A885);
     g.fillRect(40,54+yo,16,8);
     g.fillStyle(0xB8906A);
@@ -1051,9 +785,6 @@ function makeTextures(s){
     g.destroy();
   });
 
-  // ══════════════════════════════════════════════════
-  // BOSS 2 — SHADOW KING (STAGE 10)
-  // ══════════════════════════════════════════════════
   function drawShadowKing(g,frame){
     g.clear();
     let yo=0,armY=0;
@@ -1061,27 +792,22 @@ function makeTextures(s){
     else if(frame==='throw2')armY=4;
     else if(frame==='idle2')yo=-2;
 
-    // Dark aura
     g.fillStyle(0xAA00FF,.3);g.fillCircle(48,54,60);
     g.fillStyle(0x000000,.4);g.fillCircle(48,54,50);
 
-    // Legs (purple dark robes)
     g.fillStyle(0x1a0033);
     g.fillRect(28,80+yo,18,26);g.fillRect(50,80+yo,18,26);
     g.fillStyle(0x000000);
     g.fillRect(26,102+yo,22,6);g.fillRect(48,102+yo,22,6);
 
-    // Long dark robe torso
     g.fillStyle(0x220044);
     g.fillRect(18,44+yo,60,44);
     g.fillStyle(0x110022);
     g.fillRect(18,44+yo,5,44);g.fillRect(73,44+yo,5,44);
-    // Purple trim
     g.fillStyle(0xAA00FF);
     g.fillRect(18,86+yo,60,3);
     g.fillRect(45,44+yo,6,44);
 
-    // Skull pendant chain
     g.fillStyle(0xAAAAAA);
     for(let i=0;i<5;i++)g.fillRect(46+i*1.5,58+yo,1,2);
     g.fillStyle(0xDDDDDD);
@@ -1089,19 +815,16 @@ function makeTextures(s){
     g.fillStyle(0x000000);
     g.fillRect(46,69+yo,2,2);g.fillRect(50,69+yo,2,2);
 
-    // Arms
     g.fillStyle(0x220044);
     if(frame==='throw1'){g.fillRect(70,52+armY,14,18);g.fillRect(78,42+armY,14,14);}
     else if(frame==='throw2'){g.fillRect(70,60+armY,20,12);g.fillRect(84,54+armY,12,16);}
     else{g.fillRect(68,58,10,26);}
     g.fillRect(18,58+yo,10,26);
-    // Skeletal hand (white)
     g.fillStyle(0xEEEEEE);
     if(frame==='throw1'){g.fillRect(82,40+armY,6,8);}
     else if(frame==='throw2'){g.fillRect(88,52+armY,8,8);}
     else{g.fillRect(68,82,10,6);}
 
-    // Crown on hood
     g.fillStyle(0xFFD700);
     g.fillRect(28,0+yo,40,8);
     g.fillRect(30,-4+yo,4,4);g.fillRect(40,-6+yo,4,4);
@@ -1109,17 +832,14 @@ function makeTextures(s){
     g.fillStyle(0xFF0000);g.fillRect(46,-2+yo,4,2);
     g.fillStyle(0x00AAFF);g.fillRect(32,0+yo,2,2);g.fillRect(62,0+yo,2,2);
 
-    // Hood
     g.fillStyle(0x000000);
     g.fillRect(14,8+yo,68,50);
     g.fillRect(18,4+yo,60,6);
     g.fillRect(24,2+yo,48,4);
 
-    // Inside hood — BLACK VOID (no face visible)
     g.fillStyle(0x0a0022);
     g.fillRect(24,14+yo,48,40);
 
-    // Glowing EVIL eyes (just two red slits)
     g.fillStyle(0xFF0000);
     g.fillRect(32,30+yo,10,3);g.fillRect(54,30+yo,10,3);
     g.fillStyle(0xFFAA00);
@@ -1127,13 +847,11 @@ function makeTextures(s){
     g.fillStyle(0xFFFFFF);
     g.fillRect(36,31+yo,2,1);g.fillRect(58,31+yo,2,1);
 
-    // Purple mystical smoke wisps from hood
     g.fillStyle(0xAA00FF,.7);
     g.fillRect(20,20+yo,3,4);g.fillRect(73,22+yo,3,4);
     g.fillStyle(0x8800CC,.5);
     g.fillRect(26,10+yo,2,3);g.fillRect(68,12+yo,2,3);
 
-    // Evil mouth (glowing fangs)
     g.fillStyle(0xFF0033);
     g.fillRect(42,45+yo,12,3);
     g.fillStyle(0xFFFFFF);
@@ -1144,9 +862,6 @@ function makeTextures(s){
     g.generateTexture('boss_shadowking_'+fr,96,110);g.destroy();
   });
 
-  // ══════════════════════════════════════════════════
-  // BOSS 3 — FIRE GOD (STAGE 15)
-  // ══════════════════════════════════════════════════
   function drawFireGod(g,frame){
     g.clear();
     let yo=0,armY=0;
@@ -1154,12 +869,10 @@ function makeTextures(s){
     else if(frame==='throw2')armY=4;
     else if(frame==='idle2')yo=-2;
 
-    // Fire aura
     g.fillStyle(0xFF0000,.4);g.fillCircle(48,54,62);
     g.fillStyle(0xFFAA00,.3);g.fillCircle(48,54,52);
     g.fillStyle(0xFFFF00,.2);g.fillCircle(48,54,42);
 
-    // Legs (magma armor)
     g.fillStyle(0x660000);
     g.fillRect(28,82+yo,18,24);g.fillRect(50,82+yo,18,24);
     g.fillStyle(0xFF5500);
@@ -1169,12 +882,10 @@ function makeTextures(s){
     g.fillStyle(0x000000);
     g.fillRect(26,104+yo,22,4);g.fillRect(48,104+yo,22,4);
 
-    // Torso — molten armor
     g.fillStyle(0xAA0000);
     g.fillRect(20,46+yo,56,40);
     g.fillStyle(0xFF2200);
     g.fillRect(22,48+yo,52,3);
-    // Magma cracks
     g.fillStyle(0xFF6600);
     g.fillRect(26,56+yo,8,2);g.fillRect(40,62+yo,12,2);
     g.fillRect(58,54+yo,10,2);g.fillRect(32,70+yo,6,2);
@@ -1182,30 +893,25 @@ function makeTextures(s){
     g.fillStyle(0xFFFF00);
     g.fillRect(28,57+yo,4,1);g.fillRect(42,63+yo,6,1);
 
-    // Flaming arms
     g.fillStyle(0x880000);
     if(frame==='throw1'){g.fillRect(70,52+armY,14,18);g.fillRect(78,42+armY,14,14);}
     else if(frame==='throw2'){g.fillRect(70,60+armY,20,12);g.fillRect(84,54+armY,12,16);}
     else{g.fillRect(68,58,10,26);}
     g.fillRect(18,58+yo,10,26);
-    // Fire on arms
     g.fillStyle(0xFF6600);
     g.fillRect(16,56+yo,4,6);g.fillRect(76,56+yo,4,6);
 
-    // Head — demon/dragon helmet
     g.fillStyle(0x660000);
     g.fillRect(22,12+yo,52,38);
     g.fillStyle(0x440000);
     g.fillRect(22,12+yo,5,38);g.fillRect(69,12+yo,5,38);
 
-    // Horns (curved golden)
     g.fillStyle(0xFFD700);
     g.fillRect(18,4+yo,6,14);g.fillRect(72,4+yo,6,14);
     g.fillRect(16,0+yo,4,6);g.fillRect(76,0+yo,4,6);
     g.fillStyle(0xFFAA00);
     g.fillRect(20,6+yo,2,10);g.fillRect(74,6+yo,2,10);
 
-    // Crown of flames
     g.fillStyle(0xFF0000);
     g.fillRect(32,0+yo,4,8);g.fillRect(46,-2+yo,4,10);g.fillRect(60,0+yo,4,8);
     g.fillStyle(0xFFAA00);
@@ -1213,7 +919,6 @@ function makeTextures(s){
     g.fillStyle(0xFFFFFF);
     g.fillRect(47,2+yo,1,3);
 
-    // Burning eyes
     g.fillStyle(0xFFFF00);
     g.fillRect(30,28+yo,12,7);g.fillRect(54,28+yo,12,7);
     g.fillStyle(0xFF0000);
@@ -1221,7 +926,6 @@ function makeTextures(s){
     g.fillStyle(0xFFFFFF);
     g.fillRect(35,31+yo,2,1);g.fillRect(59,31+yo,2,1);
 
-    // Fanged mouth
     g.fillStyle(0x000000);
     g.fillRect(34,40+yo,28,8);
     g.fillStyle(0xFFFFFF);
@@ -1235,9 +939,6 @@ function makeTextures(s){
     g.generateTexture('boss_firegod_'+fr,96,110);g.destroy();
   });
 
-  // ══════════════════════════════════════════════════
-  // BOSS 4 — ICE QUEEN (STAGE 20)
-  // ══════════════════════════════════════════════════
   function drawIceQueen(g,frame){
     g.clear();
     let yo=0,armY=0;
@@ -1245,55 +946,45 @@ function makeTextures(s){
     else if(frame==='throw2')armY=4;
     else if(frame==='idle2')yo=-2;
 
-    // Ice aura
     g.fillStyle(0xAAEEFF,.35);g.fillCircle(48,54,62);
     g.fillStyle(0xFFFFFF,.2);g.fillCircle(48,54,48);
 
-    // Long dress (ice blue)
     g.fillStyle(0x88CCFF);
     g.fillRect(22,60+yo,52,46);
     g.fillStyle(0xAAEEFF);
     g.fillRect(24,62+yo,48,3);
     g.fillStyle(0x6699CC);
     g.fillRect(22,100+yo,52,6);
-    // Snowflake pattern on dress
     g.fillStyle(0xFFFFFF);
     g.fillRect(40,76+yo,2,10);g.fillRect(36,80+yo,10,2);
     g.fillRect(55,88+yo,2,8);g.fillRect(52,91+yo,8,2);
     g.fillRect(30,94+yo,2,6);g.fillRect(28,96+yo,6,2);
 
-    // Arms (pale blue sleeves)
     g.fillStyle(0xAADDFF);
     if(frame==='throw1'){g.fillRect(70,50+armY,12,18);g.fillRect(76,40+armY,14,12);}
     else if(frame==='throw2'){g.fillRect(70,58+armY,18,10);g.fillRect(84,52+armY,10,14);}
     else{g.fillRect(68,54,10,26);}
     g.fillRect(18,54+yo,10,26);
-    // Hand (white, icy)
     g.fillStyle(0xFFFFFF);
     if(frame==='throw1'){g.fillRect(82,38+armY,6,6);}
     else if(frame==='throw2'){g.fillRect(88,50+armY,6,6);}
 
-    // Head — pale skin
     g.fillStyle(0xF0E0E8);
     g.fillRect(28,22+yo,40,30);
     g.fillStyle(0xD8C0C8);
     g.fillRect(28,22+yo,40,3);
     g.fillRect(28,22+yo,3,30);
 
-    // Long icy hair (white-blue, flowing)
     g.fillStyle(0xDDEEFF);
     g.fillRect(24,14+yo,48,16);
-    // Hair flowing down on sides
     g.fillRect(20,28+yo,8,30);
     g.fillRect(68,28+yo,8,30);
     g.fillStyle(0xAAEEFF);
     g.fillRect(22,32+yo,4,24);
     g.fillRect(70,32+yo,4,24);
-    // Hair highlights
     g.fillStyle(0xFFFFFF);
     g.fillRect(30,16+yo,12,3);g.fillRect(52,18+yo,10,3);
 
-    // Ice crown
     g.fillStyle(0xAAEEFF);
     g.fillRect(32,8+yo,4,10);g.fillRect(46,4+yo,4,14);g.fillRect(60,8+yo,4,10);
     g.fillStyle(0xFFFFFF);
@@ -1301,7 +992,6 @@ function makeTextures(s){
     g.fillStyle(0x00CCFF);
     g.fillRect(47,10+yo,2,2);
 
-    // Eyes (icy blue)
     g.fillStyle(0xFFFFFF);
     g.fillRect(34,32+yo,10,6);g.fillRect(52,32+yo,10,6);
     g.fillStyle(0x00AAFF);
@@ -1310,21 +1000,17 @@ function makeTextures(s){
     g.fillRect(38,34+yo,3,4);g.fillRect(56,34+yo,3,4);
     g.fillStyle(0xFFFFFF);
     g.fillRect(39,35+yo,1,1);g.fillRect(57,35+yo,1,1);
-    // Long lashes
     g.fillStyle(0x000000);
     g.fillRect(34,31+yo,11,1);g.fillRect(52,31+yo,11,1);
 
-    // Lips (pale purple/blue)
     g.fillStyle(0xCC99DD);
     g.fillRect(42,44+yo,12,3);
     g.fillStyle(0x9966AA);
     g.fillRect(42,46+yo,12,1);
 
-    // Icy breath
     g.fillStyle(0xFFFFFF,.6);
     g.fillCircle(52,50+yo,2);
 
-    // Snowflake earrings
     g.fillStyle(0xAAEEFF);
     g.fillRect(26,36+yo,2,2);g.fillRect(68,36+yo,2,2);
   }
@@ -1333,9 +1019,6 @@ function makeTextures(s){
     g.generateTexture('boss_icequeen_'+fr,96,110);g.destroy();
   });
 
-  // ══════════════════════════════════════════════════
-  // BOSS 5 — CYBER LORD (STAGE 25)
-  // ══════════════════════════════════════════════════
   function drawCyberLord(g,frame){
     g.clear();
     let yo=0,armY=0;
@@ -1343,11 +1026,9 @@ function makeTextures(s){
     else if(frame==='throw2')armY=4;
     else if(frame==='idle2')yo=-2;
 
-    // Cyber aura
     g.fillStyle(0x00FFFF,.3);g.fillCircle(48,54,62);
     g.fillStyle(0xFF00FF,.2);g.fillCircle(48,54,50);
 
-    // Tech legs (chrome/black)
     g.fillStyle(0x111122);
     g.fillRect(28,82+yo,18,24);g.fillRect(50,82+yo,18,24);
     g.fillStyle(0x00FFFF);
@@ -1356,12 +1037,10 @@ function makeTextures(s){
     g.fillStyle(0x222244);
     g.fillRect(26,104+yo,22,4);g.fillRect(48,104+yo,22,4);
 
-    // Cybernetic torso
     g.fillStyle(0x002244);
     g.fillRect(20,44+yo,56,44);
     g.fillStyle(0x0055AA);
     g.fillRect(22,46+yo,52,3);
-    // Circuit lines (cyan glowing)
     g.fillStyle(0x00FFFF);
     g.fillRect(26,54+yo,20,1);g.fillRect(26,54+yo,1,10);
     g.fillRect(26,64+yo,12,1);
@@ -1369,24 +1048,20 @@ function makeTextures(s){
     g.fillRect(58,72+yo,12,1);
     g.fillRect(32,76+yo,30,1);
     g.fillRect(42,80+yo,1,6);
-    // Power core (center)
     g.fillStyle(0x000000);g.fillCircle(48,68+yo,8);
     g.fillStyle(0xFF00FF);g.fillCircle(48,68+yo,6);
     g.fillStyle(0x00FFFF);g.fillCircle(48,68+yo,3);
     g.fillStyle(0xFFFFFF);g.fillCircle(48,68+yo,1);
 
-    // Mech arms
     g.fillStyle(0x111122);
     if(frame==='throw1'){g.fillRect(70,50+armY,14,20);g.fillRect(78,40+armY,16,14);}
     else if(frame==='throw2'){g.fillRect(70,58+armY,22,12);g.fillRect(88,52+armY,10,16);}
     else{g.fillRect(68,54,12,28);}
     g.fillRect(18,54+yo,12,28);
-    // Arm lights
     g.fillStyle(0x00FFFF);
     if(frame==='throw2'){g.fillRect(90,56+armY,4,2);}
     else{g.fillRect(70,58,8,1);g.fillRect(22,58+yo,6,1);}
 
-    // Head — cyber helmet
     g.fillStyle(0x1a1a3a);
     g.fillRect(22,8+yo,52,42);
     g.fillStyle(0x0a0a2a);
@@ -1394,32 +1069,27 @@ function makeTextures(s){
     g.fillStyle(0x00FFFF);
     g.fillRect(22,8+yo,52,2);
 
-    // Antenna
     g.fillStyle(0xFF00FF);
     g.fillRect(36,-2+yo,2,8);g.fillRect(58,-2+yo,2,8);
     g.fillStyle(0xFFFF00);
     g.fillCircle(37,-2+yo,2);g.fillCircle(59,-2+yo,2);
 
-    // VISOR (glowing horizontal band)
     g.fillStyle(0x000000);
     g.fillRect(26,26+yo,44,10);
     g.fillStyle(0x00FFFF);
     g.fillRect(26,28+yo,44,6);
     g.fillStyle(0xFFFFFF);
     g.fillRect(26,29+yo,44,1);
-    // Visor scan eyes
     g.fillStyle(0xFF00FF);
     g.fillRect(36,30+yo,6,3);g.fillRect(54,30+yo,6,3);
     g.fillStyle(0xFFFFFF);
     g.fillRect(38,30+yo,1,1);g.fillRect(56,30+yo,1,1);
 
-    // Mouth grill (speaker mesh)
     g.fillStyle(0x000000);
     g.fillRect(34,42+yo,28,6);
     g.fillStyle(0x0099FF);
     for(let i=0;i<6;i++)g.fillRect(36+i*4,43+yo,2,4);
 
-    // Glowing text "LORD" on chest
     g.fillStyle(0xFFFFFF);
     g.fillRect(36,80+yo,2,4);g.fillRect(36,84+yo,4,1);
     g.fillRect(42,80+yo,3,5);g.fillRect(48,80+yo,3,5);
@@ -1430,9 +1100,6 @@ function makeTextures(s){
     g.generateTexture('boss_cyberlord_'+fr,96,110);g.destroy();
   });
 
-  // ══════════════════════════════════════════════════
-  // BOSS 6 — COSMIC GOD (STAGE 30)
-  // ══════════════════════════════════════════════════
   function drawCosmicGod(g,frame){
     g.clear();
     let yo=0,armY=0;
@@ -1440,73 +1107,61 @@ function makeTextures(s){
     else if(frame==='throw2')armY=4;
     else if(frame==='idle2')yo=-2;
 
-    // Cosmic aura (multi-layered)
     g.fillStyle(0xFF00FF,.4);g.fillCircle(48,54,68);
     g.fillStyle(0x8A2BE2,.3);g.fillCircle(48,54,58);
     g.fillStyle(0x00FFFF,.2);g.fillCircle(48,54,48);
-    // Stars around
     g.fillStyle(0xFFFFFF);
     g.fillRect(6,20,2,1);g.fillRect(7,21,1,1);
     g.fillRect(88,30,2,1);g.fillRect(89,31,1,1);
     g.fillRect(12,80,2,1);g.fillRect(82,90,2,1);
     g.fillRect(4,50,1,1);g.fillRect(92,60,1,1);
 
-    // Cosmic robes (deep purple with stars)
     g.fillStyle(0x2a0055);
     g.fillRect(16,50+yo,64,56);
     g.fillStyle(0x4B0082);
     g.fillRect(18,52+yo,60,3);
-    // Star pattern on robes
     g.fillStyle(0xFFFFFF);
     g.fillRect(28,64+yo,2,2);g.fillRect(44,72+yo,2,2);g.fillRect(60,66+yo,2,2);
     g.fillRect(34,84+yo,2,2);g.fillRect(54,90+yo,2,2);g.fillRect(66,80+yo,2,2);
     g.fillStyle(0xFFFF00);
     g.fillRect(28,64+yo,1,1);g.fillRect(44,72+yo,1,1);
-    // Swirling galaxy on chest
     g.fillStyle(0x000000);g.fillCircle(48,72+yo,10);
     g.fillStyle(0xFF00FF);g.fillCircle(48,72+yo,7);
     g.fillStyle(0x00FFFF);g.fillCircle(48,72+yo,4);
     g.fillStyle(0xFFFFFF);g.fillCircle(48,72+yo,1);
 
-    // Glowing arms
     g.fillStyle(0x2a0055);
     if(frame==='throw1'){g.fillRect(70,50+armY,14,20);g.fillRect(78,40+armY,16,14);}
     else if(frame==='throw2'){g.fillRect(70,58+armY,22,12);g.fillRect(88,52+armY,10,16);}
     else{g.fillRect(68,56,12,30);}
     g.fillRect(16,56+yo,12,30);
-    // Cosmic energy from hands
     g.fillStyle(0xFFFFFF);
     if(frame==='throw1'){g.fillCircle(86,46+armY,3);}
     else if(frame==='throw2'){g.fillCircle(94,58+armY,4);}
     g.fillStyle(0xFF00FF,.7);
     if(frame==='throw1'){g.fillCircle(86,46+armY,5);}
 
-    // Divine head — ethereal
     g.fillStyle(0xE8D0FF);
     g.fillRect(26,16+yo,44,34);
     g.fillStyle(0xC8A8E0);
     g.fillRect(26,16+yo,44,3);
     g.fillRect(26,16+yo,3,34);
 
-    // Long cosmic hair (swirling with stars)
     g.fillStyle(0x8A2BE2);
     g.fillRect(22,8+yo,52,18);
     g.fillRect(18,22+yo,10,30);g.fillRect(68,22+yo,10,30);
     g.fillStyle(0xFF00FF);
     g.fillRect(24,10+yo,48,4);
     g.fillRect(20,28+yo,4,20);g.fillRect(72,28+yo,4,20);
-    // Star streaks in hair
     g.fillStyle(0xFFFFFF);
     g.fillRect(30,14+yo,2,1);g.fillRect(50,12+yo,2,1);g.fillRect(62,16+yo,2,1);
     g.fillRect(22,40+yo,2,1);g.fillRect(72,42+yo,2,1);
 
-    // HALO of stars (cosmic crown)
     g.fillStyle(0xFFD700);
     g.fillRect(38,-2+yo,2,4);g.fillRect(46,-4+yo,4,6);g.fillRect(56,-2+yo,2,4);
     g.fillStyle(0xFFFFFF);
     g.fillRect(47,-3+yo,2,4);
 
-    // THIRD EYE (glowing on forehead)
     g.fillStyle(0xFFD700);
     g.fillCircle(48,22+yo,4);
     g.fillStyle(0xFF00FF);
@@ -1514,7 +1169,6 @@ function makeTextures(s){
     g.fillStyle(0xFFFFFF);
     g.fillCircle(48,22+yo,1);
 
-    // Normal eyes (glowing purple)
     g.fillStyle(0xFFFFFF);
     g.fillRect(32,30+yo,10,6);g.fillRect(54,30+yo,10,6);
     g.fillStyle(0xFF00FF);
@@ -1524,12 +1178,10 @@ function makeTextures(s){
     g.fillStyle(0xFFFFFF);
     g.fillRect(37,33+yo,1,1);g.fillRect(59,33+yo,1,1);
 
-    // Divine lips
     g.fillStyle(0xCC66AA);
     g.fillRect(42,42+yo,12,3);
     g.fillStyle(0x884488);
     g.fillRect(42,44+yo,12,1);
-    // Subtle smile highlight
     g.fillStyle(0xFFFFFF);
     g.fillRect(44,42+yo,2,1);
   }
@@ -1538,8 +1190,6 @@ function makeTextures(s){
     g.generateTexture('boss_cosmicgod_'+fr,96,110);g.destroy();
   });
 
-  // Boss 1 throwables
-  // Plate (white with gold rim)
   {const g=s.add.graphics();
   g.fillStyle(0xFFD700);g.fillCircle(16,16,15);
   g.fillStyle(0xFFFFFF);g.fillCircle(16,16,13);
@@ -1547,18 +1197,15 @@ function makeTextures(s){
   g.fillStyle(0xFFFFFF);g.fillCircle(14,13,3);
   g.generateTexture('throw_plate',32,32);g.destroy();}
 
-  // Hookah bowl (clay bowl with coals)
   {const g=s.add.graphics();
   g.fillStyle(0x8B4513);g.fillRect(4,14,26,12);
   g.fillStyle(0x6B3410);g.fillRect(4,22,26,4);
   g.fillStyle(0xA66B4A);g.fillRect(6,14,22,4);
-  // Charcoal on top
   g.fillStyle(0x222222);g.fillRect(8,8,18,6);
   g.fillStyle(0xFF6600);g.fillRect(10,10,5,3);g.fillRect(18,11,6,2);
   g.fillStyle(0xFFAA00);g.fillRect(11,11,2,1);g.fillRect(20,12,2,1);
   g.generateTexture('throw_bowl',34,30);g.destroy();}
 
-  // Mini hookah
   {const g=s.add.graphics();
   g.fillStyle(0xFFD700);g.fillRect(6,22,16,4);
   g.fillStyle(0xDAA520);g.fillRect(10,4,8,18);
@@ -1567,7 +1214,6 @@ function makeTextures(s){
   g.fillStyle(0xFF6600);g.fillRect(12,0,4,2);
   g.generateTexture('throw_hookah',28,28);g.destroy();}
 
-  // Shards (4 variants, small)
   for(let i=1;i<=4;i++){
     const g=s.add.graphics();
     const colors=[0xFFFFFF,0x8B4513,0xFFD700,0xFF6600];
@@ -1581,7 +1227,6 @@ function makeTextures(s){
     g.destroy();
   }
 
-  // Boss health bar frame
   {const g=s.add.graphics();
   g.fillStyle(0xFFD700);g.fillRect(0,0,4,12);g.fillRect(300,0,4,12);
   g.fillRect(0,0,304,2);g.fillRect(0,10,304,2);
@@ -1591,7 +1236,6 @@ function makeTextures(s){
 function updateUI(){
   document.getElementById('ui-dist').textContent=(gameState.distance||0).toFixed(1)+' m';
   const stageName=STAGES[Math.min(gameState.stage||0,STAGES.length-1)].name;
-  // Show short form (just "STAGE X") in top badge
   document.getElementById('ui-stage').textContent=stageName.split(' — ')[0];
   document.getElementById('ui-lives').textContent='♥'.repeat(Math.max(gameState.lives,0))||'✕';
 }
@@ -1607,33 +1251,12 @@ class BootScene extends Phaser.Scene{constructor(){super('Boot');}create(){makeT
 class TitleScene extends Phaser.Scene{
   constructor(){super('Title');}
   create(){
+    // ═══ BUG FIX: cleanup any lingering overlays from previous scenes ═══
+    window.__uwasa_showMobile(false);
+    window.__uwasa_cleanupOverlays();
+
     gameState={distance:0,stage:0,lives:3,score:0,coins:0,powersCollected:[]};
-
-    // タイトル画面ではゲームUIを完全に隠す（CSSデフォルトで非表示だが念のため）
-    try{
-      const ui=document.getElementById('ui-overlay');
-      if(ui)ui.classList.remove('show');
-      const mc=document.getElementById('mobile-controls');
-      if(mc)mc.classList.remove('show');
-      const st=document.getElementById('sound-toggle');
-      if(st)st.classList.remove('show');
-      const pb=document.getElementById('power-badge');
-      if(pb)pb.style.display='none';
-      // 隠しコマンド用の pointer-events もリセット（GameSceneで auto にされる可能性があるので）
-      const stageEl=document.getElementById('stage-badge');
-      if(stageEl){
-        stageEl.style.pointerEvents='none';
-        if(stageEl._secretHandler){stageEl.removeEventListener('click',stageEl._secretHandler);stageEl._secretHandler=null;}
-      }
-      const hpEl=document.getElementById('ui-lives-block');
-      if(hpEl){
-        hpEl.style.pointerEvents='none';
-        if(hpEl._secretHandler){hpEl.removeEventListener('click',hpEl._secretHandler);hpEl._secretHandler=null;}
-      }
-    }catch(e){}
-
     updateUI();showPowerBadge('normal');
-
     const g=this.add.graphics();
     for(let y=0;y<H;y++){const t=y/H;const r=Math.floor(26+48*t),gg=10,b=Math.floor(58-12*t);g.fillStyle((r<<16)|(gg<<8)|b);g.fillRect(0,y,W,1);}
     for(let i=0;i<60;i++){const st=this.add.image(Phaser.Math.Between(0,W),Phaser.Math.Between(0,H*.7),'star').setScale(Phaser.Math.FloatBetween(.5,1.5));this.tweens.add({targets:st,alpha:.2,duration:Phaser.Math.Between(800,2000),yoyo:true,repeat:-1});}
@@ -1642,13 +1265,11 @@ class TitleScene extends Phaser.Scene{
     this.add.image(W-150,100,'cloud_yellow').setAlpha(.7);
     this.add.image(W/2,140,'cloud_pink').setAlpha(.6);
 
-    // 🏆 先週の王者バナー (最上部)
     this.championBanner=this.add.container(W/2,30).setDepth(300);
     const chBg=this.add.rectangle(0,0,440,32,0x000000,.7).setStrokeStyle(2,0xFFD700);
     const chText=this.add.text(0,0,'🏆 先週の王者：読み込み中...',{fontSize:'14px',fontFamily:'Arial Black',color:'#FFD700',stroke:'#FF00FF',strokeThickness:2,letterSpacing:1}).setOrigin(.5);
     this.championBanner.add([chBg,chText]);
     this.championBanner.setAlpha(0);
-    // fetch & show
     sbFetchLastWeekChampion().then(champ=>{
       if(champ&&champ.player_name){
         chText.setText(`🏆 先週の王者: ${champ.player_name}  🪙 ${champ.coins||0}`);
@@ -1678,7 +1299,6 @@ class TitleScene extends Phaser.Scene{
     this.add.text(W/2,410,'↑ JUMP    ⚡ ATTACK    30 STAGES × 10 POWERS',{fontSize:'17px',fontFamily:'Arial Black',color:'#00BFFF',stroke:'#000',strokeThickness:3,letterSpacing:2}).setOrigin(.5);
     this.add.text(W/2,438,'✨ 30ステージに伝説のレアアイテムが眠る ✨',{fontSize:'14px',fontFamily:'Arial',color:'#FFD700',fontStyle:'italic'}).setOrigin(.5);
 
-    // GAME START ボタン - 派手に点滅するネオン風
     const btn=this.add.text(W/2,465,'🎮  GAME  START  🎮',{
       fontSize:'28px',
       fontFamily:'Arial Black',
@@ -1692,7 +1312,6 @@ class TitleScene extends Phaser.Scene{
     btn.setShadow(0,0,'#FF00FF',20,true,true);
     this.tweens.add({targets:btn,scale:{from:1,to:1.08},duration:600,yoyo:true,repeat:-1,ease:'Sine.easeInOut'});
 
-    // HOW TO and RANKING buttons - 少し小さめに
     const howtoBtn=this.add.text(W/2-120,520,'📖  HOW TO  PLAY',{
       fontSize:'15px',
       fontFamily:'Arial Black',
@@ -1722,7 +1341,6 @@ class TitleScene extends Phaser.Scene{
     howtoBtn.on('pointerdown',()=>showHowTo());
     rankBtn.on('pointerdown', ()=>showRankingPanel());
 
-    // プレイヤー名表示 & 変更ボタン (コンパクトに横並び)
     this.playerNameText=this.add.text(W/2-70,555,'',{
       fontSize:'13px',
       fontFamily:'Arial Black',
@@ -1740,9 +1358,7 @@ class TitleScene extends Phaser.Scene{
     changeBtn.on('pointerover',()=>changeBtn.setScale(1.1));
     changeBtn.on('pointerout',()=>changeBtn.setScale(1));
 
-    // ─── WEEKLY TOP 5 (ゲーム画面の下に直接表示) ───
     const rankY=585;
-    // 半透明背景
     const rankBg=this.add.rectangle(W/2,rankY+60,520,130,0x000000,.75).setStrokeStyle(2,0xFFD700);
     rankBg.setDepth(5);
     this.add.text(W/2,rankY,'🏆 WEEKLY TOP 5 🏆',{
@@ -1754,7 +1370,6 @@ class TitleScene extends Phaser.Scene{
       letterSpacing:2
     }).setOrigin(.5).setDepth(6);
 
-    // ランキング行
     this.titleRankLines=[];
     for(let i=0;i<5;i++){
       const t=this.add.text(W/2,rankY+24+i*20,'読み込み中...',{
@@ -1765,7 +1380,6 @@ class TitleScene extends Phaser.Scene{
       this.titleRankLines.push(t);
     }
 
-    // ランキングをロード
     sbFetchRanking().then(data=>{
       if(!data){
         this.titleRankLines[0].setText('⚠ ランキングを取得できませんでした').setStyle({color:'#888',fontSize:'11px'});
@@ -1800,7 +1414,9 @@ class TitleScene extends Phaser.Scene{
     };
     refreshNameDisplay();
 
-    changeBtn.on('pointerdown',()=>{
+    changeBtn.on('pointerdown',(p,x,y,event)=>{
+      if(event)event.stopPropagation();
+      if(window.__uwasa_nameOverlayOpen)return;
       showNameInput((newName)=>{
         if(newName){
           setPlayerName(newName);
@@ -1815,16 +1431,25 @@ class TitleScene extends Phaser.Scene{
       });
     });
 
+    // ═══ BUG FIX: re-entry guard ═══
+    this.gameStartInProgress=false;
+
     const start=()=>{
-      // iOS対策：ユーザージェスチャが有効なうちにAudioを初期化
-      try{Audio.init();Audio.resume();}catch(e){}
-      // 名前が未設定なら強制入力
+      if(this.gameStartInProgress)return;
+      if(window.__uwasa_nameOverlayOpen)return;
+
       if(!getPlayerName()){
+        this.gameStartInProgress=true;
         showNameInput((name)=>{
           if(name){
             setPlayerName(name);
             refreshNameDisplay();
-            hideGamePanels();Audio.SFX.start();setTimeout(()=>Audio.startBGM(),400);this.scene.start('Game');
+            hideGamePanels();
+            Audio.init();Audio.resume();Audio.SFX.start();
+            setTimeout(()=>Audio.startBGM(),400);
+            this.scene.start('Game');
+          }else{
+            this.gameStartInProgress=false;
           }
         },{
           title:'🎮 ようこそ！',
@@ -1834,27 +1459,29 @@ class TitleScene extends Phaser.Scene{
         });
         return;
       }
-      hideGamePanels();Audio.SFX.start();setTimeout(()=>Audio.startBGM(),400);this.scene.start('Game');
+      this.gameStartInProgress=true;
+      hideGamePanels();
+      Audio.init();Audio.resume();Audio.SFX.start();
+      setTimeout(()=>Audio.startBGM(),400);
+      this.scene.start('Game');
     };
-    btn.on('pointerdown',start);
+
+    // ═══ BUG FIX: button handler stops propagation ═══
+    btn.on('pointerdown',(pointer,x,y,event)=>{
+      if(event)event.stopPropagation();
+      start();
+    });
     this.input.keyboard.on('keydown-SPACE',start);
     this.input.keyboard.on('keydown-UP',start);
-    // タップで開始（ボタン以外の部分）- DOMパネル表示中は無効
-    this.input.on('pointerdown',(p)=>{
-      // DOMオーバーレイ（名前入力/HOW TO/ランキング）が開いていたら無視
-      if(document.getElementById('name-overlay'))return;
-      const hp=document.getElementById('howto-panel');
-      if(hp&&hp.classList.contains('open'))return;
-      const rp=document.getElementById('ranking-panel');
-      if(rp&&rp.classList.contains('open'))return;
-      if(!btn.getBounds().contains(p.x,p.y)&&!howtoBtn.getBounds().contains(p.x,p.y)&&!rankBtn.getBounds().contains(p.x,p.y)&&!changeBtn.getBounds().contains(p.x,p.y))start();
-    });
+
+    // ═══ BUG FIX: full-screen pointerdown handler REMOVED ═══
+    // 元のコードには this.input.on('pointerdown', ...) があり、
+    // GAME STARTボタンをタップした際にボタンのハンドラと全画面ハンドラの
+    // 両方が発火してstart()が二重実行されていた。
+    // ボタンクリックだけで開始できるので全画面タップは削除。
   }
 }
 
-// ═══════════════════════════════════════════════════════
-// DOM PANELS — HOW TO & RANKING (ゲーム内)
-// ═══════════════════════════════════════════════════════
 function injectPanelStyles(){
   if(document.getElementById('panel-styles'))return;
   const s=document.createElement('style');
@@ -1890,7 +1517,6 @@ function createPanelDOM(){
   injectPanelStyles();
   if(document.getElementById('howto-panel'))return;
 
-  // ── HOW TO PANEL ──
   const h=document.createElement('div');
   h.id='howto-panel'; h.className='gpanel';
   h.innerHTML=`
@@ -1918,7 +1544,6 @@ function createPanelDOM(){
   </div>`;
   document.body.appendChild(h);
 
-  // ── RANKING PANEL ──
   const r=document.createElement('div');
   r.id='ranking-panel'; r.className='gpanel';
   r.innerHTML=`
@@ -1938,7 +1563,6 @@ function createPanelDOM(){
   </div>`;
   document.body.appendChild(r);
 
-  // Close on backdrop click
   [h,r].forEach(el=>el.addEventListener('click',e=>{if(e.target===el)hideGamePanels();}));
 }
 
@@ -1988,21 +1612,15 @@ async function loadGameRanking(){
 class GameScene extends Phaser.Scene{
   constructor(){super('Game');}
   create(){
-    // ゲームUIを表示
-    try{
-      const ui=document.getElementById('ui-overlay');
-      if(ui)ui.classList.add('show');
-      const mc=document.getElementById('mobile-controls');
-      if(mc)mc.classList.add('show');
-      const st=document.getElementById('sound-toggle');
-      if(st)st.classList.add('show');
-    }catch(e){}
+    // ★バグ修正: モバイルコントロール表示、名前オーバーレイのクリーンアップ
+    window.__uwasa_showMobile(true);
+    window.__uwasa_cleanupOverlays();
+    hideGamePanels();
 
     this.stageIdx=0;this.scrollSpeed=STAGES[0].speed;this.distance=0;
     this.lives=gameState.lives;this.gameOver=false;this.invincible=false;
     this.coinsCollected=gameState.coins||0;
     this.currentForm='normal';this.powerTimeRemaining=0;this.powerDuration=12000;this.attackCooldown=0;
-    // Higher stages = longer power duration (you'll need it)
     this.getPowerDuration=()=>{
       if(this.stageIdx>=25)return 18000;
       if(this.stageIdx>=20)return 16000;
@@ -2012,7 +1630,6 @@ class GameScene extends Phaser.Scene{
     this.powerupSpawned={};this.powerupSpawnScheduled={};
     STAGES.forEach((s,i)=>{this.powerupSpawned[i]=false;this.powerupSpawnScheduled[i]=false;});
     this.doubleJumped=false;
-    // Boss state
     this.bossActive=false;
     this.bossDefeatedStages={};
     this.boss=null;
@@ -2036,7 +1653,6 @@ class GameScene extends Phaser.Scene{
     this.groundTiles=[];
     for(let x=0;x<W+128;x+=64){const t=this.add.image(x,GROUND_Y,'ground_tile').setOrigin(0,0).setDepth(-40);this.groundTiles.push(t);}
 
-    // Player — sprite at depth 100, origin center
     this.player=this.physics.add.sprite(PLAYER_X,GROUND_Y-60,'bro_normal_run1');
     this.player.setOrigin(.5,.5);
     this.player.setCollideWorldBounds(false);
@@ -2080,58 +1696,34 @@ class GameScene extends Phaser.Scene{
     this.xKey=this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.X);
     this.shiftKey=this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT);
 
+    // ★バグ修正: モバイルボタンは毎回再バインド(dataset.boundに頼らない)
     const jb=document.getElementById('btn-jump');
     const ab=document.getElementById('btn-attack');
+    if(jb){
+      // 既存のハンドラを削除
+      if(jb._uwasaHandler){
+        jb.removeEventListener('touchstart',jb._uwasaHandler);
+        jb.removeEventListener('mousedown',jb._uwasaHandler);
+      }
+      const h=(e)=>{e.preventDefault();e.stopPropagation();window.__game_jump&&window.__game_jump();};
+      jb._uwasaHandler=h;
+      jb.addEventListener('touchstart',h,{passive:false});
+      jb.addEventListener('mousedown',h);
+    }
+    if(ab){
+      if(ab._uwasaHandler){
+        ab.removeEventListener('touchstart',ab._uwasaHandler);
+        ab.removeEventListener('mousedown',ab._uwasaHandler);
+      }
+      const h=(e)=>{e.preventDefault();e.stopPropagation();window.__game_attack&&window.__game_attack();};
+      ab._uwasaHandler=h;
+      ab.addEventListener('touchstart',h,{passive:false});
+      ab.addEventListener('mousedown',h);
+    }
     window.__game_jump=()=>this.doJump();
     window.__game_attack=()=>this.doAttack();
 
-    // ジャンプボタン - 複数イベントで確実に
-    if(jb){
-      const jumpHandler=(e)=>{
-        e.preventDefault();
-        e.stopPropagation();
-        if(window.__game_jump)window.__game_jump();
-      };
-      // 既存ハンドラを削除してから登録（シーン再開時対応）
-      if(jb._handler){
-        jb.removeEventListener('touchstart',jb._handler);
-        jb.removeEventListener('mousedown',jb._handler);
-        jb.removeEventListener('pointerdown',jb._handler);
-      }
-      jb._handler=jumpHandler;
-      jb.addEventListener('touchstart',jumpHandler,{passive:false});
-      jb.addEventListener('mousedown',jumpHandler);
-      jb.addEventListener('pointerdown',jumpHandler);
-    }
-
-    // 攻撃ボタン - 複数イベントで確実に
-    if(ab){
-      const attackHandler=(e)=>{
-        e.preventDefault();
-        e.stopPropagation();
-        if(window.__game_attack)window.__game_attack();
-      };
-      if(ab._handler){
-        ab.removeEventListener('touchstart',ab._handler);
-        ab.removeEventListener('mousedown',ab._handler);
-        ab.removeEventListener('pointerdown',ab._handler);
-      }
-      ab._handler=attackHandler;
-      ab.addEventListener('touchstart',attackHandler,{passive:false});
-      ab.addEventListener('mousedown',attackHandler);
-      ab.addEventListener('pointerdown',attackHandler);
-    }
-
-    // 画面タップ（ボタン以外の部分）
     this.input.on('pointerdown',(p)=>{
-      // タップ位置がボタンの真上なら無視（ボタン側で処理）
-      const btnRect=jb?jb.getBoundingClientRect():null;
-      const abRect=ab?ab.getBoundingClientRect():null;
-      if(p.event){
-        const ex=p.event.clientX,ey=p.event.clientY;
-        if(btnRect&&ex>=btnRect.left&&ex<=btnRect.right&&ey>=btnRect.top&&ey<=btnRect.bottom)return;
-        if(abRect&&ex>=abRect.left&&ex<=abRect.right&&ey>=abRect.top&&ey<=abRect.bottom)return;
-      }
       if(p.x<W/2)this.doJump();else this.doAttack();
     });
 
@@ -2141,161 +1733,6 @@ class GameScene extends Phaser.Scene{
 
     updateUI();showPowerBadge('normal');
     this.scheduleStagePowerup(0);
-
-    // 🌟 隠しコマンド: STAGE表示3回タップ → HP表示3回タップで発動
-    this.starMode=false;
-    this.starSpawned=false;
-    this.stars=this.physics.add.group();
-    this.physics.add.overlap(this.player,this.stars,this.collectInvincibilityStar,null,this);
-
-    // 秘密コマンドのトリガー
-    this._secretStage=0; // 0:STAGE押し中 1:HP押し中
-    this._secretStageCount=0;
-    this._secretHpCount=0;
-    this._secretLastTap=0;
-    const stageEl=document.getElementById('stage-badge');
-    const hpEl=document.getElementById('ui-lives-block');
-    const triggerSecret=()=>{
-      if(this.starSpawned||this.starMode||this.gameOver)return;
-      this.spawnInvincibilityStar();
-    };
-    if(stageEl){
-      if(stageEl._secretHandler)stageEl.removeEventListener('click',stageEl._secretHandler);
-      stageEl._secretHandler=(e)=>{
-        e.stopPropagation();
-        const now=Date.now();
-        if(now-this._secretLastTap>2000){this._secretStageCount=0;this._secretHpCount=0;}
-        this._secretLastTap=now;
-        if(this._secretHpCount===0){
-          this._secretStageCount++;
-          // デバッグ用微小ヒント（視覚には影響なし）
-        }else{
-          // HP押し中にSTAGE押したらリセット
-          this._secretStageCount=1;this._secretHpCount=0;
-        }
-      };
-      stageEl.style.pointerEvents='auto';
-      stageEl.style.cursor='pointer';
-      stageEl.addEventListener('click',stageEl._secretHandler);
-    }
-    if(hpEl){
-      if(hpEl._secretHandler)hpEl.removeEventListener('click',hpEl._secretHandler);
-      hpEl._secretHandler=(e)=>{
-        e.stopPropagation();
-        const now=Date.now();
-        if(now-this._secretLastTap>2000){this._secretStageCount=0;this._secretHpCount=0;return;}
-        this._secretLastTap=now;
-        if(this._secretStageCount>=3){
-          this._secretHpCount++;
-          if(this._secretHpCount>=3){
-            this._secretStageCount=0;
-            this._secretHpCount=0;
-            triggerSecret();
-          }
-        }
-      };
-      hpEl.style.pointerEvents='auto';
-      hpEl.style.cursor='pointer';
-      hpEl.addEventListener('click',hpEl._secretHandler);
-    }
-  }
-
-  spawnInvincibilityStar(){
-    if(this.gameOver||this.starSpawned||this.starMode)return;
-    this.starSpawned=true;
-    const st=this.stars.create(W+40,GROUND_Y-120,'star_invincible');
-    st.setDepth(90);
-    st.body.setAllowGravity(false);
-    st.body.setVelocityX(-this.scrollSpeed);
-    // キラキラ効果
-    this.tweens.add({targets:st,angle:360,duration:1500,repeat:-1});
-    this.tweens.add({targets:st,y:GROUND_Y-160,duration:900,yoyo:true,repeat:-1,ease:'Sine.easeInOut'});
-    // 光のオーラ
-    st.aura=this.add.circle(st.x,st.y,30,0xFFD700,.3).setDepth(89);
-    this.tweens.add({targets:st.aura,alpha:.6,scale:1.4,duration:500,yoyo:true,repeat:-1});
-  }
-
-  collectInvincibilityStar(player,st){
-    if(!st.active)return;
-    if(st.aura)st.aura.destroy();
-    st.destroy();
-    this.activateStarMode();
-  }
-
-  activateStarMode(){
-    this.starMode=true;
-    // BGM切替
-    Audio.stopBGM();
-    // 🔊 「うぉぉぉぉぉ！」叫び声（星取得の瞬間に激しく）
-    Audio.playHypeShout();
-    // 少し遅れてスターBGM開始
-    this.time.delayedCall(200,()=>{if(this.starMode)Audio.startStarBGM();});
-    // テキスト表示 - デカく激しく
-    const txt=this.add.text(W/2,H/2-60,'⭐ INVINCIBLE! ⭐\nうぉぉぉぉぉ！',{fontSize:'42px',fontFamily:'Arial Black',color:'#FFD700',stroke:'#FF00FF',strokeThickness:7,align:'center'}).setOrigin(.5).setDepth(500).setAlpha(0);
-    this.tweens.add({targets:txt,alpha:1,scale:{from:.3,to:1.4},duration:400,ease:'Back.easeOut',onComplete:()=>{
-      this.tweens.add({targets:txt,scale:1.2,duration:150,yoyo:true,repeat:3});
-      this.tweens.add({targets:txt,alpha:0,delay:1800,duration:400,onComplete:()=>txt.destroy()});
-    }});
-    // 画面派手にフラッシュ
-    this.cameras.main.flash(600,255,215,0);
-    this.cameras.main.shake(400,.008);
-    // 放射状の爆発エフェクト
-    const colors=[0xFFD700,0xFF00FF,0x00FFFF,0x00FF00,0xFF6600];
-    for(let i=0;i<30;i++){
-      const a=(i/30)*Math.PI*2;
-      const p=this.add.circle(W/2,H/2,Phaser.Math.Between(8,16),colors[i%5],.9).setDepth(450);
-      this.tweens.add({
-        targets:p,
-        x:W/2+Math.cos(a)*400,
-        y:H/2+Math.sin(a)*400,
-        alpha:0,
-        scale:.2,
-        duration:800,
-        ease:'Cubic.easeOut',
-        onComplete:()=>p.destroy()
-      });
-    }
-    // プレイヤー虹色エフェクト
-    let ci=0;
-    this.starTintTimer=this.time.addEvent({
-      delay:80,repeat:-1,
-      callback:()=>{
-        if(this.player&&this.player.active){
-          this.player.setTint(colors[ci%colors.length]);
-          ci++;
-        }
-      }
-    });
-    // トレイルエフェクト
-    this.starTrailTimer=this.time.addEvent({
-      delay:60,repeat:-1,
-      callback:()=>{
-        if(!this.player||!this.player.active)return;
-        const trail=this.add.circle(this.player.x,this.player.y,Phaser.Math.Between(8,14),colors[Phaser.Math.Between(0,4)],.6).setDepth(95);
-        this.tweens.add({targets:trail,alpha:0,scale:2,duration:500,onComplete:()=>trail.destroy()});
-      }
-    });
-    // 60秒後に終了
-    this.time.delayedCall(60000,()=>this.deactivateStarMode());
-    // 残り時間カウントダウン (最後の5秒は点滅警告)
-    this.time.delayedCall(55000,()=>{
-      if(!this.starMode)return;
-      const warn=this.add.text(W/2,80,'⚠ 5秒で無敵解除 ⚠',{fontSize:'22px',fontFamily:'Arial Black',color:'#FF0033',stroke:'#FFD700',strokeThickness:4}).setOrigin(.5).setDepth(500);
-      this.tweens.add({targets:warn,alpha:.3,duration:250,yoyo:true,repeat:9,onComplete:()=>warn.destroy()});
-    });
-  }
-
-  deactivateStarMode(){
-    if(!this.starMode)return;
-    this.starMode=false;
-    if(this.starTintTimer)this.starTintTimer.remove();
-    if(this.starTrailTimer)this.starTrailTimer.remove();
-    if(this.player&&this.player.active)this.player.clearTint();
-    Audio.stopBGM();
-    if(!this.bossActive)Audio.startBGM();
-    else Audio.startBossBGM();
-    const txt=this.add.text(W/2,H/2-40,'無敵終了',{fontSize:'28px',fontFamily:'Arial Black',color:'#FFFFFF',stroke:'#000',strokeThickness:4}).setOrigin(.5).setDepth(500).setAlpha(0);
-    this.tweens.add({targets:txt,alpha:1,duration:300,yoyo:true,hold:800,onComplete:()=>txt.destroy()});
   }
 
   drawBackground(){
@@ -2323,8 +1760,6 @@ class GameScene extends Phaser.Scene{
 
   doAttack(){
     if(this.gameOver||this.attackCooldown>0)return;
-
-    // NORMAL PUNCH (no power-up)
     if(this.currentForm==='normal'){
       this.attackCooldown=300;
       Audio.SFX.punch();
@@ -2333,18 +1768,14 @@ class GameScene extends Phaser.Scene{
       p.body.setVelocityX(900);p.body.setVelocityY(0);
       p.body.setSize(30,22);p.damage=1;p.setDepth(90);
       p.isPunch=true;
-      // Fist travels full screen
       this.tweens.add({targets:p,alpha:.5,duration:1200});
       this.time.delayedCall(1400,()=>{if(p.active)p.destroy();});
-
-      // Tiny forward punch dust
       for(let i=0;i<3;i++){
         const d=this.add.circle(this.player.x+30,this.player.y-4+Phaser.Math.Between(-6,6),Phaser.Math.Between(3,5),0xFFFFFF,.7).setDepth(60);
         this.tweens.add({targets:d,x:d.x+40,alpha:0,scale:2,duration:300,onComplete:()=>d.destroy()});
       }
       return;
     }
-
     this.attackCooldown=400;
     const f=this.currentForm;
     if(f==='fire'){
@@ -2403,42 +1834,15 @@ class GameScene extends Phaser.Scene{
 
   spawnObstacle(){
     if(this.gameOver)return;
-
-    // 50% chance spike obstacle, 50% enemy
-    if(Math.random()<.5){
-      this.spawnSpike();
-    }else{
-      this.spawnEnemy();
-    }
-
-    // Higher stages: chance of additional spawns
-    if(this.stageIdx>=3&&Math.random()<.35){
-      this.time.delayedCall(400,()=>{if(!this.gameOver){Math.random()<.5?this.spawnSpike():this.spawnEnemy();}});
-    }
-    if(this.stageIdx>=6&&Math.random()<.3){
-      this.time.delayedCall(700,()=>{if(!this.gameOver)this.spawnEnemy(true);}); // flying
-    }
-    if(this.stageIdx>=10&&Math.random()<.35){
-      this.time.delayedCall(600,()=>{if(!this.gameOver)this.spawnSpike();});
-      this.time.delayedCall(1000,()=>{if(!this.gameOver)this.spawnEnemy();});
-    }
-    if(this.stageIdx>=15&&Math.random()<.4){
-      this.time.delayedCall(200,()=>{if(!this.gameOver)this.spawnEnemy(true);});
-    }
-    if(this.stageIdx>=20&&Math.random()<.5){
-      const bursts=Phaser.Math.Between(2,3);
-      for(let i=0;i<bursts;i++){
-        this.time.delayedCall(300+i*250,()=>{if(!this.gameOver){Math.random()<.5?this.spawnSpike():this.spawnEnemy(Math.random()<.5);}});
-      }
-    }
-    if(this.stageIdx>=25&&Math.random()<.55){
-      this.time.delayedCall(200,()=>{if(!this.gameOver)this.spawnSpike();});
-      this.time.delayedCall(500,()=>{if(!this.gameOver)this.spawnEnemy(true);});
-      this.time.delayedCall(800,()=>{if(!this.gameOver)this.spawnSpike();});
-    }
+    if(Math.random()<.5){this.spawnSpike();}else{this.spawnEnemy();}
+    if(this.stageIdx>=3&&Math.random()<.35){this.time.delayedCall(400,()=>{if(!this.gameOver){Math.random()<.5?this.spawnSpike():this.spawnEnemy();}});}
+    if(this.stageIdx>=6&&Math.random()<.3){this.time.delayedCall(700,()=>{if(!this.gameOver)this.spawnEnemy(true);});}
+    if(this.stageIdx>=10&&Math.random()<.35){this.time.delayedCall(600,()=>{if(!this.gameOver)this.spawnSpike();});this.time.delayedCall(1000,()=>{if(!this.gameOver)this.spawnEnemy();});}
+    if(this.stageIdx>=15&&Math.random()<.4){this.time.delayedCall(200,()=>{if(!this.gameOver)this.spawnEnemy(true);});}
+    if(this.stageIdx>=20&&Math.random()<.5){const bursts=Phaser.Math.Between(2,3);for(let i=0;i<bursts;i++){this.time.delayedCall(300+i*250,()=>{if(!this.gameOver){Math.random()<.5?this.spawnSpike():this.spawnEnemy(Math.random()<.5);}});}}
+    if(this.stageIdx>=25&&Math.random()<.55){this.time.delayedCall(200,()=>{if(!this.gameOver)this.spawnSpike();});this.time.delayedCall(500,()=>{if(!this.gameOver)this.spawnEnemy(true);});this.time.delayedCall(800,()=>{if(!this.gameOver)this.spawnSpike();});}
   }
 
-  // Damage-dealing obstacle (cannot be stomped, only destroyed with strong attacks)
   spawnSpike(){
     if(this.gameOver)return;
     const o=this.obstacles.create(W+40,GROUND_Y-13,'obs_spike_wall');
@@ -2450,7 +1854,6 @@ class GameScene extends Phaser.Scene{
     o.isSpike=true;
   }
 
-  // Enemy that can be stomped
   spawnEnemy(forceFlying=false){
     if(this.gameOver)return;
     const types=[
@@ -2470,20 +1873,10 @@ class GameScene extends Phaser.Scene{
     e.setDepth(50);
     e.hp=t.hp;
     e.enemyType=t.key;
-
-    if(t.rolling){
-      this.tweens.add({targets:e,angle:360,duration:500,repeat:-1});
-    }
-    if(t.floating){
-      this.tweens.add({targets:e,y:e.y-20,duration:800,yoyo:true,repeat:-1,ease:'Sine.easeInOut'});
-    }
-    if(t.bobbing){
-      const range=this.stageIdx>=15?50:30;
-      this.tweens.add({targets:e,y:e.y+range,duration:this.stageIdx>=20?500:800,yoyo:true,repeat:-1,ease:'Sine.easeInOut'});
-    }
-    if(t.walking){
-      this.tweens.add({targets:e,y:e.y-4,duration:250,yoyo:true,repeat:-1,ease:'Sine.easeInOut'});
-    }
+    if(t.rolling){this.tweens.add({targets:e,angle:360,duration:500,repeat:-1});}
+    if(t.floating){this.tweens.add({targets:e,y:e.y-20,duration:800,yoyo:true,repeat:-1,ease:'Sine.easeInOut'});}
+    if(t.bobbing){const range=this.stageIdx>=15?50:30;this.tweens.add({targets:e,y:e.y+range,duration:this.stageIdx>=20?500:800,yoyo:true,repeat:-1,ease:'Sine.easeInOut'});}
+    if(t.walking){this.tweens.add({targets:e,y:e.y-4,duration:250,yoyo:true,repeat:-1,ease:'Sine.easeInOut'});}
   }
 
   spawnCoin(){
@@ -2523,7 +1916,6 @@ class GameScene extends Phaser.Scene{
     this.tweens.add({targets:it,y:y-15,duration:500,yoyo:true,repeat:-1,ease:'Sine.easeInOut'});
     this.tweens.add({targets:it,angle:360,duration:3000,repeat:-1});
     this.tweens.add({targets:au,scale:1.6,alpha:.18,duration:700,yoyo:true,repeat:-1});
-
     const n=this.add.text(W/2,100,'✨ RARE ITEM APPEARED! ✨',{fontSize:'26px',fontFamily:'Arial Black',color:'#FFD700',stroke:'#000',strokeThickness:5}).setOrigin(.5).setDepth(200).setAlpha(0);
     this.tweens.add({targets:n,alpha:1,y:105,duration:400,onComplete:()=>{this.tweens.add({targets:n,alpha:0,delay:1500,duration:500,onComplete:()=>n.destroy()});}});
     Audio.SFX.stageUp();
@@ -2546,11 +1938,7 @@ class GameScene extends Phaser.Scene{
   }
 
   projectileHitObstacle(proj,obs){
-    // スパイクは攻撃で壊せない！プロジェクタイルだけ消す
-    if(obs.isSpike){
-      if(proj.active)proj.destroy();
-      return;
-    }
+    if(obs.isSpike){if(proj.active)proj.destroy();return;}
     const x=obs.x,y=obs.y;obs.destroy();
     if(!['laser','angel','cosmic'].includes(this.currentForm)){if(proj.active)proj.destroy();}
     const pu=POWERUPS[this.currentForm]||{color:0xFFD700};
@@ -2562,8 +1950,7 @@ class GameScene extends Phaser.Scene{
   }
 
   hitObstacle(pl,obs){
-    if(this.invincible||this.gameOver||this.starMode)return;
-    // Spike obstacles are NOT destroyed on contact - they hurt the player
+    if(this.invincible||this.gameOver)return;
     this.lives--;gameState.lives=this.lives;
     Audio.SFX.hit();
     this.cameras.main.shake(280,.015);
@@ -2576,31 +1963,15 @@ class GameScene extends Phaser.Scene{
 
   touchEnemy(player,enemy){
     if(this.invincible||this.gameOver||!enemy.active)return;
-    // ⭐ STARモード: 触れただけで敵を破壊
-    if(this.starMode){
-      this.killEnemy(enemy,false);
-      gameState.score+=100;
-      const txt=this.add.text(enemy.x,enemy.y-30,'+100 ⭐',{fontSize:'18px',fontFamily:'Arial Black',color:'#FFD700',stroke:'#FF00FF',strokeThickness:3}).setOrigin(.5).setDepth(120);
-      this.tweens.add({targets:txt,y:enemy.y-60,alpha:0,duration:600,onComplete:()=>txt.destroy()});
-      return;
-    }
-    // Stomp if falling onto enemy from above
     if(player.body.velocity.y>100&&player.y<enemy.y-10){
       enemy.hp--;
       Audio.SFX.stomp();
-      player.setVelocityY(-580); // bounce
+      player.setVelocityY(-580);
       gameState.score+=30;
-      // Squash effect
       this.tweens.add({targets:enemy,scaleY:.3,duration:80,yoyo:true});
-      if(enemy.hp<=0){
-        this.killEnemy(enemy,true);
-      }else{
-        // Flash red
-        enemy.setTint(0xFF6666);
-        this.time.delayedCall(120,()=>{if(enemy.active)enemy.clearTint();});
-      }
+      if(enemy.hp<=0){this.killEnemy(enemy,true);}
+      else{enemy.setTint(0xFF6666);this.time.delayedCall(120,()=>{if(enemy.active)enemy.clearTint();});}
     }else{
-      // Side contact damages player
       this.lives--;gameState.lives=this.lives;
       Audio.SFX.hit();
       this.cameras.main.shake(280,.015);
@@ -2616,13 +1987,9 @@ class GameScene extends Phaser.Scene{
     if(!enemy.active)return;
     const dmg=proj.damage||1;
     enemy.hp-=dmg;
-    if(!['laser','angel','cosmic'].includes(this.currentForm)){
-      if(proj.active)proj.destroy();
-    }
-    if(enemy.hp<=0){
-      this.killEnemy(enemy,false);
-      gameState.score+=50;
-    }else{
+    if(!['laser','angel','cosmic'].includes(this.currentForm)){if(proj.active)proj.destroy();}
+    if(enemy.hp<=0){this.killEnemy(enemy,false);gameState.score+=50;}
+    else{
       enemy.setTint(0xFF6666);
       this.time.delayedCall(120,()=>{if(enemy.active)enemy.clearTint();});
       const txt=this.add.text(enemy.x,enemy.y-30,`-${dmg}`,{fontSize:'14px',fontFamily:'Arial Black',color:'#FFFFFF',stroke:'#000',strokeThickness:2}).setOrigin(.5).setDepth(120);
@@ -2632,7 +1999,6 @@ class GameScene extends Phaser.Scene{
 
   killEnemy(enemy,wasStomped){
     const x=enemy.x,y=enemy.y;
-    // Explosion particles
     for(let i=0;i<12;i++){
       const p=this.add.circle(x,y,Phaser.Math.Between(3,7),0xFFD700,.9).setDepth(95);
       const a=Math.random()*Math.PI*2,sp=Phaser.Math.Between(40,140);
@@ -2652,7 +2018,6 @@ class GameScene extends Phaser.Scene{
     this.tweens.add({targets:s,y:s.y-40,alpha:0,scale:1.5,duration:700,onComplete:()=>s.destroy()});
   }
 
-  // ═══ BOSS BATTLE ═══
   spawnBoss(stageIdx){
     if(this.bossActive||this.gameOver)return;
     const bossKey=STAGES[stageIdx].boss;
@@ -2662,33 +2027,19 @@ class GameScene extends Phaser.Scene{
     this.bossStageIdx=stageIdx;
     this.bossKey=bossKey;
     this.bossData=bossData;
-
-    // Stop obstacle spawning during boss
     this.obstTimer.paused=true;
-    this.obstacles.getChildren().forEach(o=>{
-      this.tweens.add({targets:o,alpha:0,duration:300,onComplete:()=>o.destroy()});
-    });
-    this.enemies.getChildren().forEach(e=>{
-      this.tweens.add({targets:e,alpha:0,duration:300,onComplete:()=>e.destroy()});
-    });
-
+    this.obstacles.getChildren().forEach(o=>{this.tweens.add({targets:o,alpha:0,duration:300,onComplete:()=>o.destroy()});});
+    this.enemies.getChildren().forEach(e=>{this.tweens.add({targets:e,alpha:0,duration:300,onComplete:()=>e.destroy()});});
     Audio.SFX.bossAppear();
     this.cameras.main.shake(600,.015);
-
     Audio.stopBGM();
-    this.time.delayedCall(800,()=>{
-      if(this.bossActive)Audio.startBossBGM();
-    });
-
-    // Banner with dynamic name & colors
+    this.time.delayedCall(800,()=>{if(this.bossActive)Audio.startBossBGM();});
     const banner=this.add.text(W/2,H/2-70,bossData.title,{fontSize:'32px',fontFamily:'Arial Black',color:'#FF0033',stroke:'#FFD700',strokeThickness:5}).setOrigin(.5).setDepth(250).setAlpha(0);
     const nameBanner=this.add.text(W/2,H/2+10,bossData.name,{fontSize:'58px',fontFamily:'Arial Black',color:bossData.nameColor,stroke:bossData.nameStroke,strokeThickness:7,letterSpacing:6}).setOrigin(.5).setDepth(250).setAlpha(0);
     this.tweens.add({targets:banner,alpha:1,scale:{from:2,to:1},duration:600,ease:'Back.easeOut'});
     this.tweens.add({targets:nameBanner,alpha:1,scale:{from:2,to:1},duration:600,delay:200,ease:'Back.easeOut',onComplete:()=>{
       this.tweens.add({targets:[banner,nameBanner],alpha:0,delay:1500,duration:500,onComplete:()=>{banner.destroy();nameBanner.destroy();}});
     }});
-
-    // Dynamic texture per boss
     this.boss=this.add.image(W+80,GROUND_Y-50,`boss_${bossKey}_idle`);
     this.boss.setOrigin(.5,.5);
     this.boss.setDepth(80);
@@ -2700,15 +2051,12 @@ class GameScene extends Phaser.Scene{
     this.bossAnchorX=W-260;
     this.bossAnchorY=GROUND_Y-50;
     this.bossLocked=false;
-
     this.tweens.add({targets:this.boss,x:this.bossAnchorX,duration:1800,ease:'Cubic.easeOut',onComplete:()=>{
       if(!this.bossActive)return;
       this.bossLocked=true;
       this.startBossAttacks();
     }});
-
     this.bossIdleTween=this.tweens.add({targets:this.boss,y:GROUND_Y-52,duration:900,yoyo:true,repeat:-1,ease:'Sine.easeInOut'});
-
     this.bossHpBar=this.add.graphics().setDepth(210);
     this.bossNameText=this.add.text(W/2,28,`⚔ ${bossData.name} ⚔`,{fontSize:'18px',fontFamily:'Arial Black',color:bossData.nameColor,stroke:bossData.nameStroke,strokeThickness:4,letterSpacing:3}).setOrigin(.5).setDepth(211);
   }
@@ -2720,7 +2068,6 @@ class GameScene extends Phaser.Scene{
     const bw=300,bh=12;
     const x=W/2-bw/2,y=42;
     g.fillStyle(0,.7);g.fillRoundedRect(x-3,y-3,bw+6,bh+6,4);
-    // Color transitions red->orange->green based on hp
     let col=0x00FF44;
     if(pct<.33)col=0xFF0033;
     else if(pct<.66)col=0xFFAA00;
@@ -2731,18 +2078,8 @@ class GameScene extends Phaser.Scene{
   startBossAttacks(){
     if(!this.bossActive||this.gameOver||!this.boss)return;
     const delay=this.bossData?this.bossData.attackDelay:1500;
-    this.bossAttackTimer=this.time.addEvent({
-      delay:delay,
-      callback:()=>this.bossDoAttack(),
-      callbackScope:this,
-      loop:true
-    });
-    this.bossMoveTween=this.tweens.add({
-      targets:this.boss,
-      y:{from:GROUND_Y-140,to:GROUND_Y-50},
-      duration:2500,
-      yoyo:true,repeat:-1,ease:'Sine.easeInOut'
-    });
+    this.bossAttackTimer=this.time.addEvent({delay:delay,callback:()=>this.bossDoAttack(),callbackScope:this,loop:true});
+    this.bossMoveTween=this.tweens.add({targets:this.boss,y:{from:GROUND_Y-140,to:GROUND_Y-50},duration:2500,yoyo:true,repeat:-1,ease:'Sine.easeInOut'});
     if(this.bossIdleTween){this.bossIdleTween.stop();}
   }
 
@@ -2756,7 +2093,6 @@ class GameScene extends Phaser.Scene{
       Audio.SFX.bossThrow();
       const types=this.bossData.throwTypes;
       const count=this.bossData.projectileCount||1;
-      // Throw multiple projectiles in rapid succession
       for(let i=0;i<count;i++){
         this.time.delayedCall(i*120,()=>{
           if(!this.boss||!this.boss.active)return;
@@ -2783,7 +2119,6 @@ class GameScene extends Phaser.Scene{
     const tex=texMap[type]||'throw_plate';
     const startX=this.boss.x-60;
     const startY=this.boss.y-20+idx*10;
-
     const proj=this.bossProjectiles.create(startX,startY,tex);
     proj.setDepth(85);
     proj.body.setAllowGravity(true);
@@ -2792,28 +2127,19 @@ class GameScene extends Phaser.Scene{
     proj.setScale(1.2);
     proj.hasHit=false;
     proj.spawnTime=this.time.now;
-
-    // Aim closer to player with spread
     const targetX=PLAYER_X+Phaser.Math.Between(-60,60);
     const dx=targetX-startX;
-    // Vary flight time based on stage (faster in later stages)
     const flightTime=Math.max(.5,.85-this.stageIdx*.01);
     const vx=dx/flightTime;
     const vy=-400-Phaser.Math.Between(0,200);
     proj.body.setVelocityX(vx);
     proj.body.setVelocityY(vy);
-
-    // Spin
     this.tweens.add({targets:proj,angle:720,duration:1200,repeat:-1});
     const sz=type==='plate'?{w:28,h:28}:type==='bowl'?{w:30,h:26}:{w:26,h:26};
     proj.body.setSize(sz.w,sz.h);
-
     proj.groundCheckTimer=this.time.addEvent({
       delay:20,repeat:-1,
-      callback:()=>{
-        if(!proj.active)return;
-        if(proj.y>=GROUND_Y-14)this.shatterBossObject(proj);
-      }
+      callback:()=>{if(!proj.active)return;if(proj.y>=GROUND_Y-14)this.shatterBossObject(proj);}
     });
   }
 
@@ -2822,15 +2148,10 @@ class GameScene extends Phaser.Scene{
     const x=proj.x,y=Math.min(proj.y,GROUND_Y-14),type=proj.throwType;
     if(proj.groundCheckTimer)proj.groundCheckTimer.remove();
     proj.destroy();
-
     Audio.SFX.shatter();
     this.cameras.main.shake(100,.004);
-
-    // Impact flash
     const flash=this.add.circle(x,y,20,0xFFFFFF,.8).setDepth(88);
     this.tweens.add({targets:flash,scale:2,alpha:0,duration:200,onComplete:()=>flash.destroy()});
-
-    // Spawn shards flying in arcs
     const shardCount=type==='plate'?7:type==='bowl'?6:5;
     for(let i=0;i<shardCount;i++){
       const sh=this.bossShards.create(x,y,'shard_'+((i%4)+1));
@@ -2838,41 +2159,27 @@ class GameScene extends Phaser.Scene{
       sh.body.setAllowGravity(true);
       sh.body.setGravityY(1100);
       sh.setScale(1.2);
-
-      // Fan out — some forward (toward player), some back
-      const angle=Phaser.Math.Between(-180,-20)*Math.PI/180; // upward
+      const angle=Phaser.Math.Between(-180,-20)*Math.PI/180;
       const speed=Phaser.Math.Between(200,420);
       sh.body.setVelocityX(Math.cos(angle)*speed);
       sh.body.setVelocityY(Math.sin(angle)*speed);
       sh.body.setSize(8,8);
       sh.tint=type==='bowl'?0x8B4513:type==='plate'?0xFFFFFF:0xFFD700;
       sh.setTint(sh.tint);
-
-      // Spin
       this.tweens.add({targets:sh,angle:Phaser.Math.Between(-720,720),duration:1500});
-      // Auto-destroy after 2.5s
       this.time.delayedCall(2500,()=>{if(sh.active)sh.destroy();});
     }
-
-    // Type-specific extras
     if(type==='hookah'){
-      // Hookah throws bigger shrapnel + ember puffs
       for(let i=0;i<6;i++){
         const e=this.add.circle(x,y,Phaser.Math.Between(3,8),0xFF6600,.9).setDepth(78);
         const ang=Math.random()*Math.PI*2;
-        this.tweens.add({
-          targets:e,
-          x:x+Math.cos(ang)*Phaser.Math.Between(30,80),
-          y:y+Math.sin(ang)*Phaser.Math.Between(30,80),
-          alpha:0,scale:.2,duration:600,
-          onComplete:()=>e.destroy()
-        });
+        this.tweens.add({targets:e,x:x+Math.cos(ang)*Phaser.Math.Between(30,80),y:y+Math.sin(ang)*Phaser.Math.Between(30,80),alpha:0,scale:.2,duration:600,onComplete:()=>e.destroy()});
       }
     }
   }
 
   hitBossProjectile(player,proj){
-    if(this.invincible||this.gameOver||this.starMode)return;
+    if(this.invincible||this.gameOver)return;
     if(proj.groundCheckTimer)proj.groundCheckTimer.remove();
     proj.destroy();
     this.lives--;gameState.lives=this.lives;
@@ -2887,14 +2194,10 @@ class GameScene extends Phaser.Scene{
 
   cancelBossProjectile(playerProj,bossProj){
     if(!bossProj.active)return;
-    if(bossProj.reflected)return; // already reflected once
-
-    // REFLECT! Shoot the object back at the boss with extra speed
+    if(bossProj.reflected)return;
     if(bossProj.groundCheckTimer)bossProj.groundCheckTimer.remove();
     bossProj.reflected=true;
     bossProj.body.setAllowGravity(false);
-
-    // Calculate direction toward boss
     let targetX=this.boss?this.boss.x:W-200;
     let targetY=this.boss?this.boss.y:H/2;
     const dx=targetX-bossProj.x;
@@ -2903,132 +2206,58 @@ class GameScene extends Phaser.Scene{
     const speed=1100;
     bossProj.body.setVelocityX((dx/dist)*speed);
     bossProj.body.setVelocityY((dy/dist)*speed);
-
-    // Visual: tint gold + flash + trail
     bossProj.setTint(0xFFD700);
     const flash=this.add.circle(bossProj.x,bossProj.y,20,0xFFFFFF,.9).setDepth(100);
     this.tweens.add({targets:flash,scale:3,alpha:0,duration:300,onComplete:()=>flash.destroy()});
     this.cameras.main.shake(80,.006);
     Audio.SFX.punch();
-
-    // Reflected trail
     bossProj.trailTimer=this.time.addEvent({
       delay:40,repeat:-1,
-      callback:()=>{
-        if(!bossProj.active)return;
-        const t=this.add.circle(bossProj.x,bossProj.y,5,0xFFD700,.7).setDepth(83);
-        this.tweens.add({targets:t,scale:.1,alpha:0,duration:300,onComplete:()=>t.destroy()});
-      }
+      callback:()=>{if(!bossProj.active)return;const t=this.add.circle(bossProj.x,bossProj.y,5,0xFFD700,.7).setDepth(83);this.tweens.add({targets:t,scale:.1,alpha:0,duration:300,onComplete:()=>t.destroy()});}
     });
-
-    // Mark damage — reflected projectile deals big damage to boss
     bossProj.reflectDamage=5;
-
-    // Player projectile dies (absorbed into the reflect)
     if(playerProj.active)playerProj.destroy();
-
-    // Extra score for parry
     gameState.score+=20;
     const txt=this.add.text(bossProj.x,bossProj.y-20,'PARRY!',{fontSize:'20px',fontFamily:'Arial Black',color:'#FFD700',stroke:'#FF00FF',strokeThickness:4}).setOrigin(.5).setDepth(220);
     this.tweens.add({targets:txt,y:bossProj.y-50,alpha:0,duration:600,onComplete:()=>txt.destroy()});
   }
 
-  // Boss voice lines (Japanese "ouch" reactions)
   bossShout(intensity){
     if(!this.boss||!this.boss.active)return;
     if(this.bossLastShout&&Date.now()-this.bossLastShout<500)return;
     this.bossLastShout=Date.now();
-
     const data=this.bossData||BOSSES.ryosuke;
     let pool;
     if(intensity>=3)pool=data.shoutHeavy;
     else if(intensity>=2)pool=data.shoutMid;
     else pool=data.shoutLight;
     const line=pool[Phaser.Math.Between(0,pool.length-1)];
-
     const bubble=this.add.container(this.boss.x,this.boss.y-80).setDepth(230);
-    const text=this.add.text(0,0,line,{
-      fontSize:'18px',
-      fontFamily:'Arial Black',
-      color:'#000000',
-      backgroundColor:'#FFFFFF',
-      padding:{x:10,y:6}
-    }).setOrigin(.5);
+    const text=this.add.text(0,0,line,{fontSize:'18px',fontFamily:'Arial Black',color:'#000000',backgroundColor:'#FFFFFF',padding:{x:10,y:6}}).setOrigin(.5);
     const pointer=this.add.triangle(0,text.displayHeight/2+4,-6,0,6,0,0,8,0xFFFFFF).setOrigin(.5,0);
     bubble.add([text,pointer]);
-
     bubble.setScale(.3);
-    this.tweens.add({
-      targets:bubble,scale:1,
-      duration:200,ease:'Back.easeOut',
-      onComplete:()=>{
-        this.tweens.add({targets:bubble,x:bubble.x+3,duration:40,yoyo:true,repeat:5});
-        this.tweens.add({
-          targets:bubble,alpha:0,y:bubble.y-20,
-          delay:900,duration:400,
-          onComplete:()=>bubble.destroy()
-        });
-      }
-    });
-  }
-
-  reflectedHitBoss(proj,boss){
-    if(!boss.active||!proj.reflected||proj.hasHit)return;
-    proj.hasHit=true; // prevent multi-hit
-    const dmg=proj.reflectDamage||5;
-    boss.hp-=dmg;
-    Audio.SFX.bossHurt();
-
-    if(proj.trailTimer)proj.trailTimer.remove();
-    if(proj.groundCheckTimer)proj.groundCheckTimer.remove();
-
-    const imp=this.add.circle(proj.x,proj.y,30,0xFFD700,1).setDepth(220);
-    this.tweens.add({targets:imp,scale:4,alpha:0,duration:400,onComplete:()=>imp.destroy()});
-    this.cameras.main.shake(300,.018);
-    this.cameras.main.flash(200,255,215,0);
-
-    boss.setTint(0xFF3333);
-    this.time.delayedCall(180,()=>{if(boss.active)boss.clearTint();});
-    // No x-knockback - keep boss in position
-    this.tweens.add({targets:boss,alpha:.5,duration:80,yoyo:true});
-
-    proj.destroy();
-
-    const txt=this.add.text(boss.x,boss.y-60,`-${dmg} BOOMERANG!`,{fontSize:'22px',fontFamily:'Arial Black',color:'#FFD700',stroke:'#FF00FF',strokeThickness:5}).setOrigin(.5).setDepth(221);
-    this.tweens.add({targets:txt,y:boss.y-110,alpha:0,duration:900,onComplete:()=>txt.destroy()});
-
-    gameState.score+=100;
-
-    // BOSS SHOUTS - heavy intensity for reflected hits
-    this.bossShout(3);
-
-    if(boss.hp<=0){this.defeatBoss();}
+    this.tweens.add({targets:bubble,scale:1,duration:200,ease:'Back.easeOut',onComplete:()=>{
+      this.tweens.add({targets:bubble,x:bubble.x+3,duration:40,yoyo:true,repeat:5});
+      this.tweens.add({targets:bubble,alpha:0,y:bubble.y-20,delay:900,duration:400,onComplete:()=>bubble.destroy()});
+    }});
   }
 
   hitBossManual(proj){
     if(!this.boss||!this.boss.active)return;
     const boss=this.boss;
-    // Throttle per-projectile to avoid multi-frame hit
     if(proj.lastBossHit&&this.time.now-proj.lastBossHit<300)return;
     proj.lastBossHit=this.time.now;
-
     const dmg=proj.damage||1;
     boss.hp-=dmg;
     Audio.SFX.bossHurt();
-
     boss.setTint(0xFF5555);
     this.time.delayedCall(100,()=>{if(boss.active)boss.clearTint();});
-
     const txt=this.add.text(boss.x,boss.y-60,`-${dmg}`,{fontSize:'20px',fontFamily:'Arial Black',color:'#FF3344',stroke:'#000',strokeThickness:3}).setOrigin(.5).setDepth(220);
     this.tweens.add({targets:txt,y:boss.y-100,alpha:0,duration:600,onComplete:()=>txt.destroy()});
-
-    if(!['laser','angel','cosmic'].includes(this.currentForm)){
-      if(proj.active)proj.destroy();
-    }
-
+    if(!['laser','angel','cosmic'].includes(this.currentForm)){if(proj.active)proj.destroy();}
     const intensity=dmg>=3?2:1;
     this.bossShout(intensity);
-
     if(boss.hp<=0)this.defeatBoss();
   }
 
@@ -3039,38 +2268,28 @@ class GameScene extends Phaser.Scene{
     const dmg=proj.reflectDamage||5;
     boss.hp-=dmg;
     Audio.SFX.bossHurt();
-
     if(proj.trailTimer)proj.trailTimer.remove();
     if(proj.groundCheckTimer)proj.groundCheckTimer.remove();
-
     const imp=this.add.circle(proj.x,proj.y,30,0xFFD700,1).setDepth(220);
     this.tweens.add({targets:imp,scale:4,alpha:0,duration:400,onComplete:()=>imp.destroy()});
     this.cameras.main.shake(300,.018);
     this.cameras.main.flash(200,255,215,0);
-
     boss.setTint(0xFF3333);
     this.time.delayedCall(180,()=>{if(boss.active)boss.clearTint();});
     this.tweens.add({targets:boss,alpha:.5,duration:80,yoyo:true});
-
     proj.destroy();
-
     const txt=this.add.text(boss.x,boss.y-60,`-${dmg} BOOMERANG!`,{fontSize:'22px',fontFamily:'Arial Black',color:'#FFD700',stroke:'#FF00FF',strokeThickness:5}).setOrigin(.5).setDepth(221);
     this.tweens.add({targets:txt,y:boss.y-110,alpha:0,duration:900,onComplete:()=>txt.destroy()});
-
     gameState.score+=100;
     this.bossShout(3);
-
     if(boss.hp<=0)this.defeatBoss();
   }
 
   playerTouchBossManual(){
     if(!this.boss||!this.boss.active||this.invincible||this.gameOver)return;
-    // Touch cooldown
     if(this.bossTouchCooldown&&this.time.now-this.bossTouchCooldown<500)return;
     this.bossTouchCooldown=this.time.now;
-
     const player=this.player,boss=this.boss;
-    // Stomp if falling onto boss from above
     if(player.body.velocity.y>100&&player.y<boss.y-20){
       boss.hp-=3;
       Audio.SFX.bossHurt();
@@ -3082,79 +2301,18 @@ class GameScene extends Phaser.Scene{
       this.bossShout(2);
       if(boss.hp<=0)this.defeatBoss();
     }else{
-      // Side contact = damage to player (not boss)
       this.lives--;gameState.lives=this.lives;
       Audio.SFX.hit();
       this.cameras.main.shake(300,.015);
       this.cameras.main.flash(150,255,50,50);
       if(this.lives<=0){this.endGame();return;}
       this.invincible=true;
-      // Push PLAYER back (not boss!)
       player.setVelocityX(-200);
       player.setVelocityY(-350);
       this.tweens.add({targets:player,alpha:.2,duration:100,yoyo:true,repeat:8,onComplete:()=>{
         player.setAlpha(1);this.invincible=false;
         if(player.body)player.body.setVelocityX(0);
       }});
-      updateUI();
-    }
-  }
-
-  hitBoss(proj,boss){
-    if(!this.bossActive||!boss.active)return;
-    // Throttle piercing projectiles so they don't deal damage every frame
-    if(proj.lastBossHit&&this.time.now-proj.lastBossHit<300)return;
-    proj.lastBossHit=this.time.now;
-    const dmg=proj.damage||1;
-    boss.hp-=dmg;
-    Audio.SFX.bossHurt();
-
-    // Flash boss red
-    boss.setTint(0xFF5555);
-    this.time.delayedCall(100,()=>{if(boss.active)boss.clearTint();});
-
-    // Damage number
-    const txt=this.add.text(boss.x,boss.y-60,`-${dmg}`,{fontSize:'20px',fontFamily:'Arial Black',color:'#FF3344',stroke:'#000',strokeThickness:3}).setOrigin(.5).setDepth(220);
-    this.tweens.add({targets:txt,y:boss.y-100,alpha:0,duration:600,onComplete:()=>txt.destroy()});
-
-    // Remove non-piercing projectiles
-    if(!['laser','angel','cosmic'].includes(this.currentForm)){
-      if(proj.active)proj.destroy();
-    }
-
-    // BOSS SHOUTS - intensity based on damage
-    const intensity=dmg>=3?2:1;
-    this.bossShout(intensity);
-
-    if(boss.hp<=0){
-      this.defeatBoss();
-    }
-  }
-
-  playerTouchBoss(player,boss){
-    if(!this.bossActive||!boss.active||this.invincible||this.gameOver)return;
-    // Stomp if player is falling down onto boss
-    if(player.body.velocity.y>100&&player.y<boss.y-20){
-      boss.hp-=3;
-      Audio.SFX.bossHurt();
-      player.setVelocityY(-600);
-      boss.setTint(0xFF5555);
-      this.time.delayedCall(100,()=>{if(boss.active)boss.clearTint();});
-      const txt=this.add.text(boss.x,boss.y-60,'-3 STOMP!',{fontSize:'18px',fontFamily:'Arial Black',color:'#FFD700',stroke:'#000',strokeThickness:3}).setOrigin(.5).setDepth(220);
-      this.tweens.add({targets:txt,y:boss.y-100,alpha:0,duration:700,onComplete:()=>txt.destroy()});
-      this.bossShout(2);
-      if(boss.hp<=0){this.defeatBoss();}
-    }else{
-      // Side contact = damage
-      this.lives--;gameState.lives=this.lives;
-      Audio.SFX.hit();
-      this.cameras.main.shake(300,.015);
-      this.cameras.main.flash(150,255,50,50);
-      if(this.lives<=0){this.endGame();return;}
-      this.invincible=true;
-      // Knock player back
-      player.setVelocityX(-300);player.setVelocityY(-400);
-      this.tweens.add({targets:player,alpha:.2,duration:100,yoyo:true,repeat:8,onComplete:()=>{player.setAlpha(1);this.invincible=false;this.player.setVelocityX(0);}});
       updateUI();
     }
   }
@@ -3166,13 +2324,9 @@ class GameScene extends Phaser.Scene{
     this.bossLocked=false;
     boss.active=false;
     this.bossDefeatedStages[this.bossStageIdx]=true;
-
     if(this.bossAttackTimer)this.bossAttackTimer.remove();
     if(this.bossMoveTween)this.bossMoveTween.stop();
-
     Audio.SFX.bossDefeat();
-
-    // Final shout (dynamic)
     const defeatLines=(this.bossData&&this.bossData.shoutDefeat)||['もう無理…','負けた…'];
     const line=defeatLines[Phaser.Math.Between(0,defeatLines.length-1)];
     const bubble=this.add.container(boss.x,boss.y-80).setDepth(230);
@@ -3182,55 +2336,31 @@ class GameScene extends Phaser.Scene{
     bubble.setScale(.3);
     this.tweens.add({targets:bubble,scale:1,duration:300,ease:'Back.easeOut'});
     this.tweens.add({targets:bubble,alpha:0,delay:1500,duration:400,onComplete:()=>bubble.destroy()});
-
-    // Clear all boss projectiles
     this.bossProjectiles.getChildren().forEach(p=>{if(p.groundCheckTimer)p.groundCheckTimer.remove();p.destroy();});
     this.bossShards.getChildren().forEach(s=>s.destroy());
-
-    // Boss defeat animation
-    this.tweens.add({
-      targets:boss,
-      y:boss.y+20,alpha:.5,angle:{from:0,to:180},
-      duration:800,
-      ease:'Cubic.easeIn'
-    });
-    // Explosion particles
+    this.tweens.add({targets:boss,y:boss.y+20,alpha:.5,angle:{from:0,to:180},duration:800,ease:'Cubic.easeIn'});
     for(let i=0;i<40;i++){
       const p=this.add.circle(boss.x,boss.y,Phaser.Math.Between(4,10),[0xFFD700,0xFF0033,0xFFFFFF,0xFF00FF][i%4],1).setDepth(200);
       const a=(i/40)*Math.PI*2;
-      this.tweens.add({
-        targets:p,
-        x:boss.x+Math.cos(a)*Phaser.Math.Between(100,250),
-        y:boss.y+Math.sin(a)*Phaser.Math.Between(100,250),
-        alpha:0,scale:.1,duration:1200,
-        onComplete:()=>p.destroy()
-      });
+      this.tweens.add({targets:p,x:boss.x+Math.cos(a)*Phaser.Math.Between(100,250),y:boss.y+Math.sin(a)*Phaser.Math.Between(100,250),alpha:0,scale:.1,duration:1200,onComplete:()=>p.destroy()});
     }
     this.cameras.main.shake(500,.02);
     this.cameras.main.flash(400,255,255,0);
-
-    // Victory text
     const bossName=(this.bossData&&this.bossData.name)||'BOSS';
     const win=this.add.text(W/2,H/2-40,`${bossName} DEFEATED!`,{fontSize:'42px',fontFamily:'Arial Black',color:'#FFD700',stroke:'#FF0033',strokeThickness:6}).setOrigin(.5).setDepth(250).setAlpha(0);
     this.tweens.add({targets:win,alpha:1,scale:{from:.5,to:1.2},duration:500,ease:'Back.easeOut',onComplete:()=>{
       this.tweens.add({targets:win,alpha:0,scale:1.4,delay:1500,duration:500,onComplete:()=>win.destroy()});
     }});
-
-    // Score bonus
     gameState.score+=1000;
     const sc=this.add.text(W/2,H/2+20,'+1000 BONUS!',{fontSize:'26px',fontFamily:'Arial Black',color:'#00FFAA',stroke:'#000',strokeThickness:4}).setOrigin(.5).setDepth(250).setAlpha(0);
     this.tweens.add({targets:sc,alpha:1,y:H/2+10,duration:600,delay:400,onComplete:()=>{
       this.tweens.add({targets:sc,alpha:0,delay:1500,duration:500,onComplete:()=>sc.destroy()});
     }});
-
-    // Remove boss after animation
     this.time.delayedCall(1200,()=>{
       if(boss)boss.destroy();
       if(this.bossHpBar){this.bossHpBar.destroy();this.bossHpBar=null;}
       if(this.bossNameText){this.bossNameText.destroy();this.bossNameText=null;}
-      // Resume obstacle spawning
       this.obstTimer.paused=false;
-      // Back to normal BGM
       Audio.stopBGM();
       Audio.startBGM();
     });
@@ -3246,7 +2376,6 @@ class GameScene extends Phaser.Scene{
       this.enemies.getChildren().forEach(e=>e.body.setVelocityX(-this.scrollSpeed));
       this.coins.getChildren().forEach(c=>c.body.setVelocityX(-this.scrollSpeed));
       this.powerups.getChildren().forEach(p=>p.body.setVelocityX(-this.scrollSpeed));
-      if(this.stars)this.stars.getChildren().forEach(s=>s.body.setVelocityX(-this.scrollSpeed));
       Audio.SFX.stageUp();
       const fullName=STAGES[n].name;
       const parts=fullName.split(' — ');
@@ -3259,7 +2388,6 @@ class GameScene extends Phaser.Scene{
       this.cameras.main.flash(200,255,215,0);
       gameState.stage=n;updateUI();
       this.scheduleStagePowerup(n);
-      // Trigger boss if stage has one and not yet defeated
       if(STAGES[n].boss&&!this.bossDefeatedStages[n]){
         this.time.delayedCall(1500,()=>this.spawnBoss(n));
       }
@@ -3290,7 +2418,6 @@ class GameScene extends Phaser.Scene{
     Audio.stopBGM();Audio.SFX.gameover();
     this.player.setTexture(`bro_${this.currentForm}_jump`);
     this.player.setTint(0xff6666);
-    // コインを確実に保存
     gameState.distance=this.distance;
     gameState.stage=this.stageIdx;
     gameState.coins=this.coinsCollected;
@@ -3302,13 +2429,10 @@ class GameScene extends Phaser.Scene{
     if(Phaser.Input.Keyboard.JustDown(this.cursors.up)||Phaser.Input.Keyboard.JustDown(this.spaceKey)||Phaser.Input.Keyboard.JustDown(this.wKey))this.doJump();
     if(Phaser.Input.Keyboard.JustDown(this.xKey)||Phaser.Input.Keyboard.JustDown(this.shiftKey))this.doAttack();
     const dt=delta/1000;
-    // Slow scroll during boss fight
     const effSpeed=this.bossActive?this.scrollSpeed*.15:this.scrollSpeed;
     this.distance+=(effSpeed/100)*dt;
     gameState.distance=this.distance;
-
     if(this.player.body.blocked.down||this.player.body.touching.down)this.doubleJumped=false;
-
     if(this.currentForm!=='normal'){
       this.powerTimeRemaining-=delta;
       if(this.powerTimeRemaining<=0){
@@ -3319,50 +2443,35 @@ class GameScene extends Phaser.Scene{
     }
     this.drawPowerBar();
     if(this.bossActive)this.drawBossHpBar();
-    // Manual boss hit detection (boss is plain image, not physics body)
     if(this.boss&&this.boss.active&&this.bossActive){
       const bx=this.boss.x,by=this.boss.y;
-      const bW=60,bH=90; // hit box size
+      const bW=60,bH=90;
       const bl=bx-bW/2,br=bx+bW/2,bt=by-bH/2,bb=by+bH/2;
-
-      // Player projectiles vs boss
       this.projectiles.getChildren().forEach(p=>{
         if(!p.active)return;
-        if(p.x>bl-15&&p.x<br+15&&p.y>bt-15&&p.y<bb+15){
-          this.hitBossManual(p);
-        }
+        if(p.x>bl-15&&p.x<br+15&&p.y>bt-15&&p.y<bb+15){this.hitBossManual(p);}
       });
-      // Reflected boss projectiles vs boss
       this.bossProjectiles.getChildren().forEach(p=>{
         if(!p.active||!p.reflected||p.hasHit)return;
-        if(p.x>bl-10&&p.x<br+10&&p.y>bt-10&&p.y<bb+10){
-          this.reflectedHitBossManual(p);
-        }
+        if(p.x>bl-10&&p.x<br+10&&p.y>bt-10&&p.y<bb+10){this.reflectedHitBossManual(p);}
       });
-      // Player touches boss (stomp or side hit)
       if(this.player&&this.player.active){
         const px=this.player.x,py=this.player.y;
         const pW=34,pH=56;
         const pl=px-pW/2,pr=px+pW/2,pt=py-pH/2,pb=py+pH/2;
-        if(pl<br&&pr>bl&&pt<bb&&pb>bt){
-          this.playerTouchBossManual();
-        }
+        if(pl<br&&pr>bl&&pt<bb&&pb>bt){this.playerTouchBossManual();}
       }
     }
     if(this.attackCooldown>0)this.attackCooldown-=delta;
-
     const og=this.player.body.blocked.down||this.player.body.touching.down;
     if(og){this.playerFrameTimer+=delta;const fd=130-Math.min(this.stageIdx*8,60);if(this.playerFrameTimer>fd){this.playerFrameTimer=0;this.playerFrame=1-this.playerFrame;}}
     this.updatePlayerTexture();
-
     this.groundTiles.forEach(t=>{t.x-=effSpeed*dt;if(t.x<=-64)t.x+=this.groundTiles.length*64;});
     this.buildings.getChildren().forEach(b=>{b.x-=effSpeed*.3*dt;if(b.x<-120){b.x=W+100;const bt=['building','building2','building3','building4'];b.setTexture(bt[Phaser.Math.Between(0,3)]);}});
     this.clouds.getChildren().forEach(c=>{c.x-=effSpeed*.1*dt;if(c.x<-80){c.x=W+80;c.y=Phaser.Math.Between(60,200);}});
     this.stars.forEach(s=>{s.x-=effSpeed*.05*dt;if(s.x<0){s.x=W;s.y=Phaser.Math.Between(0,240);}});
-
     this.powerups.getChildren().forEach(p=>{if(p.aura){p.aura.x=p.x;p.aura.y=p.y;}});
     this.updateStageProgression();
-
     this.obstacles.getChildren().forEach(o=>{if(o.x<-60)o.destroy();});
     this.enemies.getChildren().forEach(e=>{if(e.x<-60)e.destroy();});
     this.coins.getChildren().forEach(c=>{if(c.x<-40)c.destroy();});
@@ -3370,21 +2479,13 @@ class GameScene extends Phaser.Scene{
     this.projectiles.getChildren().forEach(pr=>{if(pr.x>W+200)pr.destroy();});
     this.bossProjectiles.getChildren().forEach(bp=>{if(bp.x<-60||bp.y>H+40){if(bp.groundCheckTimer)bp.groundCheckTimer.remove();bp.destroy();}});
     this.bossShards.getChildren().forEach(s=>{if(s.x<-30||s.x>W+30||s.y>H+30)s.destroy();});
-    // 🌟 invincibility star cleanup & aura follow
-    if(this.stars){
-      this.stars.getChildren().forEach(st=>{
-        if(st.aura){st.aura.x=st.x;st.aura.y=st.y;}
-        if(st.x<-60){if(st.aura)st.aura.destroy();st.destroy();}
-      });
-    }
-
     updateUI();
   }
 }
 
-// ═══ SUPABASE CONFIG ═══
-const SUPABASE_URL = 'https://hwoltvzmsznprsbyrbaj.supabase.co';  // ← ここに貼る
-const SUPABASE_KEY = 'sb_publishable_1JsQKCxHNyH4fGzFUJeEHg_czjaZxPR';  // ← ここに貼る
+// ═══ SUPABASE ═══
+const SUPABASE_URL = 'https://hwoltvzmsznprsbyrbaj.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_1JsQKCxHNyH4fGzFUJeEHg_czjaZxPR';
 
 async function sbInsert(data){
   if(!SUPABASE_URL||!SUPABASE_KEY)return null;
@@ -3396,7 +2497,7 @@ async function sbInsert(data){
       'Authorization':'Bearer '+SUPABASE_KEY,
       'Prefer':'return=representation'
     },
-    body:JSON.stringify({...data, game:'uwasa_brothers'}) // ゲーム識別子
+    body:JSON.stringify({...data, game:'uwasa_brothers'})
   });
   return res.ok?await res.json():null;
 }
@@ -3413,7 +2514,6 @@ async function sbFetchRanking(){
   return res.ok?await res.json():null;
 }
 
-// 先週の王者を取得
 async function sbFetchLastWeekChampion(){
   if(!SUPABASE_URL||!SUPABASE_KEY)return null;
   const mondayThisWeek=new Date();
@@ -3432,7 +2532,6 @@ async function sbFetchLastWeekChampion(){
   }catch(e){return null;}
 }
 
-// プレイヤー名をlocalStorageで管理
 function getPlayerName(){
   try{return localStorage.getItem('uwasa_player_name')||'';}catch(e){return '';}
 }
@@ -3440,18 +2539,21 @@ function setPlayerName(name){
   try{localStorage.setItem('uwasa_player_name',name);}catch(e){}
 }
 
-// ═══════════════════════════════════════════════════════
-// NAME INPUT OVERLAY (DOM, not Phaser)
-// ═══════════════════════════════════════════════════════
+// ═══ NAME INPUT OVERLAY ═══
 function showNameInput(onSubmit, opts){
   opts=opts||{};
+  // ★バグ修正: 重複オープン防止
+  if(window.__uwasa_nameOverlayOpen)return;
+  const existing=document.getElementById('name-overlay');
+  if(existing)existing.remove();
+  window.__uwasa_nameOverlayOpen=true;
+
   const title=opts.title||'🎮 GAME OVER 🎮';
   const desc=opts.desc||'名前を入力してランキングに登録しよう！<br>（最大8文字）';
   const defaultName=opts.defaultName||'';
   const skipAllowed=opts.skipAllowed!==false;
   const submitLabel=opts.submitLabel||'✅ ランキングに登録';
 
-  // Inject CSS once
   if(!document.getElementById('ni-style')){
     const st=document.createElement('style');
     st.id='ni-style';
@@ -3481,49 +2583,33 @@ function showNameInput(onSubmit, opts){
   `;
   document.body.appendChild(ov);
   const inp=document.getElementById('name-input');
-  // iOS Safari 対策：自動focusはキーボードが出ない/レイアウトが崩れることがあるので、タップされるまで待つ
-  // ユーザーが input をタップすればキーボードが確実に出る
-  if(defaultName){
-    // デフォルト値がある場合はfocusして全選択（PC用）
-    setTimeout(()=>{try{inp.focus();inp.select();}catch(e){}},100);
-  }
+  inp.focus();
+  if(defaultName)inp.select();
   const submit=()=>{
     const name=(inp.value.trim()||'NONAME').substring(0,8);
     ov.remove();
+    window.__uwasa_nameOverlayOpen=false;
     onSubmit(name);
   };
   document.getElementById('name-submit').onclick=submit;
   if(skipAllowed){
-    document.getElementById('name-skip').onclick=()=>{ov.remove();onSubmit(null);};
+    document.getElementById('name-skip').onclick=()=>{
+      ov.remove();
+      window.__uwasa_nameOverlayOpen=false;
+      onSubmit(null);
+    };
   }
   inp.addEventListener('keydown',e=>{if(e.key==='Enter')submit();});
 }
 
-// ═══════════════════════════════════════════════════════
-// GAME OVER SCENE
-// ═══════════════════════════════════════════════════════
 class GameOverScene extends Phaser.Scene{
   constructor(){super('GameOver');}
 
   create(){
-    // ゲームオーバー画面ではゲームUIを完全に隠す
-    try{
-      const ui=document.getElementById('ui-overlay');
-      if(ui)ui.classList.remove('show');
-      const mc=document.getElementById('mobile-controls');
-      if(mc)mc.classList.remove('show');
-      const st=document.getElementById('sound-toggle');
-      if(st)st.classList.remove('show');
-      const pb=document.getElementById('power-badge');
-      if(pb)pb.style.display='none';
-      // 隠しコマンド用の pointer-events もリセット
-      const stageEl=document.getElementById('stage-badge');
-      if(stageEl)stageEl.style.pointerEvents='none';
-      const hpEl=document.getElementById('ui-lives-block');
-      if(hpEl)hpEl.style.pointerEvents='none';
-    }catch(e){}
+    // ★バグ修正: モバイルボタン非表示、オーバーレイクリーンアップ
+    window.__uwasa_showMobile(false);
+    window.__uwasa_cleanupOverlays();
 
-    // Background
     const g=this.add.graphics();
     g.fillStyle(0);g.fillRect(0,0,W,H);
     for(let y=0;y<H;y++){const t=y/H;const r=Math.floor(20+40*t),b=Math.floor(20+30*t);g.fillStyle((r<<16)|b,.9);g.fillRect(0,y,W,1);}
@@ -3535,7 +2621,6 @@ class GameOverScene extends Phaser.Scene{
     const finalScore=Math.floor(gameState.distance*10)+gameState.score+(pc*200);
     const finalCoins=gameState.coins||0;
 
-    // Result card (top half)
     const go=this.add.text(W/2,44,'GAME OVER',{fontSize:'54px',fontFamily:'Arial Black',color:'#FF2244',stroke:'#000',strokeThickness:7}).setOrigin(.5);
     this.tweens.add({targets:go,scale:{from:.5,to:1},duration:500,ease:'Back.easeOut'});
 
@@ -3569,7 +2654,6 @@ class GameOverScene extends Phaser.Scene{
     if(gameState.stage>=29)rm='🏆 STAGE 30 CONQUEROR 🏆';
     this.add.text(W/2,326,rm,{fontSize:'22px',fontFamily:'Arial Black',color:rc,stroke:'#000',strokeThickness:4}).setOrigin(.5);
 
-    // Ranking area (bottom half - populated after name entry)
     this.rankTitle=this.add.text(W/2,360,'🏆 WEEKLY RANKING',{fontSize:'14px',fontFamily:'Arial Black',color:'#FFD700',letterSpacing:2}).setOrigin(.5).setAlpha(0);
     this.rankLines=[];
     for(let i=0;i<5;i++){
@@ -3577,7 +2661,6 @@ class GameOverScene extends Phaser.Scene{
       this.rankLines.push(t);
     }
 
-    // Buttons
     this.retryBtn=this.add.text(W/2-110,502,'🔄  RETRY',{fontSize:'20px',fontFamily:'Arial Black',color:'#000',backgroundColor:'#FFD700',padding:{x:18,y:10}}).setOrigin(.5).setInteractive({useHandCursor:true});
     this.titleBtn=this.add.text(W/2+110,502,'🏠  TITLE',{fontSize:'20px',fontFamily:'Arial Black',color:'#000',backgroundColor:'#00BFFF',padding:{x:18,y:10}}).setOrigin(.5).setInteractive({useHandCursor:true});
     this.retryBtn.on('pointerover',()=>this.retryBtn.setScale(1.08));
@@ -3585,20 +2668,17 @@ class GameOverScene extends Phaser.Scene{
     this.titleBtn.on('pointerover',()=>this.titleBtn.setScale(1.08));
     this.titleBtn.on('pointerout',()=>this.titleBtn.setScale(1));
 
-    const doRetry=()=>{Audio.SFX.click();gameState={distance:0,stage:0,lives:3,score:0,coins:0,powersCollected:[]};Audio.startBGM();this.scene.start('Game');};
-    const doTitle=()=>{Audio.SFX.click();this.scene.start('Title');};
+    const doRetry=(e)=>{if(e&&e.stopPropagation)e.stopPropagation();Audio.SFX.click();gameState={distance:0,stage:0,lives:3,score:0,coins:0,powersCollected:[]};window.__uwasa_cleanupOverlays();Audio.startBGM();this.scene.start('Game');};
+    const doTitle=(e)=>{if(e&&e.stopPropagation)e.stopPropagation();Audio.SFX.click();window.__uwasa_cleanupOverlays();this.scene.start('Title');};
     this.retryBtn.on('pointerdown',doRetry);
     this.titleBtn.on('pointerdown',doTitle);
     this.input.keyboard.on('keydown-SPACE',doRetry);
 
-    // タグライン
     this.add.text(W/2,528,'U.wasano Shisha Bar — 片町',{fontSize:'11px',fontFamily:'Arial',color:'#FFD700',fontStyle:'italic'}).setOrigin(.5);
 
-    // 保存された名前で自動送信
     this.time.delayedCall(500,async()=>{
       const savedName=getPlayerName();
       if(savedName){
-        // 自動でランキングに登録
         try{
           await sbInsert({
             player_name:savedName,
@@ -3611,7 +2691,6 @@ class GameOverScene extends Phaser.Scene{
         }catch(e){console.warn('Supabase insert failed:',e);}
         this.showRanking(savedName);
       }else{
-        // 名前がない場合のみ入力（念のためのフォールバック）
         showNameInput(async(playerName)=>{
           if(playerName){
             setPlayerName(playerName);
@@ -3639,16 +2718,12 @@ class GameOverScene extends Phaser.Scene{
 
   async showRanking(myName){
     this.rankTitle.setAlpha(1);
-    // Try Supabase
     let data=null;
     try{ data=await sbFetchRanking(); }catch(e){}
-
     if(!data||!data.length){
-      // Offline / no data fallback
       this.rankLines[0].setText('— ランキングを取得できませんでした —').setAlpha(1).setStyle({color:'#888',fontSize:'11px'});
       return;
     }
-
     const medals=['🥇','🥈','🥉','4','5'];
     const colors=['#FFD700','#C0C0C0','#CD7F32','#aaa','#aaa'];
     this.tweens.add({targets:this.rankTitle,alpha:1,duration:400});
