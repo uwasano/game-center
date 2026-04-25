@@ -659,7 +659,7 @@ class TitleScene extends Phaser.Scene{
     }).setOrigin(0,1);
 
     // GAME START button
-    const startBtn = this.makeButton(W/2, 480, 280, 64, '🎯 1人モード 記録に挑戦！', 0xFF00FF, ()=>{
+    const startBtn = this.makeButton(W/2, 480, 280, 64, '🎯 1人モード', 0xFF00FF, ()=>{
       const name = getPlayerName();
       if(!name){
         showNameModal(()=>{
@@ -671,7 +671,7 @@ class TitleScene extends Phaser.Scene{
       }
     });
 
-    const partyBtn = this.makeButton(W/2, 562, 280, 64, '🍻 みんなでダーツ‼', 0x39FF14, ()=>{
+    const partyBtn = this.makeButton(W/2, 562, 280, 64, '🍻 みんなでダーツ', 0x39FF14, ()=>{
       this.scene.start('PartySetup');
     });
 
@@ -710,8 +710,9 @@ class TitleScene extends Phaser.Scene{
     bg.lineStyle(3, 0xFFD700, 1);
     bg.strokeRoundedRect(-w/2,-h/2,w,h,14);
     const t = this.add.text(0,0,text,{
-      fontFamily:'"Press Start 2P", monospace', fontSize:'18px',
-      color:'#fff', stroke:'#000', strokeThickness:2,
+      fontFamily:'"Press Start 2P", "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic", "Meiryo", sans-serif',
+      fontSize:'22px', fontStyle:'bold',
+      color:'#fff', stroke:'#000', strokeThickness:3,
       align:'center'
     }).setOrigin(0.5);
     // shrink to fit if too wide
@@ -719,7 +720,7 @@ class TitleScene extends Phaser.Scene{
       const maxW = w - 24;
       if(t.width > maxW){
         const ratio = maxW / t.width;
-        const newSize = Math.max(11, Math.floor(18 * ratio));
+        const newSize = Math.max(14, Math.floor(22 * ratio));
         t.setStyle({ fontSize: newSize + 'px' });
       }
     } catch(e){}
