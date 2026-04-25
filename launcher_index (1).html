@@ -1,0 +1,880 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>うわさのゲームセンター</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DotGothic16&family=Press+Start+2P&display=swap');
+:root{
+  --pink:#FF2D78; --cyan:#00F5FF; --yellow:#FFE600;
+  --green:#39FF14; --purple:#BF00FF;
+  --dark:#060410; --darker:#030208;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{
+  background:var(--darker);width:100%;min-height:100vh;
+  font-family:'Press Start 2P',monospace;
+  overflow-x:hidden;color:#fff;touch-action:manipulation;
+}
+/* 周辺の柔らかいビネット（雰囲気だけ残す、控えめに） */
+body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9998;
+  background:radial-gradient(ellipse at center,transparent 60%,rgba(0,0,0,.55) 100%);}
+/* かすかな星屑（ネオンっぽいランダムドット） */
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;
+  background-image:
+    radial-gradient(circle at 12% 18%, rgba(255,45,120,.28) 0, transparent 1.4px),
+    radial-gradient(circle at 78% 22%, rgba(0,245,255,.28) 0, transparent 1.4px),
+    radial-gradient(circle at 32% 67%, rgba(255,230,0,.22) 0, transparent 1.2px),
+    radial-gradient(circle at 88% 81%, rgba(191,0,255,.30) 0, transparent 1.4px),
+    radial-gradient(circle at 55% 42%, rgba(57,255,20,.22) 0, transparent 1.2px),
+    radial-gradient(circle at 22% 89%, rgba(0,245,255,.22) 0, transparent 1.2px);
+  background-size: 220px 220px, 280px 280px, 180px 180px, 320px 320px, 240px 240px, 200px 200px;
+  background-position: 0 0, 40px 60px, 120px 30px, 80px 100px, 30px 80px, 150px 50px;
+  opacity:.85;
+}
+.wrap{
+  max-width:480px;margin:0 auto;min-height:100vh;
+  display:flex;flex-direction:column;align-items:center;
+  background:
+    radial-gradient(ellipse at 20% 0%,rgba(191,0,255,.18) 0%,transparent 55%),
+    radial-gradient(ellipse at 80% 20%,rgba(0,245,255,.12) 0%,transparent 55%),
+    var(--dark);
+}
+
+/* 🎵 BGM toggle */
+.bgm-toggle{
+  position:fixed;top:12px;left:12px;z-index:100;
+  width:44px;height:44px;border-radius:50%;
+  background:rgba(0,0,0,.78);
+  border:2px solid var(--yellow);
+  color:var(--yellow);font-size:20px;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;user-select:none;
+  box-shadow:0 0 12px rgba(255,230,0,.5);
+  transition:transform .1s;
+}
+.bgm-toggle:active{transform:scale(.9);}
+.bgm-toggle.muted{border-color:#555;color:#555;box-shadow:none;}
+.bgm-pulse{animation:bgmPulse 1.2s ease-in-out infinite;}
+@keyframes bgmPulse{
+  0%,100%{box-shadow:0 0 12px rgba(255,230,0,.5)}
+  50%{box-shadow:0 0 22px rgba(255,230,0,.9)}
+}
+
+/* MARQUEE */
+.marquee{width:100%;background:var(--pink);padding:5px 0;overflow:hidden;box-shadow:0 0 18px var(--pink);}
+.marquee-in{display:inline-block;white-space:nowrap;animation:mq 22s linear infinite;font-size:8px;color:#000;letter-spacing:2px;}
+@keyframes mq{from{transform:translateX(100vw)}to{transform:translateX(-100%)}}
+
+/* 🏆 CHAMPION BANNER */
+.champ-banner{
+  margin:14px 12px 0;padding:14px 16px;border-radius:12px;
+  background:linear-gradient(135deg,rgba(255,230,0,.15) 0%,rgba(255,45,120,.15) 100%);
+  border:2px solid var(--yellow);
+  box-shadow:0 0 20px rgba(255,230,0,.4),inset 0 0 14px rgba(255,230,0,.1);
+  text-align:center;position:relative;overflow:hidden;
+  animation:champGlow 2.4s ease-in-out infinite;
+}
+.champ-banner::before{
+  content:'';position:absolute;inset:-50%;
+  background:conic-gradient(from 0deg,transparent 0%,rgba(255,230,0,.2) 25%,transparent 50%,rgba(255,45,120,.2) 75%,transparent 100%);
+  animation:champSpin 6s linear infinite;z-index:0;pointer-events:none;
+}
+.champ-banner>*{position:relative;z-index:1;}
+@keyframes champGlow{
+  0%,100%{box-shadow:0 0 20px rgba(255,230,0,.4),inset 0 0 14px rgba(255,230,0,.1);}
+  50%{box-shadow:0 0 38px rgba(255,230,0,.75),inset 0 0 22px rgba(255,230,0,.25);}
+}
+@keyframes champSpin{to{transform:rotate(360deg);}}
+.champ-label{
+  font-family:'Press Start 2P',monospace;font-size:8px;
+  color:var(--yellow);letter-spacing:3px;
+  text-shadow:0 0 10px var(--yellow);margin-bottom:10px;
+}
+.champ-name{
+  font-family:'DotGothic16',sans-serif;font-size:24px;font-weight:bold;
+  color:#fff;text-shadow:0 0 10px var(--yellow),0 0 20px var(--pink);
+  letter-spacing:2px;margin-bottom:6px;word-break:break-all;
+}
+.champ-coins{
+  font-family:'DotGothic16',sans-serif;font-size:13px;
+  color:var(--yellow);text-shadow:0 0 6px var(--yellow);margin-bottom:12px;
+}
+.champ-congrats{
+  font-family:'DotGothic16',sans-serif;font-size:15px;font-weight:bold;
+  color:var(--pink);text-shadow:0 0 10px var(--pink);
+  letter-spacing:1px;line-height:1.5;margin-bottom:4px;
+}
+.champ-prize{
+  font-family:'DotGothic16',sans-serif;font-size:13px;
+  color:var(--cyan);text-shadow:0 0 8px var(--cyan);
+  letter-spacing:1px;
+}
+.champ-empty{
+  font-family:'DotGothic16',sans-serif;font-size:12px;
+  color:rgba(255,255,255,.55);line-height:1.8;padding:8px 0;
+}
+.champ-hidden{display:none;}
+
+/* TOP BAR */
+.topbar{width:100%;background:#000;padding:6px 14px;
+  display:flex;justify-content:space-between;align-items:center;
+  border-bottom:1px solid #1a1a1a;}
+.tb-txt{font-size:7px;color:var(--yellow);text-shadow:0 0 6px var(--yellow);}
+.tb-val{font-size:9px;color:var(--green);text-shadow:0 0 8px var(--green);}
+
+/* TITLE SIGN */
+.sign{margin-top:20px;text-align:center;padding:0 12px;}
+.sign-en{font-family:'DotGothic16',sans-serif;font-size:10px;color:var(--cyan);
+  letter-spacing:6px;text-shadow:0 0 12px var(--cyan);margin-bottom:5px;
+  animation:flicker 4s infinite;}
+.sign-ja{font-family:'DotGothic16',sans-serif;font-size:clamp(26px,7vw,34px);
+  font-weight:900;line-height:1.2;letter-spacing:3px;
+  background:linear-gradient(180deg,#fff 0%,var(--yellow) 45%,var(--pink) 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  filter:drop-shadow(0 0 18px rgba(255,230,0,.8)) drop-shadow(0 0 36px rgba(255,45,120,.5));
+  animation:tp 2.5s ease-in-out infinite;}
+.sign-stars{font-size:13px;color:var(--yellow);text-shadow:0 0 10px var(--yellow);
+  margin-top:4px;letter-spacing:4px;}
+@keyframes tp{
+  0%,100%{filter:drop-shadow(0 0 14px rgba(255,230,0,.7)) drop-shadow(0 0 30px rgba(255,45,120,.5))}
+  50%{filter:drop-shadow(0 0 28px rgba(255,230,0,1)) drop-shadow(0 0 56px rgba(255,45,120,.9))}}
+@keyframes flicker{0%,19%,21%,23%,25%,54%,56%,100%{opacity:1}20%,22%,24%,55%{opacity:.3}}
+
+/* DECO LIGHTS */
+.lights{width:100%;display:flex;gap:5px;padding:0 12px;margin:12px 0 0;
+  justify-content:center;flex-wrap:wrap;}
+.ld{width:8px;height:8px;border-radius:50%;animation:lc 1.2s steps(1) infinite;}
+.ld:nth-child(4n+1){background:var(--pink);  box-shadow:0 0 6px var(--pink);  animation-delay:0s}
+.ld:nth-child(4n+2){background:var(--yellow);box-shadow:0 0 6px var(--yellow);animation-delay:.3s}
+.ld:nth-child(4n+3){background:var(--cyan);  box-shadow:0 0 6px var(--cyan);  animation-delay:.6s}
+.ld:nth-child(4n+4){background:var(--green); box-shadow:0 0 6px var(--green); animation-delay:.9s}
+@keyframes lc{0%,49%{opacity:1}50%,100%{opacity:.15}}
+
+/* COIN INSERT */
+.coin-insert{margin:12px 0 6px;display:flex;align-items:center;gap:10px;
+  animation:blink 1s steps(1) infinite;font-size:8px;
+  color:var(--yellow);text-shadow:0 0 10px var(--yellow);}
+.ci{font-size:18px;animation:cs .8s steps(4) infinite;}
+@keyframes blink{0%,49%{opacity:1}50%,100%{opacity:0}}
+@keyframes cs{0%{transform:rotateY(0)}100%{transform:rotateY(360deg)}}
+
+/* ── SECTION TITLES ── */
+.section-title{
+  width:calc(100% - 24px);margin:16px 12px 8px;
+  font-size:9px;letter-spacing:3px;
+  display:flex;align-items:center;gap:10px;
+}
+.section-title::before,.section-title::after{
+  content:'';flex:1;height:1px;
+}
+.section-title.games{color:var(--pink);}
+.section-title.games::before,.section-title.games::after{background:var(--pink);}
+.section-title.rank{color:var(--yellow);}
+.section-title.rank::before,.section-title.rank::after{background:var(--yellow);}
+
+/* ── GAME CARDS ── */
+.game-list{width:100%;padding:0 12px;display:flex;flex-direction:column;gap:10px;}
+
+.game-card{
+  background:#0a0818;border-radius:10px;overflow:hidden;
+  cursor:pointer;display:flex;align-items:stretch;
+  transition:transform .15s,box-shadow .15s;
+  -webkit-user-select:none;
+}
+.game-card:active{transform:scale(.97)}
+.game-card.uwasa{border:2px solid var(--pink);  box-shadow:0 0 16px rgba(255,45,120,.5)}
+.game-card.nabe {border:2px solid var(--green); box-shadow:0 0 16px rgba(57,255,20,.45)}
+.game-card.darts{border:2px solid var(--purple);box-shadow:0 0 16px rgba(191,0,255,.5)}
+/* POP Coming Soon — colorful teasers */
+.game-card.soon{
+  cursor:default;position:relative;overflow:hidden;
+  animation:soonFloat 3.2s ease-in-out infinite;
+}
+.game-card.soon::before{
+  content:'';position:absolute;inset:0;pointer-events:none;z-index:0;
+  background:repeating-linear-gradient(45deg,transparent 0 16px,rgba(255,255,255,.035) 16px 18px);
+  animation:soonStripe 8s linear infinite;
+}
+.game-card.soon>*{position:relative;z-index:1;}
+.game-card.soon-cyan  {border:2px solid var(--cyan);  box-shadow:0 0 14px rgba(0,245,255,.4)}
+.game-card.soon-purple{border:2px solid var(--purple);box-shadow:0 0 14px rgba(191,0,255,.45)}
+@keyframes soonFloat{
+  0%,100%{transform:translateY(0)}
+  50%{transform:translateY(-3px)}
+}
+@keyframes soonStripe{from{background-position:0 0}to{background-position:80px 0}}
+.game-card:hover.uwasa{box-shadow:0 0 28px rgba(255,45,120,.9),inset 0 0 20px rgba(255,45,120,.08)}
+.game-card:hover.nabe {box-shadow:0 0 28px rgba(57,255,20,.9),inset 0 0 20px rgba(57,255,20,.08)}
+.game-card:hover.darts{box-shadow:0 0 28px rgba(191,0,255,.9),inset 0 0 20px rgba(191,0,255,.1)}
+
+/* Screen thumb */
+.gc-screen{
+  width:90px;flex-shrink:0;display:flex;align-items:center;
+  justify-content:center;font-size:36px;position:relative;overflow:hidden;
+}
+.gc-screen::after{
+  content:'';position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(circle at 50% 50%, transparent 30%, rgba(0,0,0,.35) 100%);}
+.gc-screen::before{
+  content:'';position:absolute;inset:0;pointer-events:none;z-index:0;
+  background:radial-gradient(circle at 50% 60%, rgba(255,255,255,.06) 0%, transparent 60%);}
+.game-card.uwasa .gc-screen{background:linear-gradient(135deg,#1a0020,#2a0010)}
+.game-card.nabe  .gc-screen{background:linear-gradient(135deg,#001a0a,#003015)}
+.game-card.darts .gc-screen{background:linear-gradient(135deg,#1a002a,#0a0020)}
+.game-card.soon-cyan   .gc-screen{background:linear-gradient(135deg,#001a22,#003040)}
+.game-card.soon-purple .gc-screen{background:linear-gradient(135deg,#150025,#2a0045)}
+.gc-emoji{filter:drop-shadow(0 0 12px currentColor);animation:sf 2s ease-in-out infinite;}
+.game-card.uwasa .gc-emoji{color:var(--pink)}
+.game-card.nabe  .gc-emoji{color:var(--green)}
+.game-card.darts .gc-emoji{color:var(--purple)}
+.game-card.soon-cyan   .gc-emoji{color:var(--cyan);  animation:sfWobble 1.6s ease-in-out infinite}
+.game-card.soon-purple .gc-emoji{color:var(--purple);animation:sfWobble 1.6s ease-in-out infinite .3s}
+@keyframes sf{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+@keyframes sfWobble{
+  0%,100%{transform:translateY(0) rotate(-6deg)}
+  50%{transform:translateY(-5px) rotate(6deg)}
+}
+
+/* Pixel runner */
+.px-runner{position:absolute;bottom:6px;left:50%;transform:translateX(-50%);display:flex;gap:5px;}
+.px-runner span{width:6px;height:6px;border-radius:1px;animation:rb .4s steps(2) infinite;}
+.px-runner span:nth-child(1){background:var(--pink)}
+.px-runner span:nth-child(2){background:var(--cyan);animation-delay:.2s}
+.px-runner span:nth-child(3){background:var(--yellow);animation-delay:.1s}
+@keyframes rb{0%{transform:translateY(0)}100%{transform:translateY(-5px)}}
+
+/* Card info */
+.gc-info{flex:1;padding:12px 14px;display:flex;flex-direction:column;justify-content:center;}
+.gc-title{font-size:11px;margin-bottom:5px;line-height:1.4;}
+.game-card.uwasa .gc-title{color:var(--pink);text-shadow:0 0 8px var(--pink)}
+.game-card.nabe  .gc-title{color:var(--green);text-shadow:0 0 8px var(--green)}
+.game-card.darts .gc-title{color:var(--purple);text-shadow:0 0 8px var(--purple)}
+.game-card.soon-cyan   .gc-title{color:var(--cyan);  text-shadow:0 0 8px var(--cyan)}
+.game-card.soon-purple .gc-title{color:var(--purple);text-shadow:0 0 8px var(--purple)}
+.gc-desc{font-family:'DotGothic16',sans-serif;font-size:11px;color:rgba(255,255,255,.5);line-height:1.5;}
+.gc-tags{margin-top:6px;display:flex;gap:6px;flex-wrap:wrap;}
+.tag{font-family:'DotGothic16',sans-serif;font-size:9px;padding:2px 6px;border-radius:3px;}
+.tag.hot {background:var(--pink); color:#fff;animation:badgep .6s steps(2) infinite}
+.tag.new {background:var(--green);color:#000}
+.tag.new2{background:var(--yellow);color:#000;animation:badgep .6s steps(2) infinite}
+.tag.soon-pop{
+  background:linear-gradient(90deg,var(--pink),var(--yellow),var(--cyan),var(--purple),var(--pink));
+  background-size:300% 100%;color:#000;font-weight:bold;
+  animation:tagRainbow 3s linear infinite;
+}
+.tag.coming{background:var(--purple);color:#fff;animation:badgep .6s steps(2) infinite}
+@keyframes tagRainbow{from{background-position:0% 0}to{background-position:300% 0}}
+@keyframes badgep{0%{opacity:1}100%{opacity:.4}}
+
+/* ── OVERALL RANKING ── */
+.ranking-box{
+  width:calc(100% - 24px);margin:0 12px;
+  background:#0a0a0a;border:2px solid var(--yellow);border-radius:8px;
+  padding:12px 14px;box-shadow:0 0 18px rgba(255,230,0,.3);
+}
+.rank-header{
+  display:flex;justify-content:space-between;align-items:center;
+  margin-bottom:10px;
+}
+.rank-label{font-size:8px;color:var(--yellow);text-shadow:0 0 8px var(--yellow);letter-spacing:2px;}
+.rank-period{font-family:'DotGothic16',sans-serif;font-size:10px;color:rgba(255,255,255,.35);}
+/* GAME TABS */
+.rank-tabs{display:flex;gap:4px;margin-bottom:10px;flex-wrap:wrap;}
+.rtab{
+  font-family:'DotGothic16',sans-serif;font-size:9px;
+  padding:4px 7px;border-radius:4px;border:1px solid #333;
+  color:rgba(255,255,255,.4);background:#111;cursor:pointer;
+  transition:all .15s;white-space:nowrap;
+}
+.rtab.active.uwasa{border-color:var(--pink);  color:var(--pink);  background:rgba(255,45,120,.12);  box-shadow:0 0 8px rgba(255,45,120,.4)}
+.rtab.active.nabe {border-color:var(--green); color:var(--green); background:rgba(57,255,20,.1);    box-shadow:0 0 8px rgba(57,255,20,.35)}
+.rtab.active.darts{border-color:var(--purple);color:var(--purple);background:rgba(191,0,255,.12);  box-shadow:0 0 8px rgba(191,0,255,.4)}
+.rtab.active.total{border-color:var(--yellow);color:var(--yellow);background:rgba(255,230,0,.1);   box-shadow:0 0 8px rgba(255,230,0,.3)}
+.rank-list{font-family:'DotGothic16',sans-serif;font-size:13px;min-height:120px;}
+.rank-row{display:flex;justify-content:space-between;align-items:center;
+  padding:7px 2px;border-bottom:1px solid rgba(255,255,255,.05);}
+.rank-empty{color:rgba(255,255,255,.3);font-size:11px;text-align:center;padding:20px 0;line-height:1.8;}
+.prize-note{
+  margin-top:10px;padding:10px;border-radius:6px;
+  border:1px dashed rgba(255,230,0,.3);
+  font-family:'DotGothic16',sans-serif;font-size:10px;
+  color:rgba(255,255,255,.45);text-align:center;line-height:1.9;
+}
+
+/* USB FOOTER */
+.footer{margin-top:16px;text-align:center;padding:0 16px 34px;}
+.footer-logo{font-family:'DotGothic16',sans-serif;font-size:13px;color:var(--cyan);
+  text-shadow:0 0 12px var(--cyan);letter-spacing:4px;margin-bottom:4px;}
+.footer-sub{font-family:'DotGothic16',sans-serif;font-size:10px;color:rgba(255,255,255,.28);letter-spacing:2px;}
+/* SHOP SITE LINK */
+.shop-link{
+  display:inline-block;padding:12px 22px;
+  background:linear-gradient(135deg,var(--pink),var(--purple));
+  border:2px solid var(--yellow);border-radius:10px;
+  font-family:'DotGothic16',sans-serif;font-size:14px;font-weight:bold;
+  color:#fff;text-decoration:none;letter-spacing:2px;
+  text-shadow:0 0 6px rgba(0,0,0,.5);
+  box-shadow:0 0 18px rgba(255,45,120,.5);
+  animation:shopPulse 2s ease-in-out infinite;
+  cursor:pointer;user-select:none;
+}
+.shop-link:active{transform:scale(.97);}
+.shop-sub{
+  display:block;font-size:9px;font-family:'Press Start 2P',monospace;
+  color:var(--yellow);letter-spacing:1px;margin-top:4px;
+  text-shadow:0 0 6px var(--yellow);
+}
+@keyframes shopPulse{
+  0%,100%{box-shadow:0 0 18px rgba(255,45,120,.5);}
+  50%{box-shadow:0 0 32px rgba(255,45,120,.9),0 0 20px rgba(255,230,0,.4);}
+}
+
+/* ── GAME MODAL (iframe) ── */
+#gm{display:none;position:fixed;inset:0;background:#000;z-index:5000;flex-direction:column;}
+#gm.open{display:flex}
+#gm-close{
+  position:absolute;
+  top:10px;
+  right:10px;
+  left:auto;
+  z-index:5100;
+  background:rgba(0,0,0,.85);border:2px solid var(--pink);
+  color:var(--pink);font-family:'Press Start 2P',monospace;
+  font-size:9px;padding:8px 12px;border-radius:6px;cursor:pointer;
+  box-shadow:0 0 12px rgba(255,45,120,.5);letter-spacing:1px;
+}
+#gm-close:active{transform:scale(.95)}
+#gm-frame{width:100%;height:100%;border:none;display:block;}
+</style>
+</head>
+<body>
+<!-- 🎵 BGM toggle -->
+<div class="bgm-toggle muted" id="bgm-btn" onclick="toggleBGM()">🔇</div>
+
+<div class="wrap">
+
+  <!-- MARQUEE -->
+  <div class="marquee">
+    <span class="marquee-in">★ うわさのゲームセンター ★ UWASA GAME CENTER ★ 金沢市 片町 ★ U.wasano Shisha Bar presents ★ UWASA BROTHERS 稼働中！ ★ 3の倍数アホになる 稼働中！ ★ NEW! SHISHA DARTS 登場！ ★ 負けたら罰ゲーム🍻グイッ‼️ ★ 今週のトータル1位はシーシャ1台無料！ ★</span>
+  </div>
+
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <span class="tb-txt">CREDIT</span>
+    <span class="tb-val">● FREE PLAY ●</span>
+    <span class="tb-txt" id="clk">--:--</span>
+  </div>
+
+  <!-- TITLE -->
+  <div class="sign">
+    <div class="sign-en">U . W A S A N O</div>
+    <div class="sign-ja">うわさの<br>ゲームセンター</div>
+    <div class="sign-stars">★ ★ ★ ★ ★</div>
+  </div>
+
+  <!-- 🏮 OFFICIAL SITE LINK -->
+  <div style="text-align:center;margin:8px 12px 0;">
+    <a class="shop-link" href="https://uwasa-shisha.com/" target="_blank" rel="noopener">
+      🏮 公式サイトはこちら 🏮
+      <span class="shop-sub">uwasa-shisha.com</span>
+    </a>
+  </div>
+
+  <!-- 🏆 先週のチャンピオン -->
+  <div class="champ-banner champ-hidden" id="champ-banner">
+    <div class="champ-label">🏆 先週のチャンピオン 🏆</div>
+    <div id="champ-content"></div>
+  </div>
+
+  <!-- DECO LIGHTS -->
+  <div class="lights">
+    <div class="ld"></div><div class="ld"></div><div class="ld"></div><div class="ld"></div>
+    <div class="ld"></div><div class="ld"></div><div class="ld"></div><div class="ld"></div>
+    <div class="ld"></div><div class="ld"></div><div class="ld"></div><div class="ld"></div>
+    <div class="ld"></div><div class="ld"></div><div class="ld"></div><div class="ld"></div>
+  </div>
+  <div class="coin-insert">
+    <span class="ci">🪙</span><span>PUSH START</span><span class="ci">🪙</span>
+  </div>
+
+  <!-- ── GAMES SECTION ── -->
+  <div class="section-title games">🕹 GAMES</div>
+
+  <div class="game-list">
+
+    <!-- UWASA BROTHERS -->
+    <div class="game-card uwasa" onclick="openGame('games/uwasa-brothers/index.html')">
+      <div class="gc-screen">
+        <span class="gc-emoji">🎮</span>
+        <div class="px-runner"><span></span><span></span><span></span></div>
+      </div>
+      <div class="gc-info">
+        <div class="gc-title">UWASA BROTHERS</div>
+        <div class="gc-desc">石川縦断30ステージ！<br>ボス6体を倒せ！</div>
+        <div class="gc-tags">
+          <span class="tag hot">★ HOT</span>
+          <span class="tag new">RANKING</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- NABEATSU -->
+    <div class="game-card nabe" onclick="openGame('games/count-up-aho/index.html')">
+      <div class="gc-screen">
+        <span class="gc-emoji">👏</span>
+        <div class="px-runner"><span></span><span></span><span></span></div>
+      </div>
+      <div class="gc-info">
+        <div class="gc-title">3 NO BAISUU AHO</div>
+        <div class="gc-desc">3の倍数でアホになる！<br>失敗したら即・乾杯🍻</div>
+        <div class="gc-tags">
+          <span class="tag new2">★ NEW</span>
+          <span class="tag new">RANKING</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ DARTS - 稼働中 ══ -->
+    <div class="game-card darts" onclick="openGame('games/darts/index.html')">
+      <div class="gc-screen">
+        <span class="gc-emoji">🎯</span>
+      </div>
+      <div class="gc-info">
+        <div class="gc-title">SHISHA DARTS</div>
+        <div class="gc-desc">負けたら罰ゲーム<br>🍻グイッ‼️</div>
+        <div class="gc-tags">
+          <span class="tag new2">★ NEW</span>
+          <span class="tag new">RANKING</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ COMING SOON LINEUP ══ -->
+    <div class="game-card soon soon-cyan">
+      <div class="gc-screen">
+        <span class="gc-emoji">❓</span>
+      </div>
+      <div class="gc-info">
+        <div class="gc-title">???</div>
+        <div class="gc-desc">新作リクエスト募集中！<br>スタッフに伝えてね📢</div>
+        <div class="gc-tags">
+          <span class="tag soon-pop">✨ COMING SOON</span>
+          <span class="tag coming">???</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── RANKING SECTION ── -->
+  <div class="section-title rank">🏆 RANKING</div>
+
+  <div class="ranking-box">
+    <div class="rank-header">
+      <span class="rank-label">WEEKLY TOP 10</span>
+      <span class="rank-period" id="rank-period">今週</span>
+    </div>
+
+    <!-- GAME TABS -->
+    <div class="rank-tabs">
+      <div class="rtab active uwasa" onclick="switchTab('uwasa')" id="tab-uwasa">UWASA</div>
+      <div class="rtab nabe"         onclick="switchTab('nabe')"  id="tab-nabe">3アホ</div>
+      <div class="rtab darts"        onclick="switchTab('darts')" id="tab-darts">DARTS</div>
+      <div class="rtab total"        onclick="switchTab('total')" id="tab-total">TOTAL</div>
+    </div>
+
+    <div class="rank-list" id="rank-list">
+      <div class="rank-empty">読み込み中...</div>
+    </div>
+
+    <div class="prize-note">
+      <span style="color:var(--yellow)">🪙 コイン数</span>でランキング決定！<br>
+      ゲームオーバー時に名前を入力すると自動登録。<br>
+      <span style="color:var(--pink)">毎週月曜0時リセット</span><br>
+      <b>今週の<span style="color:var(--yellow)">TOTAL 1位</span>はシーシャ1台無料！🎮</b>
+    </div>
+  </div>
+
+  <!-- USB FOOTER -->
+  <div class="footer">
+    <div class="footer-logo">U.wasano Shisha Bar</div>
+    <div class="footer-sub">KANAZAWA × KATAMACHI</div>
+  </div>
+
+</div><!-- /wrap -->
+
+<!-- GAME MODAL -->
+<div id="gm">
+  <button id="gm-close" onclick="closeGame()">✕ CLOSE</button>
+  <iframe id="gm-frame" src="" allowfullscreen></iframe>
+</div>
+
+<script>
+// ── Supabase ──
+const SUPABASE_URL = 'https://hwoltvzmsznprsbyrbaj.supabase.co';  // ← ここに貼る
+const SUPABASE_KEY = 'sb_publishable_1JsQKCxHNyH4fGzFUJeEHg_czjaZxPR';  // ← ここに貼る
+
+// ── Clock ──
+function tick(){
+  const n=new Date();
+  document.getElementById('clk').textContent=
+    String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0');
+}
+tick(); setInterval(tick,10000);
+
+// ── Period label ──
+(function(){
+  const n=new Date();
+  const mon=new Date(n);
+  mon.setDate(n.getDate()-((n.getDay()+6)%7));
+  mon.setHours(0,0,0,0);
+  const fmt=d=>`${d.getMonth()+1}/${d.getDate()}`;
+  const sun=new Date(mon); sun.setDate(mon.getDate()+6);
+  document.getElementById('rank-period').textContent=fmt(mon)+'〜'+fmt(sun);
+})();
+
+// ── Coin SFX ──
+// ═══════════════════════════════════════════════════════
+// 🎵 ARCADE BGM — 8bit ゲームセンター風ループ
+// ═══════════════════════════════════════════════════════
+const BGM=(()=>{
+  let ctx=null,mg=null,musg=null,on=false,timer=null,mi=0,mr=0,bs=0;
+  const MELODY=[
+    {n:523,d:1},{n:659,d:1},{n:784,d:1},{n:1047,d:2},
+    {n:988,d:1},{n:784,d:1},{n:880,d:2},
+    {n:698,d:1},{n:880,d:1},{n:1047,d:1},{n:1175,d:2},
+    {n:1047,d:1},{n:880,d:1},{n:784,d:2},
+    {n:659,d:1},{n:784,d:1},{n:988,d:1},{n:1175,d:2},
+    {n:1319,d:1},{n:1175,d:1},{n:988,d:2},
+    {n:784,d:1},{n:988,d:1},{n:1175,d:1},{n:1319,d:2},
+    {n:1175,d:1},{n:988,d:1},{n:1047,d:2},
+    {n:1319,d:1},{n:1175,d:1},{n:1047,d:1},{n:988,d:1},
+    {n:880,d:1},{n:784,d:1},{n:698,d:1},{n:659,d:1},
+    {n:784,d:1},{n:880,d:1},{n:988,d:1},{n:1047,d:2},
+    {n:1319,d:1},{n:1568,d:1},{n:1319,d:2},
+  ];
+  const BASS=[131,131,165,165,196,196,165,165,147,147,175,175,196,196,131,131];
+  const tempo=165;
+
+  function ensureCtx(){
+    if(ctx)return;
+    try{
+      const AC=window.AudioContext||window.webkitAudioContext;
+      ctx=new AC();
+      mg=ctx.createGain(); mg.gain.value=.4; mg.connect(ctx.destination);
+      musg=ctx.createGain(); musg.gain.value=.22; musg.connect(mg);
+    }catch(e){}
+  }
+
+  function tick(){
+    if(!ctx||!on)return;
+    if(mr<=0){
+      const n=MELODY[mi%MELODY.length];
+      if(n){
+        const o=ctx.createOscillator(),g=ctx.createGain();
+        o.type='square'; o.frequency.value=n.n;
+        const d=n.d*tempo/1000;
+        g.gain.setValueAtTime(0,ctx.currentTime);
+        g.gain.linearRampToValueAtTime(.15,ctx.currentTime+.015);
+        g.gain.setValueAtTime(.15,ctx.currentTime+d*.7);
+        g.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+d);
+        o.connect(g); g.connect(musg);
+        o.start(); o.stop(ctx.currentTime+d);
+        mr=n.d; mi++;
+      }
+    }
+    mr--;
+    const bn=BASS[bs%BASS.length];
+    if(bn){
+      const o=ctx.createOscillator(),g=ctx.createGain();
+      o.type='triangle'; o.frequency.value=bn;
+      const d=tempo/1000*.85;
+      g.gain.setValueAtTime(0,ctx.currentTime);
+      g.gain.linearRampToValueAtTime(.22,ctx.currentTime+.01);
+      g.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+d);
+      o.connect(g); g.connect(musg);
+      o.start(); o.stop(ctx.currentTime+d);
+    }
+    if(bs%2===1){
+      try{
+        const sr=ctx.sampleRate, len=sr*.03;
+        const buf=ctx.createBuffer(1,len,sr);
+        const dt=buf.getChannelData(0);
+        for(let i=0;i<len;i++)dt[i]=Math.random()*2-1;
+        const s=ctx.createBufferSource(); s.buffer=buf;
+        const f=ctx.createBiquadFilter(); f.type='highpass'; f.frequency.value=6000;
+        const g=ctx.createGain();
+        g.gain.setValueAtTime(.08,ctx.currentTime);
+        g.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+.03);
+        s.connect(f); f.connect(g); g.connect(musg);
+        s.start();
+      }catch(e){}
+    }
+    if(bs%4===0){
+      const o=ctx.createOscillator(),g=ctx.createGain();
+      o.type='sine';
+      o.frequency.setValueAtTime(120,ctx.currentTime);
+      o.frequency.exponentialRampToValueAtTime(40,ctx.currentTime+.08);
+      g.gain.setValueAtTime(.3,ctx.currentTime);
+      g.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+.12);
+      o.connect(g); g.connect(musg);
+      o.start(); o.stop(ctx.currentTime+.12);
+    }
+    bs++;
+  }
+
+  function start(){
+    ensureCtx();
+    if(!ctx)return;
+    if(ctx.state==='suspended')ctx.resume();
+    if(on)return;
+    on=true; mi=0; mr=0; bs=0;
+    timer=setInterval(tick,tempo);
+  }
+  function stop(){
+    on=false;
+    if(timer){clearInterval(timer); timer=null;}
+  }
+  function isOn(){return on;}
+  function duck(v){if(mg)mg.gain.value=v;}
+  return {start,stop,isOn,duck};
+})();
+
+function toggleBGM(){
+  const btn=document.getElementById('bgm-btn');
+  if(BGM.isOn()){
+    BGM.stop();
+    btn.textContent='🔇';
+    btn.classList.add('muted');
+    btn.classList.remove('bgm-pulse');
+    try{localStorage.setItem('uwasa_bgm','off');}catch(e){}
+  }else{
+    BGM.start();
+    btn.textContent='🔊';
+    btn.classList.remove('muted');
+    btn.classList.add('bgm-pulse');
+    try{localStorage.setItem('uwasa_bgm','on');}catch(e){}
+  }
+}
+
+// First-interaction autostart
+let bgmArmed=false;
+function armBGM(){
+  if(bgmArmed)return;
+  bgmArmed=true;
+  try{if(localStorage.getItem('uwasa_bgm')==='off')return;}catch(e){}
+  toggleBGM();
+}
+['click','touchstart','keydown'].forEach(ev=>{
+  document.addEventListener(ev,armBGM,{once:true,passive:true});
+});
+
+function playCoin(){
+  try{
+    const ac=new(window.AudioContext||window.webkitAudioContext)();
+    const o=ac.createOscillator(),g=ac.createGain();
+    o.type='square';
+    o.frequency.setValueAtTime(800,ac.currentTime);
+    o.frequency.exponentialRampToValueAtTime(1400,ac.currentTime+.06);
+    o.frequency.exponentialRampToValueAtTime(700,ac.currentTime+.18);
+    g.gain.setValueAtTime(.25,ac.currentTime);
+    g.gain.exponentialRampToValueAtTime(.001,ac.currentTime+.22);
+    o.connect(g); g.connect(ac.destination);
+    o.start(); o.stop(ac.currentTime+.22);
+  }catch(e){}
+}
+
+// ── Open game in iframe ──
+function openGame(src){
+  playCoin();
+  BGM.duck(0); // mute launcher BGM while iframe game plays its own
+  const fl=document.createElement('div');
+  fl.style.cssText='position:fixed;inset:0;background:#fff;z-index:99999;opacity:.7;pointer-events:none;transition:opacity .25s';
+  document.body.appendChild(fl);
+  setTimeout(()=>fl.style.opacity='0',40);
+  setTimeout(()=>{
+    fl.remove();
+    document.getElementById('gm-frame').src=src;
+    document.getElementById('gm').classList.add('open');
+    document.body.style.overflow='hidden';
+  },260);
+}
+function closeGame(){
+  document.getElementById('gm').classList.remove('open');
+  document.getElementById('gm-frame').src='';
+  document.body.style.overflow='';
+  BGM.duck(.4); // restore launcher BGM
+  loadRanking(currentTab);
+}
+
+// ── Ranking ──
+let currentTab='uwasa';
+
+function switchTab(tab){
+  currentTab=tab;
+  document.querySelectorAll('.rtab').forEach(t=>t.classList.remove('active','uwasa','nabe','darts','total'));
+  const el=document.getElementById('tab-'+tab);
+  el.classList.add('active',tab);
+  loadRanking(tab);
+}
+
+function getMonday(){
+  const n=new Date();
+  const d=new Date(n);
+  d.setDate(n.getDate()-((n.getDay()+6)%7));
+  d.setHours(0,0,0,0);
+  return d.toISOString();
+}
+
+async function fetchRanking(game, limit=10, aggregate='best'){
+  if(!SUPABASE_URL||!SUPABASE_KEY) return null;
+  try{
+    // 多めに取得してクライアント側で集計
+    const fetchLimit = 200;
+    let url=SUPABASE_URL+'/rest/v1/scores?select=player_name,coins,score,stage,distance,game,created_at&created_at=gte.'+getMonday()+'&order=coins.desc&limit='+fetchLimit;
+    if(game!=='total') url+='&game=eq.'+game;
+    const r=await fetch(url,{headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+SUPABASE_KEY}});
+    if(!r.ok) return null;
+    const raw = await r.json();
+
+    if(aggregate === 'sum'){
+      // プレイヤー単位で coins を累積
+      const map = new Map();
+      for(const row of raw){
+        const key = (row.player_name||'???').trim().toLowerCase();
+        if(!key) continue;
+        const cur = map.get(key);
+        const coins = Number(row.coins||0);
+        if(cur){
+          cur.coins += coins;
+          cur.plays += 1;
+          if(row.distance != null) cur.distance = row.distance;
+          if(row.stage != null) cur.stage = row.stage;
+        } else {
+          map.set(key, {
+            player_name: row.player_name,
+            coins, plays:1,
+            game: row.game,
+            distance: row.distance, stage: row.stage,
+          });
+        }
+      }
+      const arr = Array.from(map.values()).sort((a,b)=> b.coins - a.coins);
+      return arr.slice(0, limit);
+    }
+
+    // 既存：ベスト1件のみ残す（プレイヤー名で重複除去）
+    const seen = new Set();
+    const deduped = [];
+    for(const row of raw){
+      const name = (row.player_name||'???').trim().toLowerCase();
+      if(seen.has(name)) continue;
+      seen.add(name);
+      deduped.push(row);
+      if(deduped.length >= limit) break;
+    }
+    return deduped;
+  }catch(e){return null;}
+}
+
+// 🏆 先週の王者を取得（全ゲーム共通で最高コイン）
+async function fetchLastWeekChampion(){
+  if(!SUPABASE_URL||!SUPABASE_KEY) return null;
+  try{
+    const now=new Date();
+    const thisMon=new Date(now);
+    thisMon.setDate(now.getDate()-((now.getDay()+6)%7));
+    thisMon.setHours(0,0,0,0);
+    const lastMon=new Date(thisMon);
+    lastMon.setDate(lastMon.getDate()-7);
+    const url=SUPABASE_URL+'/rest/v1/scores?select=player_name,coins,game&created_at=gte.'+lastMon.toISOString()+'&created_at=lt.'+thisMon.toISOString()+'&order=coins.desc&limit=1';
+    const r=await fetch(url,{headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+SUPABASE_KEY}});
+    if(!r.ok) return null;
+    const data=await r.json();
+    return data && data.length>0 ? data[0] : null;
+  }catch(e){return null;}
+}
+
+async function showChampionBanner(){
+  const banner=document.getElementById('champ-banner');
+  const content=document.getElementById('champ-content');
+  if(!banner||!content) return;
+  const champ=await fetchLastWeekChampion();
+  if(champ && champ.player_name){
+    const gameIcon=champ.game==='count_up_aho'?'👏':champ.game==='uwasa_brothers'?'🎮':champ.game==='shisha_darts'?'🎯':'🏆';
+    content.innerHTML=`
+      <div class="champ-name">${gameIcon} ${champ.player_name}</div>
+      <div class="champ-coins">🪙 ${champ.coins||0} コイン</div>
+      <div class="champ-congrats">おめでとう御座います‼️</div>
+      <div class="champ-prize">✨ シーシャ1台無料です ✨</div>
+    `;
+  }else{
+    content.innerHTML=`<div class="champ-empty">まだチャンピオンはいません<br>今週の1位を目指そう 🎮</div>`;
+  }
+  banner.classList.remove('champ-hidden');
+}
+showChampionBanner();
+
+async function loadRanking(tab){
+  const el=document.getElementById('rank-list');
+  el.innerHTML='<div class="rank-empty">読み込み中...</div>';
+
+  const game = tab==='uwasa' ? 'uwasa_brothers'
+             : tab==='nabe'  ? 'count_up_aho'
+             : tab==='darts' ? 'shisha_darts'
+             : 'total';
+  // ダーツは累積SUMで競う。他は既存仕様（ベスト残し）。
+  const aggregate = tab==='darts' ? 'sum' : 'best';
+  const data = await fetchRanking(game, 10, aggregate);
+
+  if(!data){
+    el.innerHTML=`<div class="rank-empty">⚠ Supabase未設定<br>URLとAPIキーを入力すると<br>ランキングが表示されます</div>`;
+    return;
+  }
+  if(!data.length){
+    el.innerHTML='<div class="rank-empty">まだ記録がありません！<br>最初のプレイヤーになろう 🎮</div>';
+    return;
+  }
+
+  const medals=['🥇','🥈','🥉'];
+  const colors=['var(--yellow)','#C0C0C0','#CD7F32','rgba(255,255,255,.65)'];
+
+  el.innerHTML=data.map((row,i)=>{
+    const medal = i<3 ? medals[i] : (i+1)+'位';
+    const col   = colors[Math.min(i,3)];
+    const name  = (row.player_name||'???').substring(0,8);
+    const g     = row.game || '';
+    const gIcon = g==='count_up_aho'   ? '👏'
+                : g==='uwasa_brothers' ? '🎮'
+                : g==='shisha_darts'   ? '🎯'
+                : '';
+    const sub   = g==='count_up_aho'
+      ? `→${row.distance||0}`
+      : g==='uwasa_brothers'
+        ? `ステージ${(row.stage||0)+1}`
+        : g==='shisha_darts'
+          ? `×${row.plays||1}`
+          : '';
+    return `<div class="rank-row">
+      <span style="font-size:15px;width:28px">${medal}</span>
+      <span style="font-family:'DotGothic16',sans-serif;font-size:13px;color:${col};flex:1;margin-left:6px">${gIcon?gIcon+' ':''}${name}</span>
+      <span style="color:var(--yellow);font-family:'DotGothic16',sans-serif;font-size:13px">🪙 ${row.coins||0}</span>
+      <span style="color:rgba(255,255,255,.3);font-family:'DotGothic16',sans-serif;font-size:10px;margin-left:7px">${sub}</span>
+    </div>`;
+  }).join('');
+}
+
+// ── Keyboard ──
+document.addEventListener('keydown',e=>{
+  const open=document.getElementById('gm').classList.contains('open');
+  if(!open&&(e.code==='Space'||e.code==='Enter')){e.preventDefault();openGame('games/uwasa-brothers/index.html');}
+  if(e.code==='Escape'&&open)closeGame();
+});
+
+// ── Init ──
+loadRanking('uwasa');
+</script>
+</body>
+</html>
