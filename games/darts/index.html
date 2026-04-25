@@ -1,0 +1,3238 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<title>SHISHA DARTS - うわさのゲームセンター</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --magenta:#FF00FF;
+    --gold:#FFD700;
+    --cyan:#00FFFF;
+    --pink:#FF00AA;
+    --purple:#BF00FF;
+    --green:#39FF14;
+    --bg:#0a0a1a;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none;user-select:none;touch-action:manipulation}
+  html,body{
+    width:100%;height:100%;overflow:hidden;
+    background:var(--bg);color:#fff;
+    font-family:'Arial Black','Arial',sans-serif;
+    overscroll-behavior:none;
+    touch-action:manipulation;
+  }
+  body{
+    display:flex;align-items:center;justify-content:center;
+    background:radial-gradient(ellipse at 50% 30%, #1a0030 0%, #0a0a1a 70%);
+  }
+  #game-container{
+    width:100%;height:100%;
+    display:flex;align-items:center;justify-content:center;
+    position:relative;
+  }
+  canvas{display:block !important;touch-action:none}
+  /* Loading screen */
+  #loader{
+    position:fixed;inset:0;background:var(--bg);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    z-index:9999;transition:opacity .6s;
+  }
+  #loader .logo{
+    font-family:'Press Start 2P',monospace;
+    font-size:18px;color:var(--gold);
+    text-shadow:0 0 10px var(--magenta),0 0 20px var(--magenta);
+    margin-bottom:24px;letter-spacing:2px;
+  }
+  #loader .bar{
+    width:200px;height:6px;background:#222;border:1px solid var(--magenta);
+    border-radius:3px;overflow:hidden;
+  }
+  #loader .bar-inner{
+    height:100%;width:0%;
+    background:linear-gradient(90deg,var(--magenta),var(--gold));
+    animation:load 1.2s ease forwards;
+  }
+  @keyframes load{to{width:100%}}
+  /* Name input modal */
+  #name-modal{
+    position:fixed;inset:0;background:rgba(0,0,0,.85);
+    display:none;align-items:center;justify-content:center;
+    z-index:10000;backdrop-filter:blur(8px);
+  }
+  #name-modal.show{display:flex}
+  #name-modal .panel{
+    background:linear-gradient(160deg,#1a0030,#2a0050);
+    border:2px solid var(--magenta);
+    border-radius:16px;padding:28px 24px;width:86%;max-width:340px;
+    box-shadow:0 0 30px rgba(255,0,255,.6),inset 0 0 20px rgba(255,0,255,.1);
+    text-align:center;
+  }
+  #name-modal h2{
+    font-family:'Press Start 2P',monospace;
+    font-size:14px;color:var(--gold);
+    text-shadow:0 0 8px var(--magenta);
+    margin-bottom:16px;letter-spacing:1px;
+  }
+  #name-modal p{font-size:12px;color:#ccc;margin-bottom:16px;line-height:1.6}
+  #name-input{
+    width:100%;padding:12px;font-size:16px;
+    background:#000;color:var(--gold);
+    border:2px solid var(--cyan);border-radius:8px;
+    text-align:center;font-family:'Arial Black',sans-serif;
+    margin-bottom:16px;outline:none;
+  }
+  #name-input:focus{border-color:var(--magenta);box-shadow:0 0 12px var(--magenta)}
+  #name-modal button{
+    width:100%;padding:14px;
+    background:linear-gradient(135deg,var(--magenta),var(--pink));
+    color:#fff;border:none;border-radius:8px;
+    font-family:'Press Start 2P',monospace;font-size:11px;
+    letter-spacing:1px;cursor:pointer;
+    box-shadow:0 0 16px rgba(255,0,255,.5);
+    transition:transform .15s;
+  }
+  #name-modal button:active{transform:scale(.97)}
+</style>
+</head>
+<body>
+  <div id="loader">
+    <div class="logo">SHISHA DARTS</div>
+    <div class="bar"><div class="bar-inner"></div></div>
+  </div>
+  <div id="name-modal">
+    <div class="panel">
+      <h2>ENTER YOUR NAME</h2>
+      <p>ランキングに登録する名前を入力してね</p>
+      <input id="name-input" type="text" maxlength="12" placeholder="PLAYER1" autocomplete="off">
+      <button id="name-ok">START</button>
+    </div>
+  </div>
+  <div id="game-container"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
+<script>
+/* ============================================================
+   SHISHA DARTS  -  うわさのゲームセンター
+   ============================================================ */
+
+const SUPABASE_URL = 'https://hwoltvzmsznprsbyrbaj.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_1JsQKCxHNyH4fGzFUJeEHg_czjaZxPR';
+const GAME_KEY     = 'shisha_darts';
+const NAME_KEY     = 'uwasa_player_name';
+
+const W = 540, H = 960;
+
+/* ---------- Player Name ---------- */
+function getPlayerName(){ try{return localStorage.getItem(NAME_KEY)||'';}catch(e){return '';} }
+function setPlayerName(n){ try{localStorage.setItem(NAME_KEY,n);}catch(e){} }
+
+/* ---------- Supabase ---------- */
+async function submitScore(playerName, finalScore){
+  try{
+    await fetch(SUPABASE_URL+'/rest/v1/scores',{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'apikey':SUPABASE_KEY,
+        'Authorization':'Bearer '+SUPABASE_KEY,
+      },
+      body:JSON.stringify({
+        player_name: playerName,
+        game: GAME_KEY,
+        coins: finalScore,
+        score: finalScore,
+        distance: 0,
+        stage: 0,
+        powers_collected: 0
+      })
+    });
+    return true;
+  }catch(e){ console.warn('submit failed',e); return false; }
+}
+async function fetchRanking(){
+  try{
+    const monday=new Date();
+    monday.setDate(monday.getDate()-((monday.getDay()+6)%7));
+    monday.setHours(0,0,0,0);
+    const url=SUPABASE_URL+'/rest/v1/scores?select=player_name,coins,created_at&game=eq.'+GAME_KEY+'&created_at=gte.'+monday.toISOString()+'&order=coins.desc&limit=10';
+    const r=await fetch(url,{headers:{'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY}});
+    return r.ok ? await r.json() : null;
+  }catch(e){ return null; }
+}
+
+// Patch text setInteractive to expand hit area for tap-friendly buttons on mobile
+(function(){
+  if(!window.Phaser) return;
+  const origSI = Phaser.GameObjects.Text.prototype.setInteractive;
+  Phaser.GameObjects.Text.prototype.setInteractive = function(...args){
+    // Only patch the simple {useHandCursor:true} case (no custom hitArea provided)
+    const isSimple = args.length>0 && typeof args[0]==='object' && args[0] && !args[0].hitArea && !(args[0] instanceof Phaser.Geom.Rectangle);
+    const noArgs = args.length===0;
+    if(isSimple || noArgs){
+      const padX = 50, padY = 40;
+      const w = this.width || 1, h = this.height || 1;
+      // hitArea is in LOCAL coords (0,0,w,h is the texture rect, ignoring origin)
+      // We expand outward in all directions for big tap target
+      const rect = new Phaser.Geom.Rectangle(-padX, -padY, w + padX*2, h + padY*2);
+      const result = origSI.call(this, rect, Phaser.Geom.Rectangle.Contains);
+      // Some Phaser versions need explicit hitArea after setInteractive
+      this.input.hitArea = rect;
+      this.input.hitAreaCallback = Phaser.Geom.Rectangle.Contains;
+      return result;
+    }
+    return origSI.apply(this, args);
+  };
+})();
+
+/* ============================================================
+   UI HELPERS
+   ============================================================ */
+// Expand text button hit area for easier tapping on mobile
+function bigHit(textObj, padX=20, padY=14){
+  const w = textObj.width, h = textObj.height;
+  const rect = new Phaser.Geom.Rectangle(-padX, -padY, w + padX*2, h + padY*2);
+  textObj.setInteractive(rect, Phaser.Geom.Rectangle.Contains);
+  return textObj;
+}
+
+// Add a unified back-to-title button in the top-left corner.
+// Call this from any scene's create() to add a consistent back button.
+function addBackButton(scene, opts){
+  opts = opts || {};
+  const targetScene = opts.targetScene || 'Title';
+  const x = opts.x || 50;
+  const y = opts.y || 30;
+  // Background pill
+  const bg = scene.add.graphics();
+  bg.fillStyle(0x1a0030, 0.85);
+  bg.fillRoundedRect(x-44, y-18, 88, 36, 12);
+  bg.lineStyle(2, 0xFF00AA, 1);
+  bg.strokeRoundedRect(x-44, y-18, 88, 36, 12);
+  bg.setDepth(500);
+  // Text
+  const txt = scene.add.text(x, y, '◀ BACK', {
+    fontFamily:'"Press Start 2P", monospace', fontSize:'12px', color:'#FF00AA'
+  }).setOrigin(0.5).setDepth(501).setShadow(0,0,'#FF00AA',8,true,true);
+  // Zone-based hit detection (generously sized)
+  const hitZone = scene.add.zone(x, y, 100, 50).setOrigin(0.5);
+  hitZone.setInteractive({ useHandCursor: true });
+  hitZone.setDepth(502);
+  let fired = false;
+  hitZone.on('pointerdown', ()=>{
+    if(fired) return; fired = true;
+    Sound.ensure();
+    Sound.sfx.click();
+    if(opts.onClick){ opts.onClick(); }
+    else { scene.scene.start(targetScene); }
+  });
+  return { bg, txt, hitZone };
+}
+
+/* ============================================================
+   SOUND SYSTEM (Web Audio API, programmatic)
+   ============================================================ */
+const Sound = (()=>{
+  let ctx=null, master=null, bgmGain=null, musicNodes=[], musicTimer=null, enabled=true;
+  function init(){
+    if(ctx) return;
+    try{
+      ctx = new (window.AudioContext||window.webkitAudioContext)();
+      master = ctx.createGain();
+      master.gain.value = 0.4;
+      master.connect(ctx.destination);
+      // Separate gain for BGM so we can mute it independently from SFX
+      bgmGain = ctx.createGain();
+      bgmGain.gain.value = 1.0;
+      bgmGain.connect(master);
+    }catch(e){}
+  }
+  function ensure(){
+    init();
+    if(ctx && ctx.state==='suspended'){
+      // Try to resume, fire-and-forget. The promise may take time on iOS.
+      try { ctx.resume(); } catch(e){}
+    }
+  }
+  function tone(freq, dur, type='sine', vol=0.3, attack=0.005, release=0.05){
+    if(!enabled) return;
+    ensure();
+    if(!ctx) return;
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.type = type;
+    o.frequency.value = freq;
+    g.gain.setValueAtTime(0, ctx.currentTime);
+    g.gain.linearRampToValueAtTime(vol, ctx.currentTime+attack);
+    g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime+dur);
+    o.connect(g); g.connect(master);
+    o.start();
+    o.stop(ctx.currentTime+dur+0.05);
+  }
+  function noise(dur, vol=0.3, filterFreq=2000){
+    if(!enabled) return;
+    ensure();
+    if(!ctx) return;
+    const buf = ctx.createBuffer(1, ctx.sampleRate*dur, ctx.sampleRate);
+    const data = buf.getChannelData(0);
+    for(let i=0;i<data.length;i++) data[i] = (Math.random()*2-1) * Math.pow(1 - i/data.length, 2);
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    const filter = ctx.createBiquadFilter();
+    filter.type='bandpass'; filter.frequency.value=filterFreq;
+    const g = ctx.createGain();
+    g.gain.value = vol;
+    src.connect(filter); filter.connect(g); g.connect(master);
+    src.start();
+  }
+
+  // Effects
+  const sfx = {
+    throw(){ noise(0.18, 0.25, 3500); tone(800, 0.15, 'triangle', 0.15); },
+    hit(){ tone(180, 0.08, 'square', 0.4); noise(0.1, 0.2, 800); },
+    bullseye(){
+      [880, 1320, 1760, 2200].forEach((f,i)=>setTimeout(()=>tone(f, 0.25, 'sine', 0.35),i*80));
+      tone(440, 0.5, 'triangle', 0.25);
+    },
+    bonus(){
+      [523, 659, 784, 1046].forEach((f,i)=>setTimeout(()=>tone(f, 0.2, 'square', 0.25),i*100));
+    },
+    score(){ tone(1200, 0.08, 'sine', 0.25); setTimeout(()=>tone(1600, 0.08, 'sine', 0.2),60); },
+    click(){ tone(600, 0.04, 'square', 0.2); },
+    start(){
+      [262, 330, 392, 523].forEach((f,i)=>setTimeout(()=>tone(f, 0.12, 'square', 0.3),i*70));
+    },
+    end(){
+      [523, 659, 784, 988, 1175].forEach((f,i)=>setTimeout(()=>tone(f, 0.18, 'triangle', 0.3),i*120));
+    },
+    miss(){ tone(150, 0.3, 'sawtooth', 0.2); },
+    // ===== Penalty SFX =====
+    // テキーラ: shot glass slam + zesty sting
+    penaltyTequila(){
+      // glass slam (low thud + high clink)
+      noise(0.15, 0.4, 200);
+      tone(100, 0.15, 'square', 0.4);
+      setTimeout(()=>{
+        // bright clink
+        tone(2400, 0.25, 'sine', 0.3);
+        tone(3000, 0.2, 'sine', 0.2);
+      }, 150);
+      // mariachi-ish trumpet flourish
+      setTimeout(()=>{
+        [523, 659, 784, 1046, 1318].forEach((f,i)=>setTimeout(()=>tone(f, 0.15, 'sawtooth', 0.25), i*90));
+      }, 350);
+    },
+    // コカボム: fizz + boom
+    penaltyCocabomb(){
+      // fizz noise
+      noise(0.6, 0.3, 6000);
+      // bubbles popping
+      for(let i=0; i<8; i++){
+        setTimeout(()=>tone(Phaser.Math.Between(800, 2200), 0.05, 'sine', 0.2), i*70);
+      }
+      // BOOM
+      setTimeout(()=>{
+        tone(60, 0.4, 'sawtooth', 0.6);
+        tone(120, 0.3, 'square', 0.3);
+        noise(0.5, 0.5, 300);
+      }, 600);
+    },
+    // クライナー: sweet sparkly arpeggio (Kleiner Feigling vibe)
+    penaltyKleiner(){
+      // bell-like sparkle
+      const notes = [1046, 1318, 1568, 2093, 1568, 1318, 1046, 1318];
+      notes.forEach((f, i)=>setTimeout(()=>tone(f, 0.18, 'sine', 0.3), i*90));
+      // soft thump
+      setTimeout(()=>tone(220, 0.2, 'triangle', 0.3), 720);
+    },
+    // 半分一気: drumroll + crowd cheer-ish
+    penaltyHalfChug(){
+      // drumroll
+      for(let i=0; i<20; i++){
+        setTimeout(()=>{ noise(0.04, 0.3, 200); tone(80, 0.04, 'square', 0.3); }, i*60);
+      }
+      // gulp gulp
+      setTimeout(()=>{
+        [400, 350, 400, 350, 400].forEach((f, i)=>setTimeout(()=>{
+          tone(f, 0.15, 'sine', 0.3); noise(0.1, 0.2, 400);
+        }, i*200));
+      }, 1300);
+      // finale
+      setTimeout(()=>{
+        [523, 659, 784].forEach((f,i)=>setTimeout(()=>tone(f, 0.15, 'square', 0.3), i*80));
+      }, 2400);
+    },
+    // 一気: BIG drumroll, alarm, gulp x6, finale
+    penaltyFullChug(){
+      // alarm warning
+      for(let i=0; i<3; i++){
+        setTimeout(()=>{
+          tone(880, 0.2, 'square', 0.4);
+          setTimeout(()=>tone(660, 0.2, 'square', 0.4), 200);
+        }, i*450);
+      }
+      // intense drumroll
+      setTimeout(()=>{
+        for(let i=0; i<35; i++){
+          setTimeout(()=>{
+            noise(0.04, 0.4, 150);
+            tone(70, 0.04, 'square', 0.4);
+          }, i*55);
+        }
+      }, 1400);
+      // big gulp gulp gulp
+      setTimeout(()=>{
+        [380, 320, 380, 320, 380, 320].forEach((f, i)=>setTimeout(()=>{
+          tone(f, 0.2, 'sine', 0.4); noise(0.15, 0.3, 400);
+        }, i*250));
+      }, 3400);
+      // victory horn
+      setTimeout(()=>{
+        [523, 659, 784, 1046, 1318, 1568].forEach((f,i)=>setTimeout(()=>tone(f, 0.2, 'sawtooth', 0.35), i*100));
+      }, 5000);
+    },
+
+    // === DRAMATIC ANNOUNCE EFFECTS (replace voice) ===
+    // Air horn: deep "BWAAAAAAH!" - super loud attention-grabber
+    airHorn(){
+      // Two slightly detuned sawtooth waves for honk thickness
+      tone(220, 0.6, 'sawtooth', 0.45);
+      setTimeout(()=>tone(225, 0.6, 'sawtooth', 0.4), 5);
+      tone(440, 0.6, 'square', 0.25);
+      // Decay tail
+      setTimeout(()=>{
+        tone(180, 0.3, 'sawtooth', 0.3);
+      }, 600);
+    },
+    // Crowd cheer: filtered noise burst that sounds like "WAAAAAA!"
+    crowdCheer(dur){
+      dur = dur || 1.5;
+      // Use multiple noise bursts of different frequencies
+      for(let i=0; i<8; i++){
+        setTimeout(()=>{
+          noise(0.3 + Math.random()*0.2, 0.18 + Math.random()*0.1, 800 + Math.random()*1200);
+        }, i*120);
+      }
+      // High excitement whistles mixed in
+      for(let i=0; i<4; i++){
+        setTimeout(()=>{
+          tone(2400 + Math.random()*1200, 0.1, 'sine', 0.12);
+        }, 100 + i*200);
+      }
+    },
+    // Whistle: referee-style high pitch
+    whistle(){
+      tone(2800, 0.4, 'sine', 0.32);
+      // Vibrato effect
+      setTimeout(()=>tone(2900, 0.2, 'sine', 0.3), 100);
+      setTimeout(()=>tone(3000, 0.15, 'sine', 0.28), 250);
+    },
+    // Triumphant fanfare (3-note ascending)
+    fanfare(){
+      const notes = [523, 659, 784, 1046]; // C-E-G-C
+      notes.forEach((f, i)=>{
+        setTimeout(()=>{
+          tone(f, 0.25, 'square', 0.3);
+          tone(f*2, 0.25, 'sawtooth', 0.15); // octave up sparkle
+        }, i*120);
+      });
+      // Final chord
+      setTimeout(()=>{
+        [523, 659, 784, 1046].forEach(f => tone(f, 0.6, 'square', 0.25));
+      }, 480);
+    },
+    // Dramatic gong + suspense build
+    gong(){
+      // Low bass hit
+      tone(80, 1.5, 'sine', 0.5);
+      tone(120, 1.0, 'triangle', 0.3);
+      noise(0.6, 0.2, 200);
+      // Resonance
+      setTimeout(()=>tone(160, 0.8, 'sine', 0.2), 100);
+      setTimeout(()=>tone(240, 0.6, 'sine', 0.15), 200);
+    },
+  };
+
+  // BGM: Bright upbeat arcade tune in C major
+  // Notes: [freq, duration_in_beats]. Tempo 130 BPM -> 1 beat = 60/130 ≈ 0.46s
+  const BPM = 130;
+  const BEAT = 60 / BPM;
+  // C major / A minor pop progression: C - G - Am - F (vi-IV-I-V style classic)
+  // Melody (16 beats, looping)
+  const melody = [
+    // bar 1 (C: C E G C)
+    [523.25, 0.5],[659.25, 0.5],[783.99, 0.5],[1046.50, 0.5],
+    // bar 2 (G: B D G B)
+    [987.77, 0.5],[1174.66, 0.5],[783.99, 0.5],[987.77, 0.5],
+    // bar 3 (Am: A C E A)
+    [880.00, 0.5],[1046.50, 0.5],[1318.51, 0.5],[1760.00, 0.5],
+    // bar 4 (F: F A C F-G)
+    [698.46, 0.5],[880.00, 0.5],[1046.50, 0.5],[783.99, 0.5],
+  ];
+  // Bass line (one note per beat, follows chord roots)
+  const bass = [
+    [130.81,1],[130.81,1],[130.81,1],[130.81,1], // C
+    [196.00,1],[196.00,1],[196.00,1],[196.00,1], // G
+    [220.00,1],[220.00,1],[220.00,1],[220.00,1], // A
+    [174.61,1],[174.61,1],[174.61,1],[174.61,1], // F
+  ];
+
+  function scheduleNote(freq, startOffset, duration, type='triangle', vol=0.08){
+    if(!ctx) return;
+    // ensure t0 is at least slightly in the future to avoid skipped notes on iOS
+    const t0 = Math.max(ctx.currentTime + 0.02, ctx.currentTime + startOffset);
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.type = type;
+    o.frequency.value = freq;
+    g.gain.setValueAtTime(0, t0);
+    g.gain.linearRampToValueAtTime(vol, t0 + 0.02);
+    g.gain.linearRampToValueAtTime(vol*0.7, t0 + duration*0.5);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + duration*0.95);
+    o.connect(g); g.connect(bgmGain);
+    o.start(t0);
+    o.stop(t0 + duration + 0.05);
+  }
+  function scheduleHat(startOffset, vol=0.05){
+    if(!ctx) return;
+    const t0 = Math.max(ctx.currentTime + 0.02, ctx.currentTime + startOffset);
+    const dur = 0.05;
+    const buf = ctx.createBuffer(1, ctx.sampleRate*dur, ctx.sampleRate);
+    const data = buf.getChannelData(0);
+    for(let i=0;i<data.length;i++) data[i] = (Math.random()*2-1) * Math.pow(1 - i/data.length, 4);
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    const filter = ctx.createBiquadFilter();
+    filter.type='highpass'; filter.frequency.value=6000;
+    const g = ctx.createGain();
+    g.gain.value = vol;
+    src.connect(filter); filter.connect(g); g.connect(bgmGain);
+    src.start(t0);
+  }
+
+  function playBgm(){
+    if(!enabled) return;
+    ensure();
+    if(!ctx) return;
+    if(musicTimer) return; // already playing - prevent overlap
+    // Restore BGM volume in case it was muted by stopBgm
+    if(bgmGain){
+      bgmGain.gain.cancelScheduledValues(ctx.currentTime);
+      bgmGain.gain.setValueAtTime(1.0, ctx.currentTime);
+    }
+    const playBar = ()=>{
+      if(!enabled){ stopBgm(); return; }
+      let timeOffset = 0;
+      // Schedule entire 16-beat loop ahead of time for tight timing
+      // Melody
+      melody.forEach(([freq, beats])=>{
+        scheduleNote(freq, timeOffset, beats*BEAT*0.9, 'square', 0.06);
+        scheduleNote(freq*2, timeOffset, beats*BEAT*0.9, 'triangle', 0.025); // octave up sparkle
+        timeOffset += beats * BEAT;
+      });
+      // Bass
+      timeOffset = 0;
+      bass.forEach(([freq, beats])=>{
+        scheduleNote(freq, timeOffset, beats*BEAT*0.85, 'sawtooth', 0.05);
+        timeOffset += beats * BEAT;
+      });
+      // Hi-hat on every half-beat for groove
+      const totalBeats = 16;
+      for(let i=0; i<totalBeats*2; i++){
+        const t = i * (BEAT/2);
+        // accent on offbeats
+        scheduleHat(t, i%2===1 ? 0.06 : 0.03);
+      }
+      // schedule next loop
+      const loopDuration = totalBeats * BEAT * 1000;
+      musicTimer = setTimeout(playBar, loopDuration);
+    };
+    playBar();
+  }
+  function stopBgm(){
+    if(musicTimer){ clearTimeout(musicTimer); musicTimer=null; }
+    // Silence any already-scheduled BGM notes immediately by ducking the BGM bus
+    if(ctx && bgmGain){
+      bgmGain.gain.cancelScheduledValues(ctx.currentTime);
+      bgmGain.gain.setValueAtTime(bgmGain.gain.value, ctx.currentTime);
+      bgmGain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.05);
+    }
+  }
+  function toggle(){
+    enabled = !enabled;
+    if(!enabled){
+      stopBgm();
+      try { if('speechSynthesis' in window) window.speechSynthesis.cancel(); } catch(e){}
+    } else playBgm();
+    return enabled;
+  }
+  function isOn(){ return enabled; }
+
+  // ===== Voice (DISABLED - using SFX only) =====
+  // Voice synthesis was unreliable on iOS/iframe. Penalty announcements now rely
+  // entirely on visual showShoutBanner + dramatic programmatic sound effects.
+  function speak(){}
+  function speakChant(){}
+  function stopSpeak(){}
+  function unlockSpeech(){}
+
+  return { init, ensure, sfx, playBgm, stopBgm, toggle, isOn, speak, speakChant, stopSpeak, unlockSpeech };
+})();
+
+/* ============================================================
+   DART BOARD CONFIG
+   ============================================================ */
+// Standard dart numbers in clockwise order, starting from the top (20)
+const DART_NUMBERS = [20,1,18,4,13,6,10,15,2,17,3,19,7,16,8,11,14,9,12,5];
+// Board geometry (will be relative to board radius R)
+// All radii are fractions of outer board radius (R)
+const BOARD = {
+  bullCenter: 0.06,    // 50 pts
+  bull25:     0.15,    // 25 pts
+  tripleIn:   0.55,    // triple ring inner
+  tripleOut:  0.62,    // triple ring outer
+  doubleIn:   0.93,    // double ring inner
+  doubleOut:  1.00,    // double ring outer
+};
+
+/* ============================================================
+   PRELOAD SCENE (no images, draw all in code)
+   ============================================================ */
+class BootScene extends Phaser.Scene{
+  constructor(){ super('Boot'); }
+  create(){
+    this.scene.start('Title');
+  }
+}
+
+/* ============================================================
+   TITLE SCENE
+   ============================================================ */
+class TitleScene extends Phaser.Scene{
+  constructor(){ super('Title'); }
+  create(){
+    this.cameras.main.setBackgroundColor('#0a0a1a');
+    drawAtmosphere(this);
+
+    // Spinning dartboard background (faint)
+    const cx = W/2, cy = H/2;
+    const bgBoard = drawDartboard(this, cx, cy, 280, 0.18);
+    this.tweens.add({ targets: bgBoard, angle: 360, duration: 60000, repeat: -1 });
+
+    // Smoke particles
+    spawnSmoke(this);
+
+    // Title logo
+    const title = this.add.text(W/2, 200, 'SHISHA', {
+      fontFamily:'"Press Start 2P", monospace',
+      fontSize:'58px', color:'#FFD700',
+      stroke:'#FF00FF', strokeThickness:6,
+    }).setOrigin(0.5);
+    title.setShadow(0, 0, '#FF00FF', 24, true, true);
+
+    const title2 = this.add.text(W/2, 280, 'DARTS', {
+      fontFamily:'"Press Start 2P", monospace',
+      fontSize:'58px', color:'#FFD700',
+      stroke:'#FF00AA', strokeThickness:6,
+    }).setOrigin(0.5);
+    title2.setShadow(0, 0, '#FF00FF', 24, true, true);
+
+    this.tweens.add({ targets:[title,title2], scale:{from:1, to:1.04}, yoyo:true, duration:1200, repeat:-1, ease:'Sine.easeInOut' });
+
+    // Subtitle
+    this.add.text(W/2, 350, '煙の中を見抜け。', {
+      fontFamily:'Arial Black', fontSize:'20px', color:'#00FFFF'
+    }).setOrigin(0.5).setShadow(0,0,'#00FFFF',12,true,true);
+    this.add.text(W/2, 380, '狙え、シーシャ・ブルズアイ。', {
+      fontFamily:'Arial Black', fontSize:'18px', color:'#FF00AA'
+    }).setOrigin(0.5).setShadow(0,0,'#FF00AA',10,true,true);
+
+    // Player name display (bottom-left)
+    const pname = getPlayerName();
+    this.playerLabel = this.add.text(20, H-30, pname ? ('PLAYER: '+pname) : 'PLAYER: ---', {
+      fontFamily:'"Press Start 2P", monospace', fontSize:'10px', color:'#FFD700'
+    }).setOrigin(0,1);
+
+    // GAME START button
+    const startBtn = this.makeButton(W/2, 480, 280, 64, '🎯 1人モード 記録に挑戦！', 0xFF00FF, ()=>{
+      const name = getPlayerName();
+      if(!name){
+        showNameModal(()=>{
+          this.playerLabel.setText('PLAYER: '+getPlayerName());
+          this.scene.start('Game', { mode:'solo', players:[getPlayerName()] });
+        });
+      } else {
+        this.scene.start('Game', { mode:'solo', players:[getPlayerName()] });
+      }
+    });
+
+    const partyBtn = this.makeButton(W/2, 562, 280, 64, '🍻 みんなでダーツ‼', 0x39FF14, ()=>{
+      this.scene.start('PartySetup');
+    });
+
+    // Side buttons (left vertical column)
+    const sx = 90, sy0 = 650, gap = 70;
+    this.makeSmallBtn(sx, sy0,        '📖 HOW TO PLAY', 0x00FFFF, ()=>this.showHowTo());
+    this.makeSmallBtn(sx, sy0+gap,    '🏆 RANKING',     0xFFD700, ()=>this.showRanking());
+    this.makeSmallBtn(sx, sy0+gap*2,  '✏ 名前変更',     0xBF00FF, ()=>{
+      showNameModal(()=>{ this.playerLabel.setText('PLAYER: '+getPlayerName()); });
+    });
+
+    // Sound toggle (top-right)
+    this.soundBtn = this.add.text(W-50, 30, Sound.isOn()?'🔊':'🔇', {
+      fontSize:'40px'
+    }).setOrigin(1,0);
+    bigHit(this.soundBtn, 20, 20);
+    this.soundBtn.on('pointerdown', ()=>{
+      const on = Sound.toggle();
+      this.soundBtn.setText(on?'🔊':'🔇');
+      Sound.sfx.click();
+    });
+
+    // BGM is started via document-level listeners set up in window.load
+    // Fallback: ensure on first Phaser pointer event
+    this.input.once('pointerdown', ()=>{
+      Sound.ensure();
+      Sound.playBgm();
+    });
+  }
+
+  makeButton(x, y, w, h, text, color, onClick){
+    const c = this.add.container(x,y);
+    const bg = this.add.graphics();
+    bg.fillStyle(color, 1);
+    bg.fillRoundedRect(-w/2,-h/2,w,h,14);
+    bg.lineStyle(3, 0xFFD700, 1);
+    bg.strokeRoundedRect(-w/2,-h/2,w,h,14);
+    const t = this.add.text(0,0,text,{
+      fontFamily:'"Press Start 2P", monospace', fontSize:'18px',
+      color:'#fff', stroke:'#000', strokeThickness:2,
+      align:'center'
+    }).setOrigin(0.5);
+    // shrink to fit if too wide
+    try {
+      const maxW = w - 24;
+      if(t.width > maxW){
+        const ratio = maxW / t.width;
+        const newSize = Math.max(11, Math.floor(18 * ratio));
+        t.setStyle({ fontSize: newSize + 'px' });
+      }
+    } catch(e){}
+    c.add([bg,t]);
+    // glow drawn separately
+    const glow = this.add.graphics();
+    glow.lineStyle(2,color,0.6);
+    glow.strokeRoundedRect(x-w/2-4,y-h/2-4,w+8,h+8,16);
+    this.tweens.add({ targets:glow, alpha:{from:0.3,to:1}, yoyo:true, repeat:-1, duration:800 });
+    // Use a Zone for hit detection - matches button bounds EXACTLY
+    const hitZone = this.add.zone(x, y, w, h).setOrigin(0.5);
+    hitZone.setInteractive({ useHandCursor: true });
+    let fired = false;
+    hitZone.on('pointerdown', ()=>{
+      if(fired) return;
+      fired = true;
+      Sound.ensure();
+      Sound.playBgm();
+      Sound.unlockSpeech(); // unlock TTS within user gesture
+      Sound.sfx.click();
+      c.setScale(0.92);
+      onClick();
+      this.time.delayedCall(150, ()=>{ c.setScale(1); fired = false; });
+    });
+    return c;
+  }
+  makeSmallBtn(x, y, text, color, onClick){
+    const w = 160, h = 50;
+    const c = this.add.container(x,y);
+    const bg = this.add.graphics();
+    bg.fillStyle(0x1a0030, 1);
+    bg.fillRoundedRect(-w/2,-h/2,w,h,10);
+    bg.lineStyle(2, color, 1);
+    bg.strokeRoundedRect(-w/2,-h/2,w,h,10);
+    const t = this.add.text(0,0,text,{
+      fontFamily:'Arial Black', fontSize:'13px', color:'#fff'
+    }).setOrigin(0.5);
+    c.add([bg,t]);
+    // Use a Zone for hit detection
+    const hitZone = this.add.zone(x, y, w, h).setOrigin(0.5);
+    hitZone.setInteractive({ useHandCursor: true });
+    let fired = false;
+    hitZone.on('pointerdown', ()=>{
+      if(fired) return;
+      fired = true;
+      Sound.ensure();
+      Sound.playBgm();
+      Sound.sfx.click();
+      c.setScale(0.92);
+      onClick();
+      this.time.delayedCall(50, ()=>{ c.setScale(1); fired = false; });
+    });
+    return c;
+  }
+
+  showHowTo(){
+    const modal = this.makeModal('HOW TO PLAY', [
+      '🎯 9本のダーツを投げて',
+      '   合計スコアで競う！',
+      '',
+      '👉 操作:',
+      '  ダーツを下から上にスワイプ',
+      '  方向と強さで狙う',
+      '',
+      '🎯 得点:',
+      '  ブルズアイ = 50点',
+      '  外周になるほど低得点',
+      '',
+      '💨 風: ステージで強くなる',
+      '✨ 3本毎にボーナスチャンス',
+      '🏆 週間ランキング上位を狙え！'
+    ]);
+  }
+
+  async showRanking(){
+    const loading = this.makeModal('RANKING', ['', '読み込み中...', '']);
+    const data = await fetchRanking();
+    loading.destroy();
+    const lines = ['── 今週のTOP10 ──',''];
+    if(!data || data.length===0){
+      lines.push('まだ誰もいない…','','一番乗りを目指せ！');
+    } else {
+      data.forEach((r,i)=>{
+        const rank = (i+1).toString().padStart(2,' ');
+        const medal = i===0?'🥇':i===1?'🥈':i===2?'🥉':'  ';
+        const name = (r.player_name||'???').slice(0,10).padEnd(10,' ');
+        const score = String(r.coins||0).padStart(5,' ');
+        lines.push(medal+rank+'. '+name+score+'pt');
+      });
+    }
+    this.makeModal('🏆 WEEKLY RANKING', lines);
+  }
+
+  makeModal(title, lines){
+    const ov = this.add.container(0,0);
+    const bg = this.add.rectangle(W/2,H/2,W,H,0x000000,0.82);
+    bg.setInteractive();
+    const panelW=460, panelH = 80 + lines.length*32 + 80;
+    const panel = this.add.graphics();
+    panel.fillStyle(0x1a0030,1);
+    panel.fillRoundedRect(W/2-panelW/2, H/2-panelH/2, panelW, panelH, 16);
+    panel.lineStyle(3, 0xFF00FF, 1);
+    panel.strokeRoundedRect(W/2-panelW/2, H/2-panelH/2, panelW, panelH, 16);
+    const title_ = this.add.text(W/2, H/2-panelH/2+30, title, {
+      fontFamily:'"Press Start 2P", monospace', fontSize:'18px', color:'#FFD700'
+    }).setOrigin(0.5).setShadow(0,0,'#FF00FF',10,true,true);
+    const items = lines.map((line, i)=>{
+      return this.add.text(W/2, H/2-panelH/2+80+i*30, line, {
+        fontFamily:'Arial', fontSize:'15px', color:'#fff', fontStyle:'bold'
+      }).setOrigin(0.5);
+    });
+    const closeBtn = this.add.text(W/2, H/2+panelH/2-35, '[ CLOSE ]', {
+      fontFamily:'"Press Start 2P", monospace', fontSize:'12px', color:'#00FFFF'
+    }).setOrigin(0.5).setInteractive({useHandCursor:true});
+    closeBtn.on('pointerdown', ()=>{ Sound.sfx.click(); ov.destroy(); });
+    bg.on('pointerdown', ()=>{ Sound.sfx.click(); ov.destroy(); });
+    ov.add([bg, panel, title_, ...items, closeBtn]);
+    ov.setDepth(1000);
+    return ov;
+  }
+}
+
+/* ============================================================
+   GAME SCENE (main play)
+   ============================================================ */
+class GameScene extends Phaser.Scene{
+  constructor(){ super('Game'); }
+
+  init(data){
+    this.mode = (data && data.mode) || 'solo';
+    this.allPlayers = (data && data.players) || [getPlayerName() || 'PLAYER1'];
+    this.penalty = (data && data.penalty) || null;
+    this.currentPlayerIdx = (data && data.currentPlayerIdx) || 0;
+    this.partyResults = (data && data.partyResults) || []; // [{name, score}]
+  }
+
+  create(){
+    this.cameras.main.setBackgroundColor('#0a0a1a');
+    drawAtmosphere(this);
+    spawnSmoke(this, true);
+
+    // Stats
+    this.dartsTotal = 9;
+    this.dartsLeft = 9;
+    this.score = 0;
+    this.scores = []; // record each dart
+    this.round = 1;
+    this.streakBull = 0;
+    this.bonusActive = null; // {type, payload}
+    this.busy = false;
+
+    // Wind: index 0..2 strength based on round
+    this.wind = { dir: Math.random()<0.5?1:-1, strength: 0 };
+
+    // Top UI bar background
+    const topBarH = (this.mode === 'party') ? 95 : 80;
+    const topBar = this.add.graphics();
+    topBar.fillStyle(0x000000, 0.55);
+    topBar.fillRect(0,0,W,topBarH);
+    topBar.lineStyle(2, 0xFF00FF, 0.8);
+    topBar.lineBetween(0,topBarH,W,topBarH);
+    topBar.setDepth(10);
+
+    // Round display
+    this.roundText = this.add.text(20, 16, 'ROUND 1/3', {
+      fontFamily:'"Press Start 2P", monospace', fontSize:'12px', color:'#00FFFF'
+    }).setDepth(15);
+    this.dartsText = this.add.text(20, 44, '🎯 残り 9本', {
+      fontFamily:'Arial Black', fontSize:'16px', color:'#fff'
+    }).setDepth(15);
+
+    // Party mode: show current player name + progress
+    if(this.mode === 'party'){
+      const me = this.allPlayers[this.currentPlayerIdx] || '?';
+      this.partyLabel = this.add.text(20, 64, '🍻 '+me+' ('+(this.currentPlayerIdx+1)+'/'+this.allPlayers.length+')', {
+        fontFamily:'Arial Black', fontSize:'13px', color:'#39FF14'
+      }).setShadow(0,0,'#39FF14',6,true,true).setDepth(15);
+    }
+
+    // Score (center)
+    this.add.text(W/2, 14, 'SCORE', {
+      fontFamily:'"Press Start 2P", monospace', fontSize:'10px', color:'#FFD700'
+    }).setOrigin(0.5,0).setDepth(15);
+    this.scoreText = this.add.text(W/2, 30, '0', {
+      fontFamily:'"Press Start 2P", monospace', fontSize:'30px', color:'#FFD700'
+    }).setOrigin(0.5,0).setShadow(0,0,'#FF00FF',12,true,true).setDepth(15);
+
+    // Wind indicator (right) - move down to avoid back button
+    this.windText = this.add.text(W-20, (this.mode==='party')?78:62, '', {
+      fontFamily:'Arial Black', fontSize:'13px', color:'#00FFFF', align:'right'
+    }).setOrigin(1,0).setDepth(15);
+    // WindArrow: hidden in current layout to avoid overlap with back button
+    // Wind direction shown in windText itself instead
+    this.windArrow = this.add.text(-100, -100, '', {
+      fontFamily:'Arial Black', fontSize:'14px', color:'#00FFFF'
+    }).setOrigin(1,0).setVisible(false);
+
+    // Back button (top-right because top-left is occupied by score info)
+    addBackButton(this, { x: W-50, y: 30 });
+
+    // Sound toggle (below back button, well-spaced)
+    this.soundBtn = this.add.text(W-30, (this.mode==='party')?78:62, Sound.isOn()?'🔊':'🔇', {
+      fontSize:'22px'
+    }).setOrigin(1,0).setInteractive({useHandCursor:true}).setDepth(20);
+    this.soundBtn.on('pointerdown', ()=>{
+      const on = Sound.toggle();
+      this.soundBtn.setText(on?'🔊':'🔇');
+      Sound.sfx.click();
+    });
+
+    // Dartboard
+    this.boardCx = W/2;
+    this.boardCy = 420;
+    this.boardR = 200;
+    this.boardContainer = drawDartboard(this, this.boardCx, this.boardCy, this.boardR, 1);
+
+    // Dart launching point
+    this.dartLaunchY = H - 90;
+    this.dartLaunchX = W/2;
+
+    // Dart preview (the held dart)
+    this.heldDart = null;
+    this.spawnHeldDart();
+
+    // Trajectory line
+    this.trajLine = this.add.graphics();
+    this.trajLine.setDepth(50);
+
+    // Stuck darts container
+    this.stuckDarts = this.add.container(0,0);
+    this.stuckDarts.setDepth(20);
+
+    // Bottom hint
+    this.hintText = this.add.text(W/2, H-30, '👆 ダーツを上にスワイプ', {
+      fontFamily:'Arial Black', fontSize:'14px', color:'#FFD700'
+    }).setOrigin(0.5).setShadow(0,0,'#FF00FF',8,true,true);
+    this.tweens.add({ targets:this.hintText, alpha:{from:1,to:0.4}, yoyo:true, repeat:-1, duration:700 });
+
+    // Input handling
+    this.dragStart = null;
+    this.dragCurrent = null;
+    this.input.on('pointerdown', this.onPointerDown, this);
+    this.input.on('pointermove', this.onPointerMove, this);
+    this.input.on('pointerup',   this.onPointerUp, this);
+
+    // Update wind for round
+    this.updateWind();
+
+    // Welcome flash
+    if(this.mode === 'party'){
+      const me = this.allPlayers[this.currentPlayerIdx] || '?';
+      this.flashRoundBanner(me+' の番！', '#39FF14');
+    } else {
+      this.flashRoundBanner('ROUND 1');
+    }
+  }
+
+  updateWind(){
+    // round 1: 0, round 2: weak, round 3: strong
+    const map = [0, 0.6, 1.3];
+    this.wind.strength = map[this.round-1] || 1.5;
+    this.wind.dir = Math.random()<0.5?1:-1;
+    if(this.wind.strength === 0){
+      this.windText.setText('WIND ---');
+      this.windText.setColor('#666');
+    } else {
+      const arrow = this.wind.dir>0 ? '→' : '←';
+      const lab = this.wind.strength<1?'弱':'強';
+      this.windText.setText('WIND '+arrow+' '+lab);
+      const c = this.wind.strength<1 ? '#00FFFF' : '#FF00AA';
+      this.windText.setColor(c);
+    }
+  }
+
+  spawnHeldDart(){
+    if(this.heldDart) this.heldDart.destroy();
+    this.heldDart = this.makeDartSprite(this.dartLaunchX, this.dartLaunchY, -Math.PI/2);
+    this.heldDart.setDepth(40);
+    this.heldDart.setScale(1);
+    this.heldDart.rotation = 0;
+    // pulse glow
+    this.tweens.add({ targets:this.heldDart, scale:{from:1, to:1.08}, yoyo:true, repeat:-1, duration:500 });
+  }
+
+  makeDartSprite(x, y, angle){
+    const c = this.add.container(x, y);
+    const g = this.add.graphics();
+    // shaft
+    g.fillStyle(0xCCCCCC,1);
+    g.fillRect(-4, -28, 8, 36);
+    // tip (silver, pointing up = -y)
+    g.fillStyle(0xFFFFFF,1);
+    g.beginPath();
+    g.moveTo(0, -45);
+    g.lineTo(-5, -28);
+    g.lineTo(5, -28);
+    g.closePath();
+    g.fillPath();
+    g.lineStyle(1, 0x888888, 1);
+    g.strokePath();
+    // flight (red feather)
+    g.fillStyle(0xFF0033,1);
+    g.beginPath();
+    g.moveTo(0, 8);
+    g.lineTo(-12, 22);
+    g.lineTo(0, 16);
+    g.lineTo(12, 22);
+    g.closePath();
+    g.fillPath();
+    g.fillStyle(0xFF66AA,1);
+    g.beginPath();
+    g.moveTo(0, 8);
+    g.lineTo(-6, 18);
+    g.lineTo(0, 14);
+    g.lineTo(6, 18);
+    g.closePath();
+    g.fillPath();
+    // glow
+    const glow = this.add.graphics();
+    glow.lineStyle(2, 0xFF00FF, 0.6);
+    glow.strokeCircle(0, 0, 24);
+    c.add([glow, g]);
+    c.rotation = angle + Math.PI/2; // sprite drawn pointing up; rotate to angle
+    return c;
+  }
+
+  onPointerDown(pointer){
+    if(this.busy) return;
+    if(this.dartsLeft<=0) return;
+    // start drag if pointer is in lower half
+    if(pointer.y < H*0.55) return;
+    this.dragStart = { x: pointer.x, y: pointer.y, t: this.time.now };
+    this.dragCurrent = { x: pointer.x, y: pointer.y };
+    this.hintText.setVisible(false);
+    // "Holding" feedback: pull dart down a bit (cocking motion) + slight wiggle
+    if(this.heldDart){
+      this.tweens.killTweensOf(this.heldDart);
+      this.tweens.add({
+        targets: this.heldDart,
+        y: this.dartLaunchY + 18,
+        scale: 1.15,
+        duration: 120,
+        ease: 'Cubic.easeOut'
+      });
+      // tiny vibration to feel grip tension
+      this.heldDartShake = this.tweens.add({
+        targets: this.heldDart,
+        x: { from: this.heldDart.x - 1.5, to: this.heldDart.x + 1.5 },
+        duration: 60, yoyo: true, repeat: -1
+      });
+    }
+  }
+  onPointerMove(pointer){
+    if(!this.dragStart) return;
+    this.dragCurrent = { x: pointer.x, y: pointer.y };
+    // Dart follows finger horizontally a bit (limited range) and pulls back vertically based on swipe magnitude
+    if(this.heldDart){
+      const dx = pointer.x - this.dragStart.x;
+      const dy = pointer.y - this.dragStart.y;
+      // horizontal: tilt towards finger direction, max ±35px
+      const followX = Phaser.Math.Clamp(dx * 0.25, -35, 35);
+      // vertical: dart only pulls slightly back (max +25 below launch)
+      const followY = Phaser.Math.Clamp(18 + dy * 0.15, 0, 30);
+      this.heldDart.x = this.dartLaunchX + followX;
+      this.heldDart.y = this.dartLaunchY + followY;
+      // tilt the dart to indicate aim direction
+      const aimAngle = Math.atan2(dx, -dy + 100); // slight tilt
+      this.heldDart.rotation = aimAngle * 0.5;
+    }
+    this.drawTrajectory();
+  }
+  onPointerUp(pointer){
+    if(!this.dragStart) return;
+    const start = this.dragStart;
+    const end   = { x: pointer.x, y: pointer.y };
+    this.dragStart = null;
+    this.trajLine.clear();
+    if(this.heldDartShake){ this.heldDartShake.stop(); this.heldDartShake = null; }
+    const dt = Math.max(50, this.time.now - start.t);
+    const dx = end.x - start.x;
+    const dy = end.y - start.y;
+    const dist = Math.hypot(dx,dy);
+    // Need: dragged upward enough OR just tapped (treat tap as light throw straight up)
+    if(dist < 30){
+      // it was just a tap - reset dart
+      if(this.heldDart){
+        this.tweens.killTweensOf(this.heldDart);
+        this.tweens.add({
+          targets: this.heldDart,
+          x: this.dartLaunchX, y: this.dartLaunchY, rotation: 0, scale: 1,
+          duration: 150, ease: 'Cubic.easeOut'
+        });
+      }
+      this.hintText.setVisible(true);
+      return;
+    }
+    if(dy > -40){
+      // not enough upward - reset
+      if(this.heldDart){
+        this.tweens.killTweensOf(this.heldDart);
+        this.tweens.add({
+          targets: this.heldDart,
+          x: this.dartLaunchX, y: this.dartLaunchY, rotation: 0, scale: 1,
+          duration: 150, ease: 'Cubic.easeOut'
+        });
+      }
+      this.hintText.setVisible(true);
+      return;
+    }
+    this.busy = true;
+    this.throwDart(start, end, dt);
+  }
+
+  drawTrajectory(){
+    if(!this.dragStart || !this.dragCurrent) return;
+    this.trajLine.clear();
+    const dx = this.dragCurrent.x - this.dragStart.x;
+    const dy = this.dragCurrent.y - this.dragStart.y;
+    if(dy > -20) return; // only when going up
+    const target = this.predictTarget(this.dragStart, this.dragCurrent, this.dragCurrent.t || (this.time.now - 100));
+    const sx = this.dartLaunchX, sy = this.dartLaunchY;
+    const tx = target.x, ty = target.y;
+    // Short dashed guide line: only show first ~60% of trajectory (direction hint, not exact landing)
+    const steps = 12;
+    const visiblePortion = 0.6;
+    this.trajLine.lineStyle(3, 0xFFD700, 0.5);
+    for(let i=0;i<steps;i++){
+      const t1 = (i/steps) * visiblePortion;
+      const t2 = ((i+0.55)/steps) * visiblePortion;
+      const x1 = Phaser.Math.Linear(sx, tx, t1);
+      const x2 = Phaser.Math.Linear(sx, tx, t2);
+      const y1 = Phaser.Math.Linear(sy, ty, t1) - Math.sin(t1*Math.PI)*30;
+      const y2 = Phaser.Math.Linear(sy, ty, t2) - Math.sin(t2*Math.PI)*30;
+      this.trajLine.lineBetween(x1,y1,x2,y2);
+    }
+    // Aim cone: shows uncertainty area, not a precise target
+    const coneEndX = Phaser.Math.Linear(sx, tx, visiblePortion);
+    const coneEndY = Phaser.Math.Linear(sy, ty, visiblePortion) - Math.sin(visiblePortion*Math.PI)*30;
+    this.trajLine.lineStyle(2, 0x00FFFF, 0.4);
+    // small arrow head only
+    const ang = Math.atan2(coneEndY - sy, coneEndX - sx);
+    const ah = 12;
+    this.trajLine.lineBetween(coneEndX, coneEndY,
+      coneEndX - Math.cos(ang-0.4)*ah, coneEndY - Math.sin(ang-0.4)*ah);
+    this.trajLine.lineBetween(coneEndX, coneEndY,
+      coneEndX - Math.cos(ang+0.4)*ah, coneEndY - Math.sin(ang+0.4)*ah);
+  }
+
+  predictTarget(start, end, _t){
+    // direction & strength based on swipe
+    const dx = end.x - start.x;
+    const dy = end.y - start.y;
+    const dist = Math.hypot(dx, dy);
+    const idealDist = 280; // sweet spot
+    const distRatio = dist / idealDist;
+    const t = Phaser.Math.Clamp(distRatio, 0.4, 1.6);
+    // x deviation based on angle
+    const angleFromVertical = Math.atan2(dx, -dy); // positive = right
+    const xOffset = Math.tan(angleFromVertical) * 220 * 0.5;
+    let tx = this.boardCx + xOffset;
+    let ty = this.boardCy + (1 - t) * (this.boardR + 30);
+    // Add wind effect (moderate)
+    tx += this.wind.dir * this.wind.strength * 28;
+    return { x: tx, y: ty };
+  }
+
+  throwDart(start, end, dt){
+    Sound.sfx.throw();
+    const target = this.predictTarget(start, end, dt);
+    // Real throw jitter: moderate, gaussian-ish
+    const gauss = ()=>(Math.random()+Math.random()+Math.random()-1.5) * 14;
+    target.x += gauss();
+    target.y += gauss();
+    target.x += this.wind.dir * this.wind.strength * 8;
+    // Release flash at launch point for "throw" feel
+    const flash = this.add.circle(this.dartLaunchX, this.dartLaunchY, 30, 0xFFFFFF, 0.8);
+    flash.setDepth(55);
+    this.tweens.add({
+      targets: flash, scale: 2.5, alpha: 0, duration: 250,
+      onComplete: ()=>flash.destroy()
+    });
+    // small upward dust streak
+    for(let i=0;i<6;i++){
+      const p = this.add.circle(
+        this.dartLaunchX + Phaser.Math.Between(-15,15),
+        this.dartLaunchY + Phaser.Math.Between(-5,10),
+        Phaser.Math.Between(2,4), 0xFFFFFF, 0.7
+      );
+      p.setDepth(55);
+      this.tweens.add({
+        targets: p,
+        x: p.x + Phaser.Math.Between(-30,30),
+        y: p.y - Phaser.Math.Between(20,60),
+        alpha: 0,
+        duration: Phaser.Math.Between(300,500),
+        onComplete: ()=>p.destroy()
+      });
+    }
+    // hide held dart, animate flight
+    if(this.heldDart){ this.heldDart.destroy(); this.heldDart=null; }
+    const flying = this.makeDartSprite(this.dartLaunchX, this.dartLaunchY, -Math.PI/2);
+    flying.setDepth(60);
+    // angle to target
+    const ang = Math.atan2(target.y - this.dartLaunchY, target.x - this.dartLaunchX);
+    flying.rotation = ang + Math.PI/2;
+    // Tween: scale down (perspective) + arc, with motion trail
+    const arcHeight = 80;
+    const tweenObj = { t: 0 };
+    let lastTrailT = 0;
+    this.tweens.add({
+      targets: tweenObj, t: 1,
+      duration: 460, ease:'Cubic.easeIn',
+      onUpdate: ()=>{
+        const t = tweenObj.t;
+        const x = Phaser.Math.Linear(this.dartLaunchX, target.x, t);
+        const y = Phaser.Math.Linear(this.dartLaunchY, target.y, t) - Math.sin(t*Math.PI)*arcHeight;
+        flying.x = x; flying.y = y;
+        flying.setScale(1 - t*0.55); // perspective shrink
+        // motion trail every ~50ms
+        if(t - lastTrailT > 0.1){
+          lastTrailT = t;
+          const trail = this.add.circle(x, y, (1-t)*8, 0xFFD700, 0.5);
+          trail.setDepth(58);
+          this.tweens.add({ targets: trail, alpha: 0, duration: 250, onComplete:()=>trail.destroy() });
+        }
+      },
+      onComplete: ()=>{
+        flying.destroy();
+        this.resolveImpact(target);
+      }
+    });
+  }
+
+  resolveImpact(p){
+    // compute distance from board center
+    const dx = p.x - this.boardCx;
+    const dy = p.y - this.boardCy;
+    const dist = Math.hypot(dx,dy);
+    const r = dist / this.boardR; // 0..1+
+    let pts = 0;
+    let label = '';
+    let color = '#FFFFFF';
+    let isBull = false;
+
+    if(r > 1.05){
+      pts = 0; label = 'MISS'; color = '#888';
+      Sound.sfx.miss();
+    } else if(r <= BOARD.bullCenter){
+      pts = 50; label = 'BULLSEYE!'; color = '#FFD700'; isBull = true;
+      Sound.sfx.bullseye();
+    } else if(r <= BOARD.bull25){
+      pts = 25; label = '25'; color = '#39FF14';
+      Sound.sfx.hit();
+    } else {
+      // angle -> sector. atan2: angle from +x axis. Top = -PI/2.
+      let a = Math.atan2(dy, dx);
+      // shift so 0 is straight up, then map clockwise
+      let deg = (a * 180/Math.PI) + 90; // top is 0
+      while(deg<0) deg+=360;
+      while(deg>=360) deg-=360;
+      const sectorIndex = Math.floor((deg + 9) / 18) % 20;
+      const baseNum = DART_NUMBERS[sectorIndex];
+      let mult = 1;
+      if(r >= BOARD.tripleIn && r <= BOARD.tripleOut){
+        mult = 3; label = 'TRIPLE '+baseNum; color = '#FF00AA';
+      } else if(r >= BOARD.doubleIn && r <= BOARD.doubleOut){
+        mult = 2; label = 'DOUBLE '+baseNum; color = '#00FFFF';
+      } else {
+        label = String(baseNum);
+      }
+      pts = baseNum * mult;
+      Sound.sfx.hit();
+    }
+
+    // Streak: bullseye sequence
+    if(isBull){
+      this.streakBull++;
+      if(this.streakBull===2){ pts += 30; this.popText(p.x,p.y-50, '+30 STREAK!', '#FFD700'); }
+      else if(this.streakBull===3){ pts += 100; this.popText(p.x,p.y-60, '+100 TRIPLE BULL!!', '#FF00AA'); }
+    } else {
+      this.streakBull = 0;
+    }
+
+    // Wind bonus
+    if(pts>0 && this.wind.strength >= 1.0){
+      const bonus = Math.round(pts * 0.5);
+      pts += bonus;
+      this.popText(p.x+30, p.y-30, '+'+bonus+' WIND', '#00FFFF');
+    }
+
+    // Bonus round multipliers
+    if(this.bonusActive){
+      const b = this.bonusActive;
+      if(b.type==='doubleDown' && pts>0){
+        pts *= 2;
+        this.popText(p.x, p.y-80, 'x2 DOUBLE!', '#FFD700');
+      } else if(b.type==='shineTarget' && pts>0 && b.angleDeg!=null){
+        // bonus if hit shining sector
+        const a = Math.atan2(dy, dx);
+        let deg = (a*180/Math.PI)+90;
+        while(deg<0) deg+=360;
+        const angDiff = Math.abs(((deg - b.angleDeg + 540)%360)-180);
+        if(angDiff < 18){
+          pts *= 2;
+          this.popText(p.x, p.y-80, 'x2 SHINE!', '#FFD700');
+        }
+      } else if(b.type==='shisha' && pts>0 && b.target){
+        const td = Math.hypot(p.x - b.target.x, p.y - b.target.y);
+        if(td < 35){
+          pts += 50;
+          this.popText(p.x, p.y-80, '+50 SHISHA!', '#FF00AA');
+          Sound.sfx.bonus();
+        }
+      } else if(b.type==='smokeRing' && pts>0 && b.ringObj){
+        const td = Math.hypot(p.x - b.ringObj.x, p.y - b.ringObj.y);
+        // Need: dart inside smoke ring AND on bullseye area (50 or 25)
+        const inRing = td < 55;
+        const onBull = (pts === 50) || (pts === 25);
+        if(inRing && onBull){
+          pts *= 3;
+          this.popText(p.x, p.y-80, 'x3 SMOKE+BULL!', '#39FF14');
+          Sound.sfx.bonus();
+        } else if(inRing){
+          // partial credit for hitting smoke but not bull
+          pts = Math.max(pts, 10);
+          this.popText(p.x, p.y-80, '+SMOKE', '#CCCCCC');
+        }
+      }
+      this.endBonusRound();
+    }
+
+    // Stick the dart
+    this.stickDart(p.x, p.y, isBull);
+
+    // Score popup
+    this.popText(p.x, p.y - 24, (pts>0?'+':'')+pts+' '+label, color);
+
+    // Effects
+    if(isBull){
+      this.cameras.main.flash(200, 255, 215, 0, false);
+      this.cameras.main.shake(180, 0.008);
+      this.bullseyeBurst(p.x, p.y);
+    } else if(pts >= 30){
+      this.cameras.main.flash(120, 255, 0, 170, false);
+    }
+
+    // Update score
+    this.score += pts;
+    this.scores.push(pts);
+    this.scoreText.setText(String(this.score));
+    Sound.sfx.score();
+    this.tweens.add({ targets:this.scoreText, scale:{from:1.4,to:1}, duration:280, ease:'Back.easeOut' });
+
+    this.dartsLeft--;
+    this.dartsText.setText('🎯 残り '+this.dartsLeft+'本');
+
+    // Next dart
+    this.time.delayedCall(900, ()=>{
+      if(this.dartsLeft <= 0){
+        this.endRound();
+        return;
+      }
+      // Round transition (every 3 darts)
+      const thrown = this.dartsTotal - this.dartsLeft;
+      if(thrown % 3 === 0){
+        this.startBonusRound(()=>{
+          this.round = Math.min(3, Math.floor(thrown/3)+1);
+          this.roundText.setText('ROUND '+this.round+'/3');
+          this.updateWind();
+          this.flashRoundBanner('ROUND '+this.round);
+          this.busy = false;
+          this.spawnHeldDart();
+          this.hintText.setVisible(true);
+        });
+      } else {
+        this.busy = false;
+        this.spawnHeldDart();
+        this.hintText.setVisible(true);
+      }
+    });
+  }
+
+  stickDart(x, y, isBull){
+    const dart = this.add.graphics();
+    // small stuck dart
+    dart.fillStyle(0xCCCCCC,1);
+    dart.fillRect(x-2, y-2, 4, 16);
+    dart.fillStyle(0xFF0033,1);
+    dart.fillTriangle(x-7, y+18, x+7, y+18, x, y+10);
+    if(isBull){
+      const ring = this.add.circle(x,y,4,0xFFD700);
+      this.tweens.add({ targets:ring, radius:50, alpha:0, duration:600, onComplete:()=>ring.destroy() });
+    }
+    this.stuckDarts.add(dart);
+  }
+
+  popText(x, y, text, color){
+    const t = this.add.text(x, y, text, {
+      fontFamily:'"Press Start 2P", monospace', fontSize:'16px',
+      color:color, stroke:'#000', strokeThickness:3
+    }).setOrigin(0.5).setDepth(80);
+    t.setShadow(0,0,color,12,true,true);
+    this.tweens.add({
+      targets: t, y: y-60, alpha:0, scale:1.4,
+      duration: 1200, ease:'Cubic.easeOut',
+      onComplete:()=>t.destroy()
+    });
+  }
+
+  bullseyeBurst(x, y){
+    for(let i=0;i<24;i++){
+      const ang = (i/24) * Math.PI*2;
+      const c = this.add.circle(x,y, Phaser.Math.Between(3,6), 0xFFD700);
+      c.setDepth(70);
+      this.tweens.add({
+        targets: c,
+        x: x + Math.cos(ang)*120,
+        y: y + Math.sin(ang)*120,
+        alpha:0, duration: 700, ease:'Cubic.easeOut',
+        onComplete:()=>c.destroy()
+      });
+    }
+    const ring = this.add.circle(x,y,10,0xFFD700, 0);
+    ring.setStrokeStyle(4, 0xFFD700, 1).setDepth(70);
+    this.tweens.add({
+      targets: ring, radius: 180, alpha:0, duration:600,
+      onComplete:()=>ring.destroy()
+    });
+  }
+
+  flashRoundBanner(text, color){
+    color = color || '#FFD700';
+    // pick smaller font size for longer texts
+    const fontSize = text.length > 8 ? '32px' : '48px';
+    const b = this.add.text(W/2, H/2, text, {
+      fontFamily:'"Press Start 2P", monospace', fontSize:fontSize,
+      color:color, stroke:'#000', strokeThickness:6,
+      align:'center'
+    }).setOrigin(0.5).setDepth(200).setShadow(0,0,color,24,true,true).setAlpha(0);
+    this.tweens.add({
+      targets:b, alpha:{from:0,to:1}, scale:{from:0.5,to:1.2},
+      duration:300, ease:'Back.easeOut',
+      onComplete:()=>{
+        this.tweens.add({
+          targets:b, alpha:0, duration:500, delay:700,
+          onComplete:()=>b.destroy()
+        });
+      }
+    });
+  }
+
+  /* ---------- Bonus rounds ---------- */
+  startBonusRound(onDone){
+    // pick random
+    const types = ['smokeRing','shisha','shineTarget','doubleDown'];
+    const type = Phaser.Utils.Array.GetRandom(types);
+    this.busy = true;
+    const banner = this.add.text(W/2, H/2 - 40, '★ BONUS! ★', {
+      fontFamily:'"Press Start 2P", monospace', fontSize:'32px',
+      color:'#39FF14', stroke:'#000', strokeThickness:4
+    }).setOrigin(0.5).setDepth(200).setShadow(0,0,'#39FF14',16,true,true);
+    let label = '';
+    if(type==='smokeRing') label = '煙とブルを同時に狙え！x3';
+    else if(type==='shisha') label = 'シーシャの的だ！+50';
+    else if(type==='shineTarget') label = '光ってる場所はx2';
+    else label = '次の1本だけ x2!';
+    const sub = this.add.text(W/2, H/2 + 10, label, {
+      fontFamily:'Arial Black', fontSize:'18px', color:'#FFD700'
+    }).setOrigin(0.5).setDepth(200);
+
+    Sound.sfx.bonus();
+
+    this.tweens.add({
+      targets:[banner, sub], alpha:{from:0,to:1}, duration:300,
+      onComplete: ()=>{
+        this.time.delayedCall(900, ()=>{
+          this.tweens.add({
+            targets:[banner, sub], alpha:0, duration:300,
+            onComplete:()=>{ banner.destroy(); sub.destroy(); }
+          });
+          // setup bonus
+          this.setupBonus(type);
+          onDone();
+        });
+      }
+    });
+  }
+
+  setupBonus(type){
+    this.bonusActive = { type };
+    const b = this.bonusActive;
+    if(type==='smokeRing'){
+      // Smoke ring orbits around the bullseye - hit dart inside ring AND on bullseye for x3
+      const ring = this.add.graphics();
+      ring.lineStyle(8, 0xFFFFFF, 0.85);
+      ring.strokeCircle(0,0, 45);
+      ring.lineStyle(4, 0xCCCCCC, 0.6);
+      ring.strokeCircle(0,0, 32);
+      ring.lineStyle(2, 0xFFFFFF, 0.4);
+      ring.strokeCircle(0,0, 55);
+      // Pulsing inner glow to show it's the target zone
+      const innerGlow = this.add.graphics();
+      innerGlow.fillStyle(0xFFFFFF, 0.15);
+      innerGlow.fillCircle(0, 0, 40);
+      const ringObj = this.add.container(this.boardCx, this.boardCy, [innerGlow, ring]);
+      ringObj.setDepth(15);
+      // Orbit around bullseye
+      const orbit = { angle: 0 };
+      const orbitR = 45;
+      const orbitTween = this.tweens.add({
+        targets: orbit, angle: Math.PI*2, duration: 2400,
+        repeat: -1, ease: 'Sine.easeInOut',
+        onUpdate: ()=>{
+          ringObj.x = this.boardCx + Math.cos(orbit.angle) * orbitR;
+          ringObj.y = this.boardCy + Math.sin(orbit.angle) * orbitR;
+        }
+      });
+      // Pulse ring scale
+      const pulse = this.tweens.add({ targets: ringObj, scale:{from:1, to:1.08}, yoyo:true, repeat:-1, duration:500 });
+      // Persistent help label at top
+      const helpLabel = this.add.text(W/2, 100, '★ 煙とブルを同時に狙え！x3 ★', {
+        fontFamily:'"Press Start 2P", monospace', fontSize:'14px', color:'#FFFFFF',
+        stroke:'#000', strokeThickness:3
+      }).setOrigin(0.5).setDepth(50).setShadow(0,0,'#FFFFFF',12,true,true);
+      const blink = this.tweens.add({ targets: helpLabel, alpha:{from:0.6,to:1}, yoyo:true, repeat:-1, duration:500 });
+      b.ringObj = ringObj;
+      b.cleanup = ()=>{
+        orbitTween.stop(); pulse.stop(); blink.stop();
+        ringObj.destroy(); helpLabel.destroy();
+      };
+    } else if(type==='shisha'){
+      // shisha shape target on board
+      const sx = this.boardCx + Phaser.Math.Between(-80,80);
+      const sy = this.boardCy + Phaser.Math.Between(-60,60);
+      const sg = this.add.graphics();
+      sg.fillStyle(0xFF00AA, 0.6);
+      sg.fillCircle(0, 0, 30);
+      sg.fillStyle(0xFFD700, 0.9);
+      sg.fillCircle(0, 0, 18);
+      const txt = this.add.text(0, 0, '🎯', { fontSize:'28px' }).setOrigin(0.5);
+      const cont = this.add.container(sx, sy, [sg, txt]).setDepth(16);
+      this.tweens.add({ targets: cont, scale:{from:0.9,to:1.15}, yoyo:true, repeat:-1, duration:600 });
+      b.target = { x: sx, y: sy };
+      b.cleanup = ()=>cont.destroy();
+    } else if(type==='shineTarget'){
+      // pick random sector to shine
+      const idx = Phaser.Math.Between(0,19);
+      const num = DART_NUMBERS[idx];
+      // top of sector idx 0 = -90 deg
+      const angleDeg = idx*18; // 0 = top, clockwise positive
+      const angRad = Phaser.Math.DegToRad(angleDeg - 90);
+      const r = this.boardR * 0.8;
+      const sx = this.boardCx + Math.cos(angRad)*r;
+      const sy = this.boardCy + Math.sin(angRad)*r;
+      const shine = this.add.graphics();
+      shine.fillStyle(0xFFFF00, 0.4);
+      shine.fillCircle(0,0,40);
+      const cont = this.add.container(sx,sy,[shine]).setDepth(14);
+      this.tweens.add({ targets: cont, alpha:{from:0.4,to:1}, yoyo:true, repeat:-1, duration:400 });
+      const lbl = this.add.text(sx,sy-35,String(num)+' SHINE',{fontFamily:'Arial Black',fontSize:'12px',color:'#FFFF00'}).setOrigin(0.5).setDepth(14);
+      b.angleDeg = angleDeg;
+      b.cleanup = ()=>{ cont.destroy(); lbl.destroy(); };
+    } else if(type==='doubleDown'){
+      // No visual target -- next dart x2
+      // small banner at top
+      const lbl = this.add.text(W/2, 100, '★ NEXT DART x2 ★', {
+        fontFamily:'"Press Start 2P", monospace', fontSize:'16px', color:'#FFD700'
+      }).setOrigin(0.5).setDepth(50).setShadow(0,0,'#FFD700',12,true,true);
+      this.tweens.add({ targets:lbl, alpha:{from:0.5,to:1}, yoyo:true, repeat:-1, duration:400 });
+      b.cleanup = ()=>lbl.destroy();
+    }
+  }
+  endBonusRound(){
+    if(!this.bonusActive) return;
+    if(this.bonusActive.cleanup) this.bonusActive.cleanup();
+    this.bonusActive = null;
+  }
+
+  endRound(){
+    Sound.sfx.end();
+    // Calculate perfect bonus
+    const allHits = this.scores.filter(s=>s>0).length;
+    let bonusFinal = 0;
+    if(allHits === this.dartsTotal){
+      bonusFinal = 200;
+      this.score += bonusFinal;
+    }
+    if(this.mode === 'party'){
+      // Save this player's result
+      const me = this.allPlayers[this.currentPlayerIdx] || '?';
+      const newResults = this.partyResults.concat([{
+        name: me, score: this.score, scores: this.scores.slice(), perfectBonus: bonusFinal
+      }]);
+      const nextIdx = this.currentPlayerIdx + 1;
+      if(nextIdx >= this.allPlayers.length){
+        // All players done -> party result
+        this.scene.start('PartyResult', {
+          players: this.allPlayers, results: newResults, penalty: this.penalty
+        });
+      } else {
+        // Show "next player" handoff screen
+        this.scene.start('PartyHandoff', {
+          mode: 'party', players: this.allPlayers, penalty: this.penalty,
+          currentPlayerIdx: nextIdx, partyResults: newResults
+        });
+      }
+    } else {
+      // Solo
+      this.scene.start('Result', {
+        score: this.score, scores: this.scores, perfectBonus: bonusFinal
+      });
+    }
+  }
+}
+
+/* ============================================================
+   PENALTY OPTIONS (party mode)
+   ============================================================ */
+const PENALTIES = [
+  { id:'tequila',    label:'テキーラ 1杯',          emoji:'🥃', color:'#FFD700' },
+  { id:'cocabomb',   label:'コカボム 1杯',          emoji:'🍹', color:'#FF00AA' },
+  { id:'kleiner',    label:'クライナー 1杯',        emoji:'🍷', color:'#BF00FF' },
+  { id:'half_chug',  label:'アルコール半分一気',    emoji:'🍺', color:'#00FFFF' },
+  { id:'full_chug',  label:'アルコール一気',        emoji:'💀', color:'#FF0033' },
+];
+function getPenaltyById(id){ return PENALTIES.find(p=>p.id===id) || PENALTIES[0]; }
+
+/* ============================================================
+   PARTY SETUP SCENE
+   ============================================================ */
+class PartySetupScene extends Phaser.Scene{
+  constructor(){ super('PartySetup'); }
+  init(data){
+    // Allow returning from later steps with state preserved
+    this.numPlayers = (data && data.numPlayers) || 2;
+    this.penaltyId = (data && data.penaltyId) || 'tequila';
+    this.playerNames = (data && data.playerNames) || ['', '', '', '', '', ''];
+    this.step = (data && data.step) || 1; // 1=count, 2=penalty, 3=names
+  }
+  create(){
+    try { this._create(); } catch(e){
+      console.error('[PartySetup]', e);
+      this.scene.start('Title');
+    }
+  }
+  _create(){
+    this.cameras.main.setBackgroundColor('#0a0a1a');
+    drawAtmosphere(this);
+
+    // Header: PARTY MODE + step indicator
+    this.add.text(W/2, 80, 'PARTY MODE', {
+      fontFamily:'"Press Start 2P", monospace', fontSize:'30px', color:'#FF00AA'
+    }).setOrigin(0.5).setShadow(0,0,'#FF00AA',16,true,true);
+
+    const stepLabels = ['', '人数選択', '罰ゲーム選択', '名前入力'];
+    this.add.text(W/2, 130, this.step+'/3  '+stepLabels[this.step], {
+      fontFamily:'"Press Start 2P", monospace', fontSize:'14px', color:'#00FFFF'
+    }).setOrigin(0.5).setShadow(0,0,'#00FFFF',10,true,true);
+
+    // Step progress dots
+    for(let i=1; i<=3; i++){
+      const dot = this.add.circle(W/2 + (i-2)*30, 160, 6,
+        i <= this.step ? 0x00FFFF : 0x1a0030);
+      if(i <= this.step) dot.setStrokeStyle(2, 0xFFD700, 1);
+      else dot.setStrokeStyle(1, 0x444444, 1);
+    }
+
+    // Render the appropriate step
+    if(this.step === 1) this._renderStep1Count();
+    else if(this.step === 2) this._renderStep2Penalty();
+    else if(this.step === 3) this._renderStep3Names();
+
+    // Back button: goes to previous step or Title
+    const backCb = ()=>{
+      if(this.step > 1){
+        this.scene.restart({
+          numPlayers: this.numPlayers, penaltyId: this.penaltyId,
+          playerNames: this.playerNames, step: this.step - 1
+        });
+      } else {
+        this.scene.start('Title');
+      }
+    };
+    addBackButton(this, { onClick: backCb });
+  }
+
+  // ===== STEP 1: 何人で遊ぶ? =====
+  _renderStep1Count(){
+    this.add.text(W/2, 280, '何人で遊ぶ？', {
+      fontFamily:'"Press Start 2P", monospace', fontSize:'22px', color:'#FFD700'
+    }).setOrigin(0.5).setShadow(0,0,'#FFD700',16,true,true);
+
+    // Big number buttons in a 3x2 grid
+    const counts = [2, 3, 4];
+    counts.forEach((n, i)=>{
+      const x = W/2 + (i-1)*150;
+      const y = 400;
+      this.makeBigCountBtn(x, y, n);
+    });
+
+    // Hint
+    this.add.text(W/2, H-130, 'タップで進む →', {
+      fontFamily:'"Press Start 2P", monospace', fontSize:'12px', color:'#666'
+    }).setOrigin(0.5);
+  }
+
+  makeBigCountBtn(x, y, n){
+    const w = 130, h = 110;
+    const c = this.add.container(x, y);
+    const bg = this.add.graphics();
+    bg.fillStyle(0x1a0030, 1);
+    bg.fillRoundedRect(-w/2,-h/2,w,h,16);
+    bg.lineStyle(3, 0x00FFFF, 1);
+    bg.strokeRoundedRect(-w/2,-h/2,w,h,16);
+    // Number
+    const txt = this.add.text(0,0, n+'人', {
+      fontFamily:'"Press Start 2P", monospace', fontSize:'34px',
+      color:'#00FFFF', stroke:'#000', strokeThickness:3
+    }).setOrigin(0.5).setShadow(0,0,'#00FFFF',14,true,true);
+    c.add([bg, txt]);
+    // Pulsing glow
+    this.tweens.add({ targets: c, scale:{from:1, to:1.04}, yoyo:true, repeat:-1, duration:800 });
+    // Hit zone
+    const hitZone = this.add.zone(x, y, w, h).setOrigin(0.5);
+    hitZone.setInteractive({ useHandCursor: true });
+    let fired = false;
+    hitZone.on('pointerdown', ()=>{
+      if(fired) return; fired = true;
+      Sound.ensure(); Sound.playBgm(); Sound.sfx.click();
+      c.setScale(0.92);
+      this.numPlayers = n;
+      this.time.delayedCall(120, ()=>{
+        this.scene.restart({
+          numPlayers: this.numPlayers, penaltyId: this.penaltyId,
+          playerNames: this.playerNames, step: 2
+        });
+      });
+    });
+  }
+
+  // ===== STEP 2: 負けたらなに飲む? =====
+  _renderStep2Penalty(){
+    this.add.text(W/2, 230, '負けたらなに飲む？', {
+      fontFamily:'"Press Start 2P", monospace', fontSize:'22px', color:'#FFD700'
+    }).setOrigin(0.5).setShadow(0,0,'#FFD700',16,true,true);
+
+    this.penaltyBtns = [];
+    PENALTIES.forEach((p, i)=>{
+      const y = 310 + i * 78;
+      const btn = this.makeBigPenaltyBtn(W/2, y, p);
+      btn.penaltyId = p.id;
+      this.penaltyBtns.push(btn);
+    });
+    this.refreshPenaltyBtns();
+
+    // Bottom: NEXT button
+    this.makeNextBtn(W/2, H-110, '次へ →', 0x39FF14, ()=>{
+      this.scene.restart({
+        numPlayers: this.numPlayers, penaltyId: this.penaltyId,
+        playerNames: this.playerNames, step: 3
+      });
+    });
+  }
+
+  makeBigPenaltyBtn(x, y, p){
+    const w = 460, h = 64;
+    const c = this.add.container(x, y);
+    const bg = this.add.graphics();
+    const emoji = this.add.text(-w/2+22, 0, p.emoji, { fontSize:'30px' }).setOrigin(0,0.5);
+    const lbl = this.add.text(-w/2+70, 0, p.label, {
+      fontFamily:'Arial Black', fontSize:'20px', color:'#fff',
+      stroke:'#000', strokeThickness:2
+    }).setOrigin(0,0.5);
+    c.add([bg, emoji, lbl]);
+    c.bg = bg; c.lbl = lbl;
+    const hitZone = this.add.zone(x, y, w, h).setOrigin(0.5);
+    hitZone.setInteractive({ useHandCursor: true });
+    let fired = false;
+    hitZone.on('pointerdown', ()=>{
+      if(fired) return; fired = true;
+      Sound.ensure(); Sound.playBgm(); Sound.sfx.click();
+      c.setScale(0.95);
+      this.penaltyId = p.id;
+      this.refreshPenaltyBtns();
+      this.time.delayedCall(80,()=>{ c.setScale(1); fired = false; });
+    });
+    return c;
+  }
+
+  refreshPenaltyBtns(){
+    this.penaltyBtns.forEach(b=>{
+      const sel = (b.penaltyId === this.penaltyId);
+      b.bg.clear();
+      const w = 460, h = 64;
+      b.bg.fillStyle(sel ? 0x440022 : 0x1a0030, 1);
+      b.bg.fillRoundedRect(-w/2,-h/2,w,h,14);
+      b.bg.lineStyle(sel?4:2, sel ? 0xFFD700 : 0xFF00AA, 1);
+      b.bg.strokeRoundedRect(-w/2,-h/2,w,h,14);
+    });
+  }
+
+  // ===== STEP 3: プレイヤー名入力 =====
+  _renderStep3Names(){
+    this.add.text(W/2, 230, 'プレイヤー名を入力', {
+      fontFamily:'"Press Start 2P", monospace', fontSize:'22px', color:'#FFD700'
+    }).setOrigin(0.5).setShadow(0,0,'#FFD700',16,true,true);
+
+    // Player slots (large, well-spaced)
+    this.nameSlots = [];
+    for(let i=0; i<this.numPlayers; i++){
+      const y = 310 + i*72;
+      const slot = this._makeNameSlot(W/2, y, i);
+      this.nameSlots.push(slot);
+    }
+
+    // START button (only if all names filled)
+    this.startBtn = this.makeNextBtn(W/2, H-110, '🎯 スタート！', 0xFFD700, ()=>{
+      const names = this.playerNames.slice(0, this.numPlayers).map((n,i)=>(n||'').trim() || ('P'+(i+1)));
+      this.scene.start('PartyHandoff', {
+        mode:'party', players: names, penalty: this.penaltyId,
+        currentPlayerIdx: 0, partyResults: []
+      });
+    });
+  }
+
+  _makeNameSlot(x, y, idx){
+    const w = 440, h = 56;
+    const c = this.add.container(x, y);
+    const bg = this.add.graphics();
+    bg.fillStyle(0x000000, 1);
+    bg.fillRoundedRect(-w/2,-h/2,w,h,14);
+    bg.lineStyle(3, 0xFF00FF, 1);
+    bg.strokeRoundedRect(-w/2,-h/2,w,h,14);
+    const label = this.add.text(-w/2+18, 0, 'P'+(idx+1), {
+      fontFamily:'"Press Start 2P", monospace', fontSize:'18px', color:'#FFD700'
+    }).setOrigin(0,0.5);
+    const valueText = this.playerNames[idx] || 'タップで入力';
+    const valueColor = this.playerNames[idx] ? '#FFD700' : '#666';
+    const value = this.add.text(40, 0, valueText, {
+      fontFamily:'Arial Black', fontSize:'22px', color: valueColor
+    }).setOrigin(0,0.5);
+    c.add([bg, label, value]);
+    const hitZone = this.add.zone(x, y, w, h).setOrigin(0.5);
+    hitZone.setInteractive({ useHandCursor: true });
+    let fired = false;
+    hitZone.on('pointerdown', ()=>{
+      if(fired) return; fired = true;
+      const modal = document.getElementById('name-modal');
+      if(modal && modal.classList.contains('show')){ fired = false; return; }
+      Sound.ensure(); Sound.sfx.click();
+      c.setScale(0.97);
+      this.time.delayedCall(80, ()=>{
+        c.setScale(1); fired = false;
+        showPartyNameModal(this.playerNames[idx] || '', 'P'+(idx+1)+'の名前', (newName)=>{
+          this.playerNames[idx] = newName;
+          // Update this slot's display
+          value.setText(newName);
+          value.setColor('#FFD700');
+        });
+      });
+    });
+    return { container: c, value };
+  }
+
+  // ===== Generic NEXT button (used in step 2 & 3) =====
+  makeNextBtn(x, y, text, color, onClick){
+    const w = 280, h = 64;
+    const c = this.add.container(x, y);
+    const bg = this.add.graphics();
+    bg.fillStyle(color, 1);
+    bg.fillRoundedRect(-w/2,-h/2,w,h,14);
+    bg.lineStyle(3, 0xFFD700, 1);
+    bg.strokeRoundedRect(-w/2,-h/2,w,h,14);
+    const t = this.add.text(0,0, text, {
+      fontFamily:'"Press Start 2P", monospace', fontSize:'18px', color:'#000',
+      stroke:'#fff', strokeThickness:2
+    }).setOrigin(0.5);
+    c.add([bg, t]);
+    this.tweens.add({ targets: c, scale:{from:1, to:1.04}, yoyo:true, repeat:-1, duration:700 });
+    const hitZone = this.add.zone(x, y, w, h).setOrigin(0.5);
+    hitZone.setInteractive({ useHandCursor: true });
+    let fired = false;
+    hitZone.on('pointerdown', ()=>{
+      if(fired) return; fired = true;
+      Sound.ensure(); Sound.playBgm(); Sound.sfx.click();
+      c.setScale(0.92);
+      this.time.delayedCall(120, onClick);
+    });
+    return c;
+  }
+
+  // Legacy makeChip for compatibility (not used in new layout but kept just in case)
+  makeChip(x, y, w, h, text, color, onClick){
+    return this.makeNextBtn(x, y, text, color, onClick);
+  }
+}
+
+/* ============================================================
+   PARTY HANDOFF SCENE - "Pass to next player" screen
+   ============================================================ */
+class PartyHandoffScene extends Phaser.Scene{
+  constructor(){ super('PartyHandoff'); }
+  init(data){ this.data2 = data; }
+  create(){
+    this.cameras.main.setBackgroundColor('#0a0a1a');
+    drawAtmosphere(this);
+    const d = this.data2;
+    const me = d.players[d.currentPlayerIdx];
+    const total = d.players.length;
+    const idx = d.currentPlayerIdx;
+    const isFirstPlayer = (idx === 0);
+
+    // === FULLSCREEN PLAYER TRANSITION INTRO ===
+    // Strong attention-getter so users don't think the game ended
+    this.showPlayerSwitchBanner(me, idx, total, isFirstPlayer);
+
+    // Title with decoration
+    this.add.text(W/2, 60, '🍻 みんなでダーツ 🍻', {
+      fontFamily:'"Press Start 2P", monospace', fontSize:'18px', color:'#39FF14'
+    }).setOrigin(0.5).setShadow(0,0,'#39FF14',12,true,true);
+
+    // Decorative divider
+    const div1 = this.add.graphics();
+    div1.lineStyle(2, 0x39FF14, 0.6);
+    div1.lineBetween(60, 90, W-60, 90);
+
+    // Show previous results so far (in a panel)
+    if(d.partyResults.length > 0){
+      const panelY = 110;
+      const panelH = 30 + d.partyResults.length*26 + 10;
+      const resPanel = this.add.graphics();
+      resPanel.fillStyle(0x1a0030, 0.6);
+      resPanel.fillRoundedRect(50, panelY, W-100, panelH, 12);
+      resPanel.lineStyle(2, 0xFFD700, 0.7);
+      resPanel.strokeRoundedRect(50, panelY, W-100, panelH, 12);
+      this.add.text(W/2, panelY+18, '── これまでのスコア ──', {
+        fontFamily:'Arial Black', fontSize:'13px', color:'#FFD700'
+      }).setOrigin(0.5);
+      d.partyResults.forEach((r, i)=>{
+        const medal = i===0?'🥇':i===1?'🥈':i===2?'🥉':'  ';
+        this.add.text(W/2, panelY+38 + i*26, medal+' '+r.name+' : '+r.score+'pt', {
+          fontFamily:'Arial Black', fontSize:'15px', color:'#fff'
+        }).setOrigin(0.5);
+      });
+    }
+
+    // Big "Next player" callout panel
+    const npY = 320;
+    const npPanel = this.add.graphics();
+    npPanel.fillStyle(0x1a0030, 0.85);
+    npPanel.fillRoundedRect(40, npY-50, W-80, 200, 18);
+    npPanel.lineStyle(3, 0xFFD700, 1);
+    npPanel.strokeRoundedRect(40, npY-50, W-80, 200, 18);
+    // glow border pulse
+    const npGlow = this.add.graphics();
+    npGlow.lineStyle(2, 0x39FF14, 0.6);
+    npGlow.strokeRoundedRect(36, npY-54, W-72, 208, 20);
+    this.tweens.add({ targets:npGlow, alpha:{from:0.3, to:1}, yoyo:true, repeat:-1, duration:800 });
+
+    this.add.text(W/2, npY-20, '👇 次のプレイヤー 👇', {
+      fontFamily:'Arial Black', fontSize:'18px', color:'#00FFFF'
+    }).setOrigin(0.5).setShadow(0,0,'#00FFFF',8,true,true);
+    const nameTxt = this.add.text(W/2, npY+40, me, {
+      fontFamily:'"Press Start 2P", monospace', fontSize:'42px', color:'#FFD700',
+      stroke:'#FF00FF', strokeThickness:6
+    }).setOrigin(0.5).setShadow(0,0,'#FF00FF',24,true,true);
+    this.tweens.add({ targets:nameTxt, scale:{from:1,to:1.08}, yoyo:true, repeat:-1, duration:700 });
+
+    this.add.text(W/2, npY+100, '('+(idx+1)+' / '+total+'人目)', {
+      fontFamily:'Arial Black', fontSize:'18px', color:'#fff'
+    }).setOrigin(0.5);
+
+    // Penalty reminder panel
+    const pen = getPenaltyById(d.penalty);
+    const penY = 580;
+    const penPanel = this.add.graphics();
+    penPanel.fillStyle(0x1a0000, 0.7);
+    penPanel.fillRoundedRect(40, penY-25, W-80, 100, 14);
+    penPanel.lineStyle(3, 0xFF0033, 0.9);
+    penPanel.strokeRoundedRect(40, penY-25, W-80, 100, 14);
+
+    this.add.text(W/2, penY, '💀 最下位の罰ゲーム 💀', {
+      fontFamily:'"Press Start 2P", monospace', fontSize:'13px', color:'#FF0033'
+    }).setOrigin(0.5).setShadow(0,0,'#FF0033',10,true,true);
+    const penaltyTxt = this.add.text(W/2, penY+40, pen.emoji+' '+pen.label, {
+      fontFamily:'"Press Start 2P", monospace', fontSize:'18px', color:pen.color
+    }).setOrigin(0.5).setShadow(0,0,pen.color,12,true,true);
+    this.tweens.add({ targets:penaltyTxt, scale:{from:1, to:1.05}, yoyo:true, repeat:-1, duration:600 });
+
+    // Start button
+    const startBtn = this.add.container(W/2, H-150);
+    const w=280, h=70;
+    const bg = this.add.graphics();
+    bg.fillStyle(0x39FF14, 1);
+    bg.fillRoundedRect(-w/2,-h/2,w,h,14);
+    bg.lineStyle(3, 0xFFD700, 1);
+    bg.strokeRoundedRect(-w/2,-h/2,w,h,14);
+    const t = this.add.text(0,0,me+' START!',{
+      fontFamily:'"Press Start 2P", monospace', fontSize:'18px', color:'#000',
+      stroke:'#fff', strokeThickness:2
+    }).setOrigin(0.5);
+    startBtn.add([bg, t]);
+    // pulse
+    this.tweens.add({ targets:startBtn, scale:{from:1, to:1.04}, yoyo:true, repeat:-1, duration:700 });
+    // Zone-based hit detection
+    const hitZone = this.add.zone(W/2, H-150, w, h).setOrigin(0.5);
+    hitZone.setInteractive({ useHandCursor: true });
+    let fired = false;
+    hitZone.on('pointerdown', ()=>{
+      if(fired) return; fired = true;
+      Sound.ensure(); Sound.playBgm(); Sound.sfx.click();
+      startBtn.setScale(0.92);
+      this.scene.start('Game', d);
+    });
+
+    // Quit button
+    const quit = this.add.text(W/2, H-60, '× やめる', {
+      fontFamily:'"Press Start 2P", monospace', fontSize:'14px', color:'#FF00AA'
+    }).setOrigin(0.5).setInteractive({useHandCursor:true});
+    quit.on('pointerdown', ()=>{ Sound.sfx.click(); this.scene.start('Title'); });
+
+    // Back button (top-left)
+    addBackButton(this);
+
+    // Sound toggle
+    this.soundBtn = this.add.text(W-50, 25, Sound.isOn()?'🔊':'🔇', {
+      fontSize:'32px'
+    }).setOrigin(1,0).setInteractive({useHandCursor:true});
+    this.soundBtn.on('pointerdown', ()=>{
+      const on = Sound.toggle();
+      this.soundBtn.setText(on?'🔊':'🔇');
+      Sound.sfx.click();
+    });
+  }
+  showPlayerSwitchBanner(playerName, idx, total, isFirstPlayer){
+    const scene = this;
+    const overlay = scene.add.container(0,0).setDepth(1000);
+
+    // Full screen dark overlay
+    const dim = scene.add.rectangle(W/2, H/2, W, H, 0x000000, 0.92);
+    overlay.add(dim);
+
+    // Top label
+    const topLbl = scene.add.text(W/2, 200,
+      isFirstPlayer ? '🎯 ゲームスタート 🎯' : '✨ プレイヤー交代 ✨',
+      {
+        fontFamily:'"Press Start 2P", monospace', fontSize:'22px',
+        color: isFirstPlayer ? '#FFD700' : '#39FF14',
+        stroke:'#000', strokeThickness:4
+      }
+    ).setOrigin(0.5).setShadow(0,0, isFirstPlayer ? '#FFD700' : '#39FF14', 16, true, true);
+    overlay.add(topLbl);
+
+    // Big "○○の番！" callout
+    const nameTxt = scene.add.text(W/2, 380, playerName, {
+      fontFamily:'"Press Start 2P", monospace', fontSize:'72px',
+      color:'#FFD700', stroke:'#FF00FF', strokeThickness:8,
+      align:'center'
+    }).setOrigin(0.5).setShadow(0,0,'#FF00FF',32,true,true);
+    // shrink long names
+    try {
+      if(nameTxt.width > W-60){
+        const ratio = (W-60) / nameTxt.width;
+        nameTxt.setStyle({ fontSize: Math.max(36, Math.floor(72 * ratio)) + 'px' });
+      }
+    } catch(e){}
+    overlay.add(nameTxt);
+
+    const subTxt = scene.add.text(W/2, 470, 'の番だ！！', {
+      fontFamily:'"Press Start 2P", monospace', fontSize:'32px',
+      color:'#FF00AA', stroke:'#000', strokeThickness:5
+    }).setOrigin(0.5).setShadow(0,0,'#FF00AA',20,true,true);
+    overlay.add(subTxt);
+
+    const progress = scene.add.text(W/2, 540, '('+(idx+1)+' / '+total+'人目)', {
+      fontFamily:'Arial Black', fontSize:'24px', color:'#00FFFF'
+    }).setOrigin(0.5);
+    overlay.add(progress);
+
+    const tap = scene.add.text(W/2, 720, '画面タップで進む', {
+      fontFamily:'"Press Start 2P", monospace', fontSize:'14px', color:'#888'
+    }).setOrigin(0.5);
+    overlay.add(tap);
+    scene.tweens.add({ targets:tap, alpha:{from:0.4, to:1}, yoyo:true, repeat:-1, duration:600 });
+
+    // Decorative arrows pointing inward
+    const lArrow = scene.add.text(80, 380, '▶', {
+      fontSize:'60px', color:'#FFD700'
+    }).setOrigin(0.5);
+    const rArrow = scene.add.text(W-80, 380, '◀', {
+      fontSize:'60px', color:'#FFD700'
+    }).setOrigin(0.5);
+    overlay.add([lArrow, rArrow]);
+    scene.tweens.add({
+      targets: lArrow, x: 100, alpha:{from:1, to:0.5},
+      yoyo:true, repeat:-1, duration:500
+    });
+    scene.tweens.add({
+      targets: rArrow, x: W-100, alpha:{from:1, to:0.5},
+      yoyo:true, repeat:-1, duration:500
+    });
+
+    // Camera flash + shake
+    scene.cameras.main.flash(400, 255, 215, 0, false);
+    scene.cameras.main.shake(200, 0.01);
+
+    // Pop-in animation
+    nameTxt.setScale(0.3); nameTxt.setAlpha(0);
+    subTxt.setScale(0.3); subTxt.setAlpha(0);
+    scene.tweens.add({
+      targets: nameTxt, scale:{from:0.3, to:1.1}, alpha:1,
+      duration: 500, ease: 'Back.easeOut',
+      onComplete: ()=>{
+        scene.tweens.add({
+          targets: nameTxt, scale:{from:1.1, to:1.05},
+          yoyo:true, repeat:-1, duration:600
+        });
+      }
+    });
+    scene.tweens.add({
+      targets: subTxt, scale:{from:0.3, to:1}, alpha:1,
+      duration: 400, delay: 250, ease:'Back.easeOut'
+    });
+
+    // Sound: arpeggio chime only (no voice for player switch)
+    Sound.sfx.bonus();
+
+    // Confetti from top
+    for(let i=0;i<25;i++){
+      const c = scene.add.circle(
+        Phaser.Math.Between(40, W-40), -20,
+        Phaser.Math.Between(4, 8),
+        Phaser.Utils.Array.GetRandom([0xFFD700, 0xFF00AA, 0x00FFFF, 0x39FF14, 0xFF00FF])
+      );
+      c.setDepth(1001);
+      overlay.add(c);
+      scene.tweens.add({
+        targets: c, y: H+30,
+        x: c.x + Phaser.Math.Between(-60,60),
+        rotation: Phaser.Math.FloatBetween(-3, 3),
+        duration: Phaser.Math.Between(1800, 3000),
+        delay: Phaser.Math.Between(0, 600),
+        ease:'Cubic.easeIn'
+      });
+    }
+
+    // Auto-dismiss after 2.8s OR on tap
+    let dismissed = false;
+    const dismiss = ()=>{
+      if(dismissed) return;
+      dismissed = true;
+      scene.tweens.add({
+        targets: overlay, alpha: 0, duration: 300,
+        onComplete: ()=>overlay.destroy()
+      });
+    };
+    // Tap anywhere to skip (after a short delay so it doesn't dismiss instantly)
+    scene.time.delayedCall(800, ()=>{
+      const dismissZone = scene.add.zone(W/2, H/2, W, H).setOrigin(0.5);
+      dismissZone.setInteractive();
+      dismissZone.setDepth(1010);
+      overlay.add(dismissZone);
+      dismissZone.on('pointerdown', dismiss);
+    });
+    // Auto-dismiss
+    scene.time.delayedCall(2800, dismiss);
+  }
+}
+class PartyResultScene extends Phaser.Scene{
+  constructor(){ super('PartyResult'); }
+  init(data){ this.data2 = data; }
+  create(){
+    this.cameras.main.setBackgroundColor('#0a0a1a');
+    drawAtmosphere(this);
+    spawnSmoke(this);
+    const d = this.data2;
+    // sort by score desc
+    const sorted = d.results.slice().sort((a,b)=>b.score - a.score);
+    const winner = sorted[0];
+    const loser = sorted[sorted.length-1];
+    const pen = getPenaltyById(d.penalty);
+
+    // Title
+    this.add.text(W/2, 60, '🍻 RESULT 🍻', {
+      fontFamily:'"Press Start 2P", monospace', fontSize:'28px', color:'#FFD700'
+    }).setOrigin(0.5).setShadow(0,0,'#FF00FF',16,true,true);
+
+    // Rankings
+    this.add.text(W/2, 115, '── 順位 ──', {
+      fontFamily:'Arial Black', fontSize:'14px', color:'#00FFFF'
+    }).setOrigin(0.5);
+
+    sorted.forEach((r, i)=>{
+      const rank = i+1;
+      const medal = rank===1?'🥇':rank===2?'🥈':rank===3?'🥉':'  ';
+      const isWinner = (rank===1);
+      const isLoser = (rank===sorted.length);
+      const color = isWinner ? '#FFD700' : isLoser ? '#FF0033' : '#fff';
+      const txt = medal+' '+rank+'. '+r.name+' - '+r.score+'pt'+(isLoser?' 💀':'');
+      const t = this.add.text(W/2, 150 + i*32, txt, {
+        fontFamily:'Arial Black', fontSize:'17px', color:color
+      }).setOrigin(0.5);
+      if(isWinner || isLoser) t.setShadow(0,0,color,10,true,true);
+    });
+
+    // Loser callout
+    const yLoser = 150 + sorted.length*32 + 30;
+    this.add.text(W/2, yLoser, '💀 最下位は…', {
+      fontFamily:'"Press Start 2P", monospace', fontSize:'16px', color:'#FF0033'
+    }).setOrigin(0.5).setShadow(0,0,'#FF0033',12,true,true);
+    const loserName = this.add.text(W/2, yLoser+45, loser.name, {
+      fontFamily:'"Press Start 2P", monospace', fontSize:'40px', color:'#FFD700',
+      stroke:'#FF0033', strokeThickness:6
+    }).setOrigin(0.5).setShadow(0,0,'#FF0033',20,true,true);
+    this.tweens.add({ targets:loserName, scale:{from:1,to:1.1}, yoyo:true, repeat:-1, duration:600 });
+
+    this.add.text(W/2, yLoser+95, '⚡ 罰ゲーム発動！ ⚡', {
+      fontFamily:'"Press Start 2P", monospace', fontSize:'18px', color:'#FFD700'
+    }).setOrigin(0.5).setShadow(0,0,'#FF0033',16,true,true);
+
+    // ===== Penalty announcement (BIG, dramatic) =====
+    const py = yLoser+170;
+    // Outer flashing glow
+    const penGlowOuter = this.add.graphics();
+    penGlowOuter.lineStyle(4, 0xFF0033, 0.8);
+    penGlowOuter.strokeRoundedRect(W/2-240, py-55, 480, 110, 18);
+    this.tweens.add({ targets:penGlowOuter, alpha:{from:0.4, to:1}, yoyo:true, repeat:-1, duration:400 });
+    // Middle gold ring
+    const penGlowMid = this.add.graphics();
+    penGlowMid.lineStyle(3, 0xFFD700, 0.9);
+    penGlowMid.strokeRoundedRect(W/2-232, py-50, 464, 100, 16);
+    // Background panel - dark red
+    const penBg = this.add.graphics();
+    penBg.fillStyle(0x2a0010, 1);
+    penBg.fillRoundedRect(W/2-225, py-45, 450, 90, 14);
+    penBg.lineStyle(3, 0xFF0033, 1);
+    penBg.strokeRoundedRect(W/2-225, py-45, 450, 90, 14);
+    // Big emoji on left
+    const bigEmoji = this.add.text(W/2-160, py, pen.emoji, {
+      fontSize: '54px'
+    }).setOrigin(0.5);
+    this.tweens.add({ targets:bigEmoji, scale:{from:1, to:1.2}, yoyo:true, repeat:-1, duration:500 });
+    // Big penalty label
+    const penText = this.add.text(W/2+30, py, pen.label, {
+      fontFamily:'"Press Start 2P", monospace', fontSize:'22px', color:pen.color,
+      stroke:'#000', strokeThickness:4, align:'center'
+    }).setOrigin(0.5).setShadow(0,0,pen.color,16,true,true);
+    // shrink to fit panel width
+    try {
+      const maxW = 290;
+      if(penText.width > maxW){
+        const ratio = maxW / penText.width;
+        penText.setStyle({ fontSize: Math.max(14, Math.floor(22 * ratio)) + 'px' });
+      }
+    } catch(e){}
+    // pulsing
+    this.tweens.add({ targets:[penBg, penText, penGlowMid], scale:{from:1, to:1.05}, yoyo:true, repeat:-1, duration:500 });
+
+    // BGM stop while penalty plays so SFX is clearer
+    Sound.stopBgm();
+
+    // Initial drum roll for drama
+    Sound.sfx.end();
+
+    // Confetti for the winner
+    this.time.delayedCall(300, ()=>{
+      for(let i=0;i<30;i++){
+        const c = this.add.circle(
+          Phaser.Math.Between(50, W-50), -20,
+          Phaser.Math.Between(4, 8),
+          Phaser.Utils.Array.GetRandom([0xFFD700, 0xFF00AA, 0x00FFFF, 0x39FF14, 0xFF00FF])
+        );
+        c.setDepth(150);
+        this.tweens.add({
+          targets: c,
+          y: H + 50,
+          x: c.x + Phaser.Math.Between(-80, 80),
+          rotation: Phaser.Math.Between(-6, 6),
+          duration: Phaser.Math.Between(2000, 3500),
+          delay: Phaser.Math.Between(0, 800),
+          ease: 'Cubic.easeIn',
+          onComplete: ()=>c.destroy()
+        });
+      }
+    });
+
+    // === Penalty-specific effect & audio (delayed so user can read first) ===
+    this.time.delayedCall(1400, ()=>{
+      this.triggerPenaltyEffect(d.penalty, py, loser.name);
+    });
+
+    // Calculate when penalty effect finishes
+    // Most penalty effects last about 3-5 seconds, full_chug is the longest (~7s)
+    const penaltyDuration = d.penalty === 'full_chug' ? 7500 :
+                            d.penalty === 'half_chug' ? 4500 :
+                            d.penalty === 'cocabomb'  ? 3500 :
+                            d.penalty === 'kleiner'   ? 3500 :
+                                                        3000; // tequila
+    // Total wait: 1400ms (intro delay) + penalty effect duration
+    const totalWait = 1400 + penaltyDuration;
+
+    // Buttons appear AFTER penalty effect is fully shown
+    // Track all button objects (containers + their hit zones) to hide/show together
+    this.btn1 = this.makeBtn(W/2, H-130, '🍻 もう一回プレイする？', 0x39FF14, ()=>{
+      Sound.sfx.click();
+      this.showReplayConfirm(d);
+    });
+    this.btn2 = this.makeBtn(W/2, H-60, '🏠 タイトルへ', 0x00FFFF, ()=>{
+      Sound.sfx.click();
+      this.scene.start('Title');
+    });
+    // Hide buttons initially (alpha + disable hit zones)
+    this.btn1.setVisible(false);
+    this.btn2.setVisible(false);
+    if(this.btn1.hitZone) this.btn1.hitZone.disableInteractive();
+    if(this.btn2.hitZone) this.btn2.hitZone.disableInteractive();
+
+    // Hint text shown during penalty
+    const hint = this.add.text(W/2, H-90, '⏳ 罰ゲーム実行中...', {
+      fontFamily:'"Press Start 2P", monospace', fontSize:'12px', color:'#666'
+    }).setOrigin(0.5).setDepth(60);
+    this.tweens.add({ targets:hint, alpha:{from:0.4, to:1}, yoyo:true, repeat:-1, duration:600 });
+
+    // Reveal buttons after penalty completes
+    this.time.delayedCall(totalWait, ()=>{
+      hint.destroy();
+      this.btn1.setVisible(true);
+      this.btn2.setVisible(true);
+      if(this.btn1.hitZone) this.btn1.hitZone.setInteractive({ useHandCursor: true });
+      if(this.btn2.hitZone) this.btn2.hitZone.setInteractive({ useHandCursor: true });
+      // fade-in animation
+      this.btn1.setAlpha(0); this.btn2.setAlpha(0);
+      this.tweens.add({ targets:[this.btn1, this.btn2], alpha: 1, duration: 500 });
+    });
+
+    // Back button (top-left)
+    addBackButton(this);
+
+    this.soundBtn = this.add.text(W-50, 20, Sound.isOn()?'🔊':'🔇', {
+      fontSize:'32px'
+    }).setOrigin(1,0).setInteractive({useHandCursor:true});
+    this.soundBtn.on('pointerdown', ()=>{
+      const on = Sound.toggle();
+      this.soundBtn.setText(on?'🔊':'🔇');
+      Sound.sfx.click();
+    });
+  }
+
+  showShoutBanner(text, color, opts){
+    opts = opts || {};
+    const scene = this;
+    const y = opts.y || H/2;
+    const fontSize = opts.fontSize || 40;
+    // Background flash overlay
+    const overlay = scene.add.rectangle(W/2, H/2, W, H, opts.bgColor || 0x000000, 0.5);
+    overlay.setDepth(290);
+    scene.tweens.add({ targets: overlay, alpha: 0, duration: 1200, onComplete:()=>overlay.destroy() });
+    // Speech-bubble panel
+    const panelW = W - 40, panelH = 140;
+    const panel = scene.add.graphics();
+    panel.fillStyle(0x000000, 0.92);
+    panel.fillRoundedRect(W/2-panelW/2, y-panelH/2, panelW, panelH, 18);
+    panel.lineStyle(5, color, 1);
+    panel.strokeRoundedRect(W/2-panelW/2, y-panelH/2, panelW, panelH, 18);
+    panel.setDepth(295).setAlpha(0);
+    // Text
+    const txt = scene.add.text(W/2, y, text, {
+      fontFamily:'"Press Start 2P", monospace', fontSize: fontSize+'px',
+      color: '#FFD700', stroke: '#000', strokeThickness: 6,
+      align: 'center', wordWrap: { width: panelW - 30 }
+    }).setOrigin(0.5).setDepth(296).setAlpha(0).setShadow(0,0,color,20,true,true);
+    // shrink to fit if too wide
+    try {
+      if(txt.width > panelW - 40){
+        const ratio = (panelW - 40) / txt.width;
+        txt.setStyle({ fontSize: Math.max(18, Math.floor(fontSize * ratio)) + 'px' });
+      }
+    } catch(e){}
+    // Pop in
+    scene.tweens.add({
+      targets: [panel, txt], alpha: 1, scale: { from: 0.5, to: 1 },
+      duration: 350, ease: 'Back.easeOut'
+    });
+    // Pulse
+    scene.tweens.add({
+      targets: txt, scale: { from: 1, to: 1.08 },
+      yoyo: true, repeat: 4, duration: 200, delay: 350
+    });
+    // Fade out after 2.5s
+    scene.time.delayedCall(2500, ()=>{
+      scene.tweens.add({
+        targets: [panel, txt], alpha: 0, scale: 1.2, duration: 400,
+        onComplete:()=>{ panel.destroy(); txt.destroy(); }
+      });
+    });
+  }
+
+  triggerPenaltyEffect(penaltyId, py, loserName){
+    const scene = this;
+    const name = loserName || '';
+    if(penaltyId === 'tequila'){
+      // 🥃 Tequila: shot glass slam + lemon/salt
+      Sound.sfx.penaltyTequila();
+      // Dramatic announcement: air horn + crowd cheer
+      setTimeout(()=>Sound.sfx.airHorn(), 200);
+      setTimeout(()=>Sound.sfx.crowdCheer(1.5), 800);
+      this.showShoutBanner(name+'！\nテキーラ1杯\n飲めよ〜！', 0xFFD700, { y: 220 });
+      scene.cameras.main.shake(200, 0.018);
+      scene.cameras.main.flash(300, 255, 215, 0, false);
+      for(let i=0; i<14; i++){
+        const e = scene.add.text(W/2, py,
+          Phaser.Utils.Array.GetRandom(['🍋','🧂','🥃']),
+          { fontSize: Phaser.Math.Between(24,40)+'px' }
+        ).setOrigin(0.5).setDepth(200);
+        const ang = (i/14)*Math.PI*2 + Math.random()*0.5;
+        const dist = Phaser.Math.Between(100, 240);
+        scene.tweens.add({
+          targets: e,
+          x: W/2 + Math.cos(ang)*dist,
+          y: py + Math.sin(ang)*dist + 50,
+          rotation: Phaser.Math.FloatBetween(-3, 3),
+          alpha: 0, duration: 1400,
+          ease: 'Cubic.easeOut',
+          onComplete: ()=>e.destroy()
+        });
+      }
+    } else if(penaltyId === 'cocabomb'){
+      // 🍹 Coca Bomb: fizz + boom
+      Sound.sfx.penaltyCocabomb();
+      // Dramatic announcement: fanfare + crowd cheer
+      setTimeout(()=>Sound.sfx.fanfare(), 200);
+      setTimeout(()=>Sound.sfx.crowdCheer(1.0), 1000);
+      this.showShoutBanner(name+'！\nコカボム\n爆発しちゃえ〜！', 0xFF00AA, { y: 220 });
+      for(let i=0; i<25; i++){
+        scene.time.delayedCall(i*40, ()=>{
+          const b = scene.add.circle(
+            W/2 + Phaser.Math.Between(-180, 180),
+            py + 40,
+            Phaser.Math.Between(4, 12),
+            0xFFFFFF, 0.6
+          );
+          b.setStrokeStyle(2, 0xFFD700, 0.8);
+          b.setDepth(200);
+          scene.tweens.add({
+            targets: b,
+            y: b.y - Phaser.Math.Between(150, 350),
+            scale: { from: 1, to: 0.3 },
+            alpha: 0,
+            duration: Phaser.Math.Between(1000, 1800),
+            onComplete: ()=>b.destroy()
+          });
+        });
+      }
+      scene.time.delayedCall(600, ()=>{
+        scene.cameras.main.shake(400, 0.025);
+        scene.cameras.main.flash(300, 255, 0, 0, false);
+        const ring = scene.add.circle(W/2, py, 10, 0xFF00AA, 0);
+        ring.setStrokeStyle(8, 0xFF0033, 1).setDepth(180);
+        scene.tweens.add({
+          targets: ring, radius: 280, alpha: 0,
+          duration: 600, onComplete: ()=>ring.destroy()
+        });
+        for(let i=0; i<24; i++){
+          const ang = (i/24)*Math.PI*2;
+          const c = scene.add.circle(W/2, py, Phaser.Math.Between(5,10),
+            Phaser.Utils.Array.GetRandom([0xFF0033, 0xFFD700, 0xFF00AA]));
+          c.setDepth(190);
+          scene.tweens.add({
+            targets: c,
+            x: W/2 + Math.cos(ang) * 220,
+            y: py + Math.sin(ang) * 220,
+            alpha: 0, duration: 900,
+            ease: 'Cubic.easeOut',
+            onComplete: ()=>c.destroy()
+          });
+        }
+        const bomb = scene.add.text(W/2, py, '💣', { fontSize:'80px' })
+          .setOrigin(0.5).setDepth(195);
+        scene.tweens.add({
+          targets: bomb, scale: { from: 0.5, to: 3 }, alpha: 0,
+          duration: 600, onComplete: ()=>bomb.destroy()
+        });
+      });
+    } else if(penaltyId === 'kleiner'){
+      // 🍷 Kleiner: sparkly hearts + purple glow
+      Sound.sfx.penaltyKleiner();
+      // Dramatic announcement: whistle + light cheer
+      setTimeout(()=>Sound.sfx.whistle(), 200);
+      setTimeout(()=>Sound.sfx.crowdCheer(0.8), 600);
+      this.showShoutBanner(name+'さん♪\nクライナー1杯\nどうぞ〜♪', 0xBF00FF, { y: 220 });
+      scene.cameras.main.flash(300, 191, 0, 255, false);
+      for(let i=0; i<20; i++){
+        scene.time.delayedCall(i*60, ()=>{
+          const e = scene.add.text(
+            Phaser.Math.Between(40, W-40), -30,
+            Phaser.Utils.Array.GetRandom(['✨','💜','🍷','⭐']),
+            { fontSize: Phaser.Math.Between(20,36)+'px' }
+          ).setOrigin(0.5).setDepth(180);
+          scene.tweens.add({
+            targets: e,
+            y: H + 30,
+            x: e.x + Phaser.Math.Between(-40, 40),
+            rotation: Phaser.Math.FloatBetween(-2, 2),
+            alpha: { from: 1, to: 0.3 },
+            duration: Phaser.Math.Between(2200, 3200),
+            onComplete: ()=>e.destroy()
+          });
+        });
+      }
+      const ring = scene.add.circle(W/2, py, 20, 0xBF00FF, 0);
+      ring.setStrokeStyle(4, 0xBF00FF, 0.8).setDepth(160);
+      scene.tweens.add({
+        targets: ring, radius: 200, alpha: 0,
+        duration: 1500, onComplete: ()=>ring.destroy()
+      });
+    } else if(penaltyId === 'half_chug'){
+      // 🍺 Half Chug: drumroll + cheer
+      Sound.sfx.penaltyHalfChug();
+      // Dramatic announcement: air horn + crowd cheer + whistle
+      setTimeout(()=>Sound.sfx.airHorn(), 200);
+      setTimeout(()=>Sound.sfx.whistle(), 700);
+      setTimeout(()=>Sound.sfx.crowdCheer(1.5), 900);
+      this.showShoutBanner(name+'！\n半分一気だ！\nイケイケ〜！', 0x00FFFF, { y: 220 });
+      scene.cameras.main.flash(150, 0, 255, 255, false);
+      scene.time.addEvent({
+        delay: 60, repeat: 22,
+        callback: ()=>scene.cameras.main.shake(50, 0.004)
+      });
+      const gulps = ['ゴクッ','ゴクッ','ゴクッ','ゴクッ','ゴクッ'];
+      gulps.forEach((g, i)=>{
+        scene.time.delayedCall(1300 + i*220, ()=>{
+          const t = scene.add.text(
+            W/2 + Phaser.Math.Between(-100, 100),
+            py + 40, g,
+            { fontFamily:'"Press Start 2P", monospace', fontSize:'22px',
+              color:'#FFD700', stroke:'#000', strokeThickness:4 }
+          ).setOrigin(0.5).setDepth(200);
+          scene.tweens.add({
+            targets: t, y: t.y - 80, scale: 1.4, alpha: 0,
+            duration: 700, onComplete: ()=>t.destroy()
+          });
+        });
+      });
+      for(let i=0; i<10; i++){
+        scene.time.delayedCall(i*100, ()=>{
+          const e = scene.add.text(W/2, py, '🍺',
+            { fontSize:'32px' }
+          ).setOrigin(0.5).setDepth(180);
+          const ang = Phaser.Math.FloatBetween(-Math.PI*0.6, Math.PI*0.6) - Math.PI/2;
+          scene.tweens.add({
+            targets: e,
+            x: W/2 + Math.cos(ang)*Phaser.Math.Between(150, 280),
+            y: py + Math.sin(ang)*Phaser.Math.Between(150, 280),
+            rotation: Phaser.Math.FloatBetween(-3, 3),
+            alpha: 0,
+            duration: 1500,
+            ease: 'Cubic.easeOut',
+            onComplete: ()=>e.destroy()
+          });
+        });
+      }
+    } else if(penaltyId === 'full_chug'){
+      // 💀 Full Chug: ALARM + SKULL chaos
+      Sound.sfx.penaltyFullChug();
+      // Dramatic announcement: gong + double air horn + intense cheer
+      setTimeout(()=>Sound.sfx.gong(), 200);
+      setTimeout(()=>Sound.sfx.airHorn(), 800);
+      setTimeout(()=>Sound.sfx.airHorn(), 1500);
+      setTimeout(()=>Sound.sfx.crowdCheer(2.0), 1800);
+      this.showShoutBanner(name+'！\nアルコール\n全部一気だ！！！', 0xFF0033, { y: 220, fontSize: 36, bgColor: 0x440000 });
+      // follow-up cheer
+      setTimeout(()=>{
+        Sound.sfx.crowdCheer(1.5); Sound.sfx.airHorn();
+        this.showShoutBanner('飲め飲め飲め飲め〜！', 0xFFD700, { y: 220, fontSize: 32, bgColor: 0x440000 });
+      }, 2700);
+      for(let i=0; i<3; i++){
+        scene.time.delayedCall(i*450, ()=>{
+          scene.cameras.main.flash(300, 255, 0, 0, false);
+          scene.cameras.main.shake(200, 0.018);
+        });
+      }
+      for(let i=0; i<25; i++){
+        scene.time.delayedCall(1000 + i*80, ()=>{
+          const e = scene.add.text(
+            Phaser.Math.Between(20, W-20), -40,
+            Phaser.Utils.Array.GetRandom(['💀','🍺','🔥','⚠️','💀','🍻']),
+            { fontSize: Phaser.Math.Between(28, 50)+'px' }
+          ).setOrigin(0.5).setDepth(180);
+          scene.tweens.add({
+            targets: e,
+            y: H + 50,
+            rotation: Phaser.Math.FloatBetween(-6, 6),
+            duration: Phaser.Math.Between(1800, 3000),
+            ease: 'Cubic.easeIn',
+            onComplete: ()=>e.destroy()
+          });
+        });
+      }
+      scene.time.delayedCall(1500, ()=>{
+        const skull = scene.add.text(W/2, py, '💀',
+          { fontSize:'120px' }
+        ).setOrigin(0.5).setDepth(195).setAlpha(0);
+        scene.tweens.add({
+          targets: skull, alpha: 1, scale: { from: 0.3, to: 1.4 },
+          duration: 400, ease: 'Back.easeOut',
+          onComplete: ()=>{
+            scene.tweens.add({
+              targets: skull, scale: { from: 1.4, to: 1.5 },
+              yoyo: true, repeat: 4, duration: 200,
+              onComplete: ()=>{
+                scene.tweens.add({
+                  targets: skull, alpha: 0, scale: 2,
+                  duration: 600, onComplete: ()=>skull.destroy()
+                });
+              }
+            });
+          }
+        });
+      });
+      const gulps2 = ['イッキ!','イッキ!','イッキ!','イッキ!','イッキ!','イッキ!'];
+      gulps2.forEach((g, i)=>{
+        scene.time.delayedCall(3500 + i*250, ()=>{
+          const t = scene.add.text(
+            W/2 + Phaser.Math.Between(-130, 130),
+            py + Phaser.Math.Between(-40, 60), g,
+            { fontFamily:'"Press Start 2P", monospace', fontSize:'28px',
+              color:'#FF0033', stroke:'#FFD700', strokeThickness:4 }
+          ).setOrigin(0.5).setDepth(210);
+          scene.tweens.add({
+            targets: t, scale: { from: 0.5, to: 1.6 }, alpha: 0,
+            duration: 800, ease: 'Cubic.easeOut',
+            onComplete: ()=>t.destroy()
+          });
+        });
+      });
+      scene.time.delayedCall(5500, ()=>{
+        scene.cameras.main.shake(600, 0.02);
+        scene.cameras.main.flash(400, 255, 215, 0, false);
+      });
+    }
+  }
+
+  makeBtn(x,y,text,color,onClick){
+    const w=280, h=56;
+    const c = this.add.container(x,y);
+    const bg = this.add.graphics();
+    bg.fillStyle(color,1);
+    bg.fillRoundedRect(-w/2,-h/2,w,h,12);
+    bg.lineStyle(2,0xFFD700,1);
+    bg.strokeRoundedRect(-w/2,-h/2,w,h,12);
+    const t = this.add.text(0,0,text,{
+      fontFamily:'"Press Start 2P", monospace', fontSize:'14px', color:'#fff',
+      stroke:'#000', strokeThickness:2,
+      align:'center'
+    }).setOrigin(0.5);
+    // shrink to fit
+    try {
+      const maxW = w - 24;
+      if(t.width > maxW){
+        const ratio = maxW / t.width;
+        t.setStyle({ fontSize: Math.max(10, Math.floor(14 * ratio)) + 'px' });
+      }
+    } catch(e){}
+    c.add([bg,t]);
+    // Zone-based hit detection
+    const hitZone = this.add.zone(x, y, w, h).setOrigin(0.5);
+    hitZone.setInteractive({ useHandCursor: true });
+    c.hitZone = hitZone; // expose for show/hide control
+    let fired = false;
+    hitZone.on('pointerdown',()=>{
+      if(fired) return; fired = true;
+      Sound.ensure(); Sound.sfx.click();
+      c.setScale(0.92);
+      onClick();
+      this.time.delayedCall(50, ()=>{ c.setScale(1); fired = false; });
+    });
+    return c;
+  }
+
+  showReplayConfirm(d){
+    // Confirmation modal: もう一回プレイする?
+    const ov = this.add.container(0,0).setDepth(1000);
+    const bg = this.add.rectangle(W/2, H/2, W, H, 0x000000, 0.85);
+    bg.setInteractive(); // block taps under modal
+    // Panel
+    const panelW = 440, panelH = 280;
+    const panel = this.add.graphics();
+    panel.fillStyle(0x1a0030, 1);
+    panel.fillRoundedRect(W/2-panelW/2, H/2-panelH/2, panelW, panelH, 18);
+    panel.lineStyle(3, 0x39FF14, 1);
+    panel.strokeRoundedRect(W/2-panelW/2, H/2-panelH/2, panelW, panelH, 18);
+    // Glow
+    const glow = this.add.graphics();
+    glow.lineStyle(2, 0x39FF14, 0.5);
+    glow.strokeRoundedRect(W/2-panelW/2-4, H/2-panelH/2-4, panelW+8, panelH+8, 20);
+    this.tweens.add({ targets:glow, alpha:{from:0.3, to:1}, yoyo:true, repeat:-1, duration:700 });
+
+    const title = this.add.text(W/2, H/2-90, '🍻 もう一回 🍻', {
+      fontFamily:'"Press Start 2P", monospace', fontSize:'22px', color:'#39FF14'
+    }).setOrigin(0.5).setShadow(0,0,'#39FF14',12,true,true);
+    const sub = this.add.text(W/2, H/2-50, 'プレイする？', {
+      fontFamily:'"Press Start 2P", monospace', fontSize:'18px', color:'#FFD700'
+    }).setOrigin(0.5);
+    const detail = this.add.text(W/2, H/2-15, '同じメンバー・同じ罰ゲームで', {
+      fontFamily:'Arial Black', fontSize:'13px', color:'#aaa'
+    }).setOrigin(0.5);
+
+    // Buttons
+    const yesBtn = this.makeModalBtn(W/2-95, H/2+60, 160, 56, '✓ はい', 0x39FF14, ()=>{
+      ov.destroy();
+      this.scene.start('PartyHandoff', {
+        mode:'party', players: d.players, penalty: d.penalty,
+        currentPlayerIdx: 0, partyResults: []
+      });
+    });
+    const noBtn = this.makeModalBtn(W/2+95, H/2+60, 160, 56, '✗ いいえ', 0xFF00AA, ()=>{
+      ov.destroy();
+    });
+
+    ov.add([bg, panel, glow, title, sub, detail, yesBtn.c, noBtn.c]);
+  }
+
+  makeModalBtn(x, y, w, h, text, color, onClick){
+    const c = this.add.container(x, y).setDepth(1001);
+    const bg = this.add.graphics();
+    bg.fillStyle(color, 1);
+    bg.fillRoundedRect(-w/2,-h/2,w,h,12);
+    bg.lineStyle(2, 0xFFD700, 1);
+    bg.strokeRoundedRect(-w/2,-h/2,w,h,12);
+    const t = this.add.text(0,0,text,{
+      fontFamily:'"Press Start 2P", monospace', fontSize:'15px', color:'#fff',
+      stroke:'#000', strokeThickness:2
+    }).setOrigin(0.5);
+    c.add([bg, t]);
+    const hitZone = this.add.zone(x, y, w, h).setOrigin(0.5).setDepth(1002);
+    hitZone.setInteractive({ useHandCursor: true });
+    let fired = false;
+    hitZone.on('pointerdown', ()=>{
+      if(fired) return; fired = true;
+      Sound.ensure(); Sound.sfx.click();
+      c.setScale(0.92);
+      this.time.delayedCall(80, ()=>{
+        c.setScale(1);
+        if(hitZone) hitZone.destroy();
+        onClick();
+      });
+    });
+    return { c, hitZone };
+  }
+}
+
+/* ============================================================
+   RESULT SCENE
+   ============================================================ */
+class ResultScene extends Phaser.Scene{
+  constructor(){ super('Result'); }
+  init(data){ this.data2 = data; }
+  async create(){
+    this.cameras.main.setBackgroundColor('#0a0a1a');
+    drawAtmosphere(this);
+    spawnSmoke(this);
+
+    const { score, scores, perfectBonus } = this.data2;
+
+    // Title
+    this.add.text(W/2, 80, 'ROUND', {
+      fontFamily:'"Press Start 2P", monospace', fontSize:'30px', color:'#FFD700'
+    }).setOrigin(0.5).setShadow(0,0,'#FF00FF',16,true,true);
+    this.add.text(W/2, 130, 'COMPLETE!', {
+      fontFamily:'"Press Start 2P", monospace', fontSize:'30px', color:'#FFD700'
+    }).setOrigin(0.5).setShadow(0,0,'#FF00FF',16,true,true);
+
+    // Final score (big)
+    this.add.text(W/2, 200, 'FINAL SCORE', {
+      fontFamily:'Arial Black', fontSize:'14px', color:'#00FFFF'
+    }).setOrigin(0.5);
+    const big = this.add.text(W/2, 250, '0', {
+      fontFamily:'"Press Start 2P", monospace', fontSize:'56px', color:'#FFD700'
+    }).setOrigin(0.5).setShadow(0,0,'#FF00AA',24,true,true);
+    // count up
+    const obj = { v: 0 };
+    this.tweens.add({
+      targets: obj, v: score, duration: 1400, ease:'Cubic.easeOut',
+      onUpdate: ()=>big.setText(String(Math.floor(obj.v)))
+    });
+
+    // Rank message
+    let rank = 'NICE TRY!';
+    let rankColor = '#fff';
+    if(score >= 700){ rank = '🌟 LEGENDARY!! 🌟'; rankColor = '#FFD700'; }
+    else if(score >= 500){ rank = '★ AMAZING ★';   rankColor = '#FF00AA'; }
+    else if(score >= 350){ rank = '◆ GREAT! ◆';     rankColor = '#00FFFF'; }
+    else if(score >= 200){ rank = 'GOOD!';          rankColor = '#39FF14'; }
+    this.add.text(W/2, 320, rank, {
+      fontFamily:'"Press Start 2P", monospace', fontSize:'18px', color:rankColor
+    }).setOrigin(0.5).setShadow(0,0,rankColor,12,true,true);
+
+    // Per-dart breakdown
+    this.add.text(W/2, 365, '── DARTS ──', {
+      fontFamily:'Arial Black', fontSize:'13px', color:'#888'
+    }).setOrigin(0.5);
+    const cols = 3, rows = 3;
+    for(let i=0;i<scores.length;i++){
+      const r = Math.floor(i/cols), c = i%cols;
+      const x = W/2 + (c-1)*100;
+      const y = 395 + r*30;
+      const v = scores[i];
+      const col = v>=25?'#FFD700':v>0?'#fff':'#666';
+      this.add.text(x, y, '#'+(i+1)+': '+(v>0?'+':'')+v, {
+        fontFamily:'Arial Black', fontSize:'14px', color:col
+      }).setOrigin(0.5);
+    }
+    if(perfectBonus){
+      this.add.text(W/2, 395+rows*30+10, '+'+perfectBonus+' PERFECT BONUS!', {
+        fontFamily:'"Press Start 2P", monospace', fontSize:'14px', color:'#39FF14'
+      }).setOrigin(0.5).setShadow(0,0,'#39FF14',10,true,true);
+    }
+
+    // Submit & ranking
+    this.add.text(W/2, 540, '── WEEKLY RANKING ──', {
+      fontFamily:'Arial Black', fontSize:'13px', color:'#FFD700'
+    }).setOrigin(0.5);
+    const status = this.add.text(W/2, 565, '登録中...', {
+      fontFamily:'Arial Black', fontSize:'12px', color:'#00FFFF'
+    }).setOrigin(0.5);
+
+    const playerName = getPlayerName() || 'GUEST';
+    await submitScore(playerName, score);
+    status.setText('✓ 登録完了！');
+
+    const data = await fetchRanking();
+    let yPos = 590;
+    if(data && data.length > 0){
+      data.slice(0,5).forEach((r,i)=>{
+        const isMe = (r.player_name === playerName) && (Number(r.coins) === score);
+        const medal = i===0?'🥇':i===1?'🥈':i===2?'🥉':'  ';
+        const name = (r.player_name||'???').slice(0,10);
+        const txt = medal+' '+(i+1)+'. '+name+' - '+(r.coins||0)+'pt';
+        const t = this.add.text(W/2, yPos, txt, {
+          fontFamily:'Arial Black', fontSize:'14px',
+          color: isMe?'#FFD700':'#fff'
+        }).setOrigin(0.5);
+        if(isMe) t.setShadow(0,0,'#FFD700',10,true,true);
+        yPos += 26;
+      });
+    } else {
+      this.add.text(W/2, yPos, 'ランキング取得失敗 or 空', {
+        fontFamily:'Arial Black', fontSize:'12px', color:'#666'
+      }).setOrigin(0.5);
+    }
+
+    // Buttons
+    this.makeBtn(W/2, H-130, '🎯 もう一度', 0xFF00FF, ()=>{
+      Sound.sfx.click(); this.scene.start('Game');
+    });
+    this.makeBtn(W/2, H-60, '🏠 タイトルに戻る', 0x00FFFF, ()=>{
+      Sound.sfx.click(); this.scene.start('Title');
+    });
+
+    // Sound toggle
+    this.soundBtn = this.add.text(W-50, 20, Sound.isOn()?'🔊':'🔇', {
+      fontSize:'32px'
+    }).setOrigin(1,0).setInteractive({useHandCursor:true});
+    this.soundBtn.on('pointerdown', ()=>{
+      const on = Sound.toggle();
+      this.soundBtn.setText(on?'🔊':'🔇');
+      Sound.sfx.click();
+    });
+
+    // Back button (top-left)
+    addBackButton(this);
+  }
+  makeBtn(x,y,text,color,onClick){
+    const w=280, h=56;
+    const c = this.add.container(x,y);
+    const bg = this.add.graphics();
+    bg.fillStyle(color,1);
+    bg.fillRoundedRect(-w/2,-h/2,w,h,12);
+    bg.lineStyle(2,0xFFD700,1);
+    bg.strokeRoundedRect(-w/2,-h/2,w,h,12);
+    const t = this.add.text(0,0,text,{
+      fontFamily:'"Press Start 2P", monospace', fontSize:'14px', color:'#fff',
+      stroke:'#000', strokeThickness:2
+    }).setOrigin(0.5);
+    c.add([bg,t]);
+    // Zone-based hit detection
+    const hitZone = this.add.zone(x, y, w, h).setOrigin(0.5);
+    hitZone.setInteractive({ useHandCursor: true });
+    let fired = false;
+    hitZone.on('pointerdown',()=>{
+      if(fired) return;
+      fired = true;
+      Sound.ensure();
+      Sound.sfx.click();
+      c.setScale(0.92);
+      onClick();
+      this.time.delayedCall(50, ()=>{ c.setScale(1); fired = false; });
+    });
+    return c;
+  }
+}
+
+/* ============================================================
+   HELPERS - Atmosphere, smoke, dartboard
+   ============================================================ */
+function drawAtmosphere(scene){
+  // gradient overlay
+  const g = scene.add.graphics();
+  g.fillGradientStyle(0x1a0030, 0x1a0030, 0x0a0a1a, 0x0a0a1a, 1);
+  g.fillRect(0,0,W,H);
+  g.setDepth(-100);
+  // stars
+  for(let i=0;i<60;i++){
+    const x = Phaser.Math.Between(0,W);
+    const y = Phaser.Math.Between(0,H);
+    const s = Phaser.Math.FloatBetween(0.5,1.6);
+    const c = scene.add.circle(x,y,s, 0xFFFFFF, Phaser.Math.FloatBetween(0.2,0.8));
+    c.setDepth(-99);
+    scene.tweens.add({ targets:c, alpha:{from:c.alpha,to:c.alpha*0.2}, yoyo:true, repeat:-1, duration:Phaser.Math.Between(1500,3500), delay:Phaser.Math.Between(0,2000) });
+  }
+}
+
+function spawnSmoke(scene, lessIntense=false){
+  const count = lessIntense ? 2 : 4;
+  for(let i=0;i<count;i++){
+    scene.time.addEvent({
+      delay: 600 + i*400, loop: true,
+      callback: ()=>{
+        const x = Phaser.Math.Between(20, W-20);
+        const c = scene.add.circle(x, H+20, Phaser.Math.Between(20,40), 0xFFFFFF, 0.06);
+        c.setDepth(-50);
+        scene.tweens.add({
+          targets: c, y: -50, alpha: 0, scaleX: 2, scaleY: 2,
+          duration: Phaser.Math.Between(6000, 10000),
+          onComplete: ()=>c.destroy()
+        });
+      }
+    });
+  }
+}
+
+/**
+ * Draws a standard dartboard centered at (cx,cy) with outer radius R.
+ * Returns a Phaser.GameObjects.Container that owns the graphics.
+ * alpha parameter makes background dartboards faint.
+ */
+function drawDartboard(scene, cx, cy, R, alphaMul=1){
+  const cont = scene.add.container(cx, cy);
+  const g = scene.add.graphics();
+  cont.add(g);
+
+  // Outer black ring
+  g.fillStyle(0x000000, 0.95*alphaMul);
+  g.fillCircle(0, 0, R+12);
+  g.lineStyle(3, 0x222222, 1*alphaMul);
+  g.strokeCircle(0, 0, R+12);
+
+  // Number ring background
+  g.fillStyle(0x111111, 1*alphaMul);
+  g.fillCircle(0, 0, R);
+
+  // 20 sectors. Sector 0 (top) is 20. Each sector spans 18 degrees.
+  // sector i spans from angle (i*18 - 9) to (i*18 + 9), measured from top, clockwise.
+  // For drawing arcs, we need the angles from the +x axis (Phaser default: 0 = right, increases clockwise in y-down).
+  // top of board = -90deg from +x axis. So sector i covers angle range -90 + i*18 - 9 to -90 + i*18 + 9.
+
+  const tripleInR = R*BOARD.tripleIn;
+  const tripleOutR = R*BOARD.tripleOut;
+  const doubleInR = R*BOARD.doubleIn;
+  const doubleOutR = R*BOARD.doubleOut;
+
+  for(let i=0;i<20;i++){
+    const num = DART_NUMBERS[i];
+    const startDeg = -90 + i*18 - 9;
+    const endDeg = -90 + i*18 + 9;
+    const start = Phaser.Math.DegToRad(startDeg);
+    const end   = Phaser.Math.DegToRad(endDeg);
+    // Light/dark base alternation
+    const isEven = i%2===0;
+    const baseColor = isEven ? 0xF5DEB3 : 0x2A1A0A; // cream / dark brown
+    const tripleColor = isEven ? 0xCC0033 : 0x009933; // red/green
+    const doubleColor = isEven ? 0xCC0033 : 0x009933;
+
+    // outer single
+    drawArcSlice(g, 0,0, doubleInR, end, start, baseColor, alphaMul);
+    // inner single
+    drawArcSlice(g, 0,0, tripleInR, end, start, baseColor, alphaMul);
+    // mask out inner part - drawArcSlice always fills from 0; second call makes inner brighter
+    // We'll instead draw rings:
+    // Triple ring
+    drawAnnulusSlice(g, 0,0, tripleInR, tripleOutR, start, end, tripleColor, alphaMul);
+    // Double ring
+    drawAnnulusSlice(g, 0,0, doubleInR, doubleOutR, start, end, doubleColor, alphaMul);
+  }
+
+  // Spider (sector dividers) in thin lines
+  g.lineStyle(1, 0x333333, 0.6*alphaMul);
+  for(let i=0;i<20;i++){
+    const a = Phaser.Math.DegToRad(-90 + i*18 + 9);
+    g.lineBetween(0,0, Math.cos(a)*R, Math.sin(a)*R);
+  }
+  // ring borders
+  g.lineStyle(1, 0x555555, 0.5*alphaMul);
+  g.strokeCircle(0,0, tripleInR);
+  g.strokeCircle(0,0, tripleOutR);
+  g.strokeCircle(0,0, doubleInR);
+
+  // 25 ring (outer bull)
+  g.fillStyle(0x009933, 1*alphaMul);
+  g.fillCircle(0,0, R*BOARD.bull25);
+  // bullseye (red)
+  g.fillStyle(0xCC0033, 1*alphaMul);
+  g.fillCircle(0,0, R*BOARD.bullCenter);
+  // bull highlight
+  g.fillStyle(0xFF6688, 0.6*alphaMul);
+  g.fillCircle(-R*0.012, -R*0.012, R*BOARD.bullCenter*0.45);
+
+  // Numbers around
+  if(alphaMul > 0.5){
+    for(let i=0;i<20;i++){
+      const num = DART_NUMBERS[i];
+      const a = Phaser.Math.DegToRad(-90 + i*18);
+      const tx = Math.cos(a)*(R+24);
+      const ty = Math.sin(a)*(R+24);
+      const t = scene.add.text(tx, ty, String(num), {
+        fontFamily:'"Press Start 2P", monospace', fontSize:'13px',
+        color:'#FFD700', stroke:'#000', strokeThickness:2
+      }).setOrigin(0.5);
+      t.setShadow(0,0,'#FF00FF', 6, true, true);
+      cont.add(t);
+    }
+  }
+
+  // outer glow
+  const glow = scene.add.graphics();
+  glow.lineStyle(4, 0xFF00FF, 0.5*alphaMul);
+  glow.strokeCircle(0,0, R+18);
+  glow.lineStyle(2, 0xFFD700, 0.4*alphaMul);
+  glow.strokeCircle(0,0, R+25);
+  cont.add(glow);
+
+  return cont;
+}
+
+function drawArcSlice(g, cx, cy, r, endRad, startRad, color, alphaMul){
+  g.fillStyle(color, 1*alphaMul);
+  g.beginPath();
+  g.moveTo(cx, cy);
+  g.arc(cx, cy, r, startRad, endRad, false);
+  g.closePath();
+  g.fillPath();
+}
+function drawAnnulusSlice(g, cx, cy, rIn, rOut, startRad, endRad, color, alphaMul){
+  g.fillStyle(color, 1*alphaMul);
+  g.beginPath();
+  // outer arc forward
+  const stepCount = 16;
+  for(let i=0;i<=stepCount;i++){
+    const t = startRad + (endRad-startRad)*(i/stepCount);
+    const x = cx + Math.cos(t)*rOut;
+    const y = cy + Math.sin(t)*rOut;
+    if(i===0) g.moveTo(x,y); else g.lineTo(x,y);
+  }
+  // inner arc back
+  for(let i=stepCount;i>=0;i--){
+    const t = startRad + (endRad-startRad)*(i/stepCount);
+    const x = cx + Math.cos(t)*rIn;
+    const y = cy + Math.sin(t)*rIn;
+    g.lineTo(x,y);
+  }
+  g.closePath();
+  g.fillPath();
+}
+
+/* ============================================================
+   NAME MODAL (HTML overlay)
+   ============================================================ */
+function showNameModal(onDone){
+  const modal = document.getElementById('name-modal');
+  const oldInput = document.getElementById('name-input');
+  const oldOk = document.getElementById('name-ok');
+
+  const newInput = oldInput.cloneNode(true);
+  oldInput.parentNode.replaceChild(newInput, oldInput);
+  const newOk = oldOk.cloneNode(true);
+  oldOk.parentNode.replaceChild(newOk, oldOk);
+
+  const input = document.getElementById('name-input');
+  const ok = document.getElementById('name-ok');
+
+  input.value = '';
+  input.value = getPlayerName() || '';
+  modal.classList.add('show');
+  if(GAME_INSTANCE && GAME_INSTANCE.input) GAME_INSTANCE.input.enabled = false;
+  setTimeout(()=>{ input.focus(); input.select(); }, 100);
+  const handler = (e)=>{
+    if(e) { e.preventDefault(); e.stopPropagation(); }
+    const v = (input.value||'').trim().slice(0,12);
+    if(!v){ input.focus(); return; }
+    setPlayerName(v);
+    modal.classList.remove('show');
+    input.value = '';
+    setTimeout(()=>{
+      if(GAME_INSTANCE && GAME_INSTANCE.input) GAME_INSTANCE.input.enabled = true;
+    }, 250);
+    if(onDone) onDone();
+  };
+  const keyH = (e)=>{ if(e.key==='Enter'){ e.preventDefault(); handler(); } };
+  ok.addEventListener('click', handler);
+  input.addEventListener('keydown', keyH);
+}
+
+function showPartyNameModal(currentValue, titleText, onDone){
+  const modal = document.getElementById('name-modal');
+  const oldInput = document.getElementById('name-input');
+  const oldOk = document.getElementById('name-ok');
+  const titleEl = modal.querySelector('h2');
+  const subEl = modal.querySelector('p');
+  const prevTitle = titleEl.textContent;
+  const prevSub = subEl.textContent;
+
+  // CRITICAL: clone input and ok button to remove ALL prior event listeners
+  const newInput = oldInput.cloneNode(true);
+  oldInput.parentNode.replaceChild(newInput, oldInput);
+  const newOk = oldOk.cloneNode(true);
+  oldOk.parentNode.replaceChild(newOk, oldOk);
+
+  const input = document.getElementById('name-input');
+  const ok = document.getElementById('name-ok');
+
+  titleEl.textContent = titleText || 'ENTER NAME';
+  subEl.textContent = '名前を入力してね（最大12文字）';
+  input.value = '';
+  input.value = currentValue || '';
+  modal.classList.add('show');
+  // Disable Phaser input while modal is open (prevents tap-through)
+  if(GAME_INSTANCE && GAME_INSTANCE.input) GAME_INSTANCE.input.enabled = false;
+  setTimeout(()=>{ input.focus(); input.select(); }, 100);
+
+  const cleanup = ()=>{
+    titleEl.textContent = prevTitle;
+    subEl.textContent = prevSub;
+    modal.classList.remove('show');
+    input.value = '';
+    // Re-enable Phaser input after a short delay so the closing tap doesn't bleed through
+    setTimeout(()=>{
+      if(GAME_INSTANCE && GAME_INSTANCE.input) GAME_INSTANCE.input.enabled = true;
+    }, 250);
+  };
+  const handler = (e)=>{
+    if(e) { e.preventDefault(); e.stopPropagation(); }
+    const v = (input.value||'').trim().slice(0,12);
+    if(!v){ input.focus(); return; }
+    cleanup();
+    if(onDone) onDone(v);
+  };
+  const keyH = (e)=>{ if(e.key==='Enter'){ e.preventDefault(); handler(); } };
+  ok.addEventListener('click', handler);
+  input.addEventListener('keydown', keyH);
+}
+
+/* ============================================================
+   PHASER CONFIG
+   ============================================================ */
+const config = {
+  type: Phaser.AUTO,
+  parent: 'game-container',
+  width: W, height: H,
+  backgroundColor: '#0a0a1a',
+  scale: {
+    mode: Phaser.Scale.FIT,
+    autoCenter: Phaser.Scale.CENTER_BOTH,
+    width: W, height: H,
+  },
+  scene: [BootScene, TitleScene, PartySetupScene, PartyHandoffScene, GameScene, ResultScene, PartyResultScene],
+  render: { antialias: true, pixelArt: false },
+};
+
+let GAME_INSTANCE = null;
+window.addEventListener('load', ()=>{
+  GAME_INSTANCE = new Phaser.Game(config);
+  // Pre-initialize audio context (will be in suspended state until user gesture)
+  Sound.init();
+  // Pre-load speech synthesis voices (async on some browsers)
+  if('speechSynthesis' in window){
+    try {
+      window.speechSynthesis.getVoices();
+      window.speechSynthesis.onvoiceschanged = ()=>window.speechSynthesis.getVoices();
+    } catch(e){}
+  }
+  // Document-level early audio unlock: any first touch resumes context immediately
+  const unlock = ()=>{
+    Sound.ensure();
+    Sound.playBgm();
+    Sound.unlockSpeech(); // CRITICAL: unlock TTS on iOS within user gesture
+    document.removeEventListener('touchstart', unlock, true);
+    document.removeEventListener('touchend', unlock, true);
+    document.removeEventListener('mousedown', unlock, true);
+    document.removeEventListener('click', unlock, true);
+    document.removeEventListener('pointerdown', unlock, true);
+  };
+  document.addEventListener('touchstart', unlock, true);
+  document.addEventListener('touchend', unlock, true);
+  document.addEventListener('mousedown', unlock, true);
+  document.addEventListener('click', unlock, true);
+  document.addEventListener('pointerdown', unlock, true);
+  // Hide loader after Phaser is ready
+  setTimeout(()=>{
+    const l = document.getElementById('loader');
+    l.style.opacity = '0';
+    setTimeout(()=>l.style.display='none', 600);
+  }, 800);
+});
+</script>
+</body>
+</html>
