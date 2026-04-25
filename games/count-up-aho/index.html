@@ -67,11 +67,21 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9998;
 
 .start-btn{
   font-family:'Press Start 2P',monospace;font-size:13px;letter-spacing:3px;
-  color:#000;background:var(--yellow);border:none;padding:14px 32px;border-radius:6px;
-  cursor:pointer;box-shadow:0 0 18px rgba(255,230,0,.7), 0 4px 0 #a08c00;
+  color:#000;border:none;padding:14px 32px;border-radius:6px;
+  cursor:pointer;
   transition:transform .08s, box-shadow .08s;
+  width:100%;max-width:300px;
 }
-.start-btn:active{transform:translateY(3px);box-shadow:0 0 12px rgba(255,230,0,.7), 0 1px 0 #a08c00;}
+.start-btn.solo{
+  background:var(--yellow);
+  box-shadow:0 0 18px rgba(255,230,0,.7), 0 4px 0 #a08c00;
+}
+.start-btn.solo:active{transform:translateY(3px);box-shadow:0 0 12px rgba(255,230,0,.7), 0 1px 0 #a08c00;}
+.start-btn.party{
+  background:var(--pink);color:#fff;
+  box-shadow:0 0 18px rgba(255,45,120,.7), 0 4px 0 #6c0a38;
+}
+.start-btn.party:active{transform:translateY(3px);box-shadow:0 0 12px rgba(255,45,120,.7), 0 1px 0 #6c0a38;}
 
 .blink{animation:blink 1s steps(1) infinite;font-size:8px;color:var(--yellow);
   text-shadow:0 0 10px var(--yellow);letter-spacing:3px;}
@@ -79,7 +89,84 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9998;
 
 .credit{font-family:'DotGothic16',sans-serif;font-size:10px;color:rgba(255,255,255,.3);letter-spacing:2px;}
 
-/* ========== GAME ========== */
+/* ========== PARTY SETUP ========== */
+#party-setup{display:none;flex:1;flex-direction:column;padding:14px 16px 18px;gap:12px;}
+.ps-header{text-align:center;margin-bottom:6px;}
+.ps-title{
+  font-family:'Press Start 2P',monospace;font-size:18px;letter-spacing:4px;
+  color:var(--pink);text-shadow:0 0 12px var(--pink), 2px 2px 0 #000;
+  margin-bottom:6px;
+}
+.ps-step{
+  font-family:'DotGothic16',sans-serif;font-size:11px;letter-spacing:3px;
+  color:var(--cyan);text-shadow:0 0 6px var(--cyan);
+}
+.ps-pane{flex:1;display:flex;flex-direction:column;gap:14px;align-items:center;justify-content:center;}
+.ps-q{
+  font-family:'Noto Sans JP',sans-serif;font-weight:900;font-size:20px;letter-spacing:2px;
+  color:var(--yellow);text-shadow:0 0 10px rgba(255,230,0,.7), 2px 2px 0 #000;
+  text-align:center;
+}
+
+/* 罰ゲーム選択 */
+.penalty-list{display:flex;flex-direction:column;gap:10px;width:100%;max-width:340px;}
+.penalty{
+  display:flex;align-items:center;gap:14px;width:100%;
+  background:#0a0818;border:2px solid var(--pink);border-radius:8px;
+  padding:12px 16px;cursor:pointer;color:var(--cream);
+  box-shadow:0 0 10px rgba(255,45,120,.3);
+  transition:transform .08s, background .15s, box-shadow .15s;
+  text-align:left;
+}
+.penalty:active{transform:scale(.97);}
+.penalty:hover{background:rgba(255,45,120,.08);box-shadow:0 0 18px rgba(255,45,120,.55);}
+.penalty.selected{background:rgba(255,45,120,.18);border-color:var(--yellow);box-shadow:0 0 22px rgba(255,230,0,.6);}
+.penalty .pe{font-size:28px;}
+.penalty .pe-svg{display:flex;align-items:center;justify-content:center;width:36px;flex:0 0 36px;}
+.penalty .pe-svg svg{width:36px;height:auto;display:block;
+  filter:drop-shadow(0 0 6px rgba(255,255,255,.25));
+}
+.penalty .pn{font-family:'Noto Sans JP',sans-serif;font-weight:900;font-size:15px;letter-spacing:1px;}
+
+/* 人数選択 */
+.people-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;width:100%;max-width:340px;}
+.people-btn{
+  font-family:'Noto Sans JP',sans-serif;font-weight:900;font-size:18px;letter-spacing:2px;
+  background:#0a0818;border:2px solid var(--cyan);border-radius:8px;
+  padding:18px 6px;cursor:pointer;color:var(--cyan);
+  box-shadow:0 0 10px rgba(0,245,255,.25);
+  transition:transform .08s, background .15s;
+}
+.people-btn:active{transform:scale(.95);}
+.people-btn:hover{background:rgba(0,245,255,.1);}
+
+/* 名前入力 */
+.name-list{display:flex;flex-direction:column;gap:8px;width:100%;max-width:340px;}
+.name-row{display:flex;align-items:center;gap:10px;}
+.name-row .nlabel{
+  flex:0 0 auto;font-family:'Press Start 2P',monospace;font-size:9px;color:var(--yellow);letter-spacing:2px;
+  width:60px;text-align:right;
+}
+.name-row input{
+  flex:1;padding:10px 12px;font-family:'Noto Sans JP',sans-serif;font-size:14px;
+  background:#000;border:1px solid #333;border-radius:4px;color:#fff;text-align:center;
+}
+.name-row input:focus{outline:none;border-color:var(--cyan);box-shadow:0 0 8px rgba(0,245,255,.5);}
+
+.ps-go{
+  font-family:'Press Start 2P',monospace;font-size:14px;letter-spacing:3px;
+  color:#000;background:var(--yellow);border:none;padding:14px 36px;border-radius:6px;
+  cursor:pointer;box-shadow:0 0 18px rgba(255,230,0,.7), 0 4px 0 #a08c00;
+  margin-top:10px;
+}
+.ps-go:active{transform:translateY(3px);box-shadow:0 0 12px rgba(255,230,0,.7), 0 1px 0 #a08c00;}
+.ps-go:disabled{filter:grayscale(.6) brightness(.6);cursor:not-allowed;}
+
+.ps-back{
+  font-family:'Press Start 2P',monospace;font-size:9px;letter-spacing:2px;
+  color:var(--cyan);background:transparent;border:1px solid var(--cyan);border-radius:4px;
+  padding:8px 14px;cursor:pointer;align-self:flex-start;
+}
 #game{display:none;flex:1;flex-direction:column;padding:10px 12px 14px;gap:10px;}
 
 .hud{
@@ -183,6 +270,53 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9998;
   animation:cdp .9s ease-out infinite;}
 @keyframes cdp{0%{transform:scale(1);opacity:1}80%{transform:scale(1.5);opacity:0}100%{transform:scale(1.5);opacity:0}}
 
+/* ========== INTERMISSION (Party mode) ========== */
+#intermission{display:none;position:absolute;inset:0;z-index:25;
+  background:linear-gradient(180deg, rgba(10,5,30,.96), rgba(3,2,8,.96));
+  flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:20px;
+  text-align:center;}
+.im-arrow{
+  font-size:36px;color:var(--cyan);text-shadow:0 0 14px var(--cyan);
+  animation: imArrow 1s ease-in-out infinite alternate;
+}
+@keyframes imArrow{from{transform:translateY(-6px);}to{transform:translateY(6px);}}
+.im-label{
+  font-family:'Noto Sans JP',sans-serif;font-weight:900;
+  font-size:14px;letter-spacing:5px;color:var(--cyan);
+  text-shadow:0 0 8px var(--cyan);
+}
+.im-name{
+  font-family:'Noto Sans JP',sans-serif;font-weight:900;
+  font-size:clamp(36px,11vw,56px);letter-spacing:2px;
+  color:var(--yellow);
+  text-shadow:0 0 16px rgba(255,230,0,.9), 2px 3px 0 #000, 4px 5px 0 var(--pink);
+  animation: imName .5s cubic-bezier(.2,1.6,.4,1);
+  -webkit-font-smoothing:antialiased;
+  word-break:break-all;max-width:100%;
+}
+@keyframes imName{
+  0%{transform:scale(.3) rotate(-10deg);opacity:0;}
+  60%{transform:scale(1.1) rotate(2deg);opacity:1;}
+  100%{transform:scale(1) rotate(0);opacity:1;}
+}
+.im-hint{
+  font-family:'Noto Sans JP',sans-serif;font-weight:900;
+  font-size:13px;line-height:1.7;letter-spacing:1px;color:rgba(255,255,255,.7);
+  margin-top:6px;
+}
+.im-go{
+  font-family:'Press Start 2P',monospace;font-size:13px;letter-spacing:3px;
+  color:#000;background:var(--green);border:none;padding:14px 30px;border-radius:6px;
+  cursor:pointer;margin-top:10px;
+  box-shadow:0 0 18px rgba(57,255,20,.6), 0 4px 0 #1a6b00;
+  animation: imGoPulse 1s ease-in-out infinite alternate;
+}
+.im-go:active{transform:translateY(3px);box-shadow:0 0 12px rgba(57,255,20,.6), 0 1px 0 #1a6b00;}
+@keyframes imGoPulse{
+  from{box-shadow:0 0 14px rgba(57,255,20,.5), 0 4px 0 #1a6b00;}
+  to  {box-shadow:0 0 28px rgba(57,255,20,.9), 0 4px 0 #1a6b00;}
+}
+
 /* ========== GAME OVER ========== */
 #gameover{display:none;position:absolute;inset:0;z-index:30;background:#030208;
   flex-direction:column;align-items:stretch;justify-content:flex-end;
@@ -226,11 +360,32 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9998;
   to  {transform:rotate(-2deg) scale(1.04);}
 }
 
+/* 罰ゲームのボトル絵 */
+.go-bottle{
+  display:flex;align-items:center;justify-content:center;
+  height:clamp(90px, 22vh, 140px);
+  animation: bottleIn .55s cubic-bezier(.2,1.6,.4,1) .15s backwards,
+             bottleFloat 2.4s ease-in-out infinite alternate;
+  filter:drop-shadow(0 0 18px color-mix(in srgb, var(--penalty, #ffd166) 70%, transparent))
+         drop-shadow(0 0 6px rgba(0,0,0,.9));
+}
+.go-bottle svg{height:100%;width:auto;display:block;}
+.go-bottle:empty{display:none;}
+@keyframes bottleIn{
+  0%{transform:translateY(-30px) rotate(-30deg) scale(.4);opacity:0;}
+  60%{transform:translateY(0) rotate(8deg) scale(1.1);opacity:1;}
+  100%{transform:translateY(0) rotate(0deg) scale(1);opacity:1;}
+}
+@keyframes bottleFloat{
+  from{transform:translateY(0) rotate(-3deg);}
+  to{transform:translateY(-6px) rotate(3deg);}
+}
+
 /* テキーラ一杯 のメインコピー */
 .tequila{
   font-family:'Noto Sans JP', sans-serif;font-weight:900;
   line-height:.95;letter-spacing:1px;text-align:center;
-  background:linear-gradient(180deg, #fff 0%, var(--yellow) 35%, #ff8a00 70%, var(--red) 100%);
+  background:linear-gradient(180deg, #fff 0%, var(--penalty, var(--yellow)) 35%, #ff8a00 70%, var(--red) 100%);
   -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
   filter:
     drop-shadow(0 0 16px rgba(255,230,0,.9))
@@ -257,7 +412,7 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9998;
 .label1800{
   display:flex;flex-direction:column;align-items:center;gap:3px;
   padding:10px 22px;margin-top:8px;
-  border:2px solid var(--yellow);border-radius:6px;
+  border:2px solid var(--penalty, var(--yellow));border-radius:6px;
   background:
     linear-gradient(180deg, rgba(255,230,0,.08), rgba(255,107,0,.08));
   box-shadow:0 0 16px rgba(255,230,0,.45), inset 0 0 10px rgba(255,230,0,.1);
@@ -266,14 +421,14 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9998;
 }
 .label1800 .l-top, .label1800 .l-bot{
   font-family:'Noto Sans JP',sans-serif;font-weight:900;
-  font-size:10px;letter-spacing:4px;color:var(--yellow);
+  font-size:10px;letter-spacing:4px;color:var(--penalty, var(--yellow));
   text-shadow:0 0 6px rgba(255,230,0,.7);
   -webkit-font-smoothing:antialiased;
 }
 .label1800 .l-big{
   font-family:'Noto Sans JP',sans-serif;font-weight:900;
   font-size:clamp(36px,10vw,54px);letter-spacing:2px;line-height:1;
-  background:linear-gradient(180deg, #fff 0%, var(--yellow) 45%, #ff8a00 100%);
+  background:linear-gradient(180deg, #fff 0%, var(--penalty, var(--yellow)) 45%, #ff8a00 100%);
   -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
   filter:drop-shadow(0 0 12px rgba(255,230,0,.95)) drop-shadow(2px 2px 0 rgba(0,0,0,.85));
   animation: num1800 .6s ease-in-out infinite alternate;
@@ -341,7 +496,15 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9998;
 .go-btn:active{transform:translateY(2px);}
 .go-btn.retry{color:var(--cyan);box-shadow:0 0 10px rgba(0,245,255,.3);}
 .go-btn.send{color:var(--pink);box-shadow:0 0 10px rgba(255,45,120,.4);}
+.go-btn.home{color:var(--cyan);box-shadow:0 0 10px rgba(0,245,255,.3);}
 .go-btn:disabled{filter:grayscale(.7) brightness(.5);cursor:wait;}
+.go-loser-line{
+  font-family:'Noto Sans JP',sans-serif;font-weight:900;
+  font-size:14px;color:#fff;letter-spacing:1px;text-align:center;margin-bottom:6px;
+}
+.go-loser-line b{
+  color:var(--yellow);font-size:18px;text-shadow:0 0 10px rgba(255,230,0,.7);
+}
 
 /* OK popup */
 .fx{position:absolute;top:20px;right:20px;font-family:'Press Start 2P',monospace;
@@ -371,18 +534,140 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9998;
       </p>
     </div>
 
-    <button class="start-btn" id="startBtn">PUSH TO START</button>
+    <button class="start-btn solo" id="startBtn">1人モード</button>
+    <button class="start-btn party" id="partyBtn">パーティモード</button>
     <div class="blink">● INSERT COIN ●</div>
     <div class="credit">U . W A S A N O &nbsp; S H I S H A &nbsp; B A R</div>
   </div>
 
-  <!-- ===== GAME ===== -->
+  <!-- ===== PARTY SETUP ===== -->
+  <div id="party-setup">
+    <div class="ps-header">
+      <div class="ps-title">PARTY MODE</div>
+      <div class="ps-step" id="psStepLabel">1/3 人数選択</div>
+    </div>
+
+    <!-- Step 1: 人数選択 -->
+    <div class="ps-pane" id="ps-1">
+      <div class="ps-q">何人で遊ぶ？</div>
+      <div class="people-grid">
+        <button class="people-btn" data-n="2">2人</button>
+        <button class="people-btn" data-n="3">3人</button>
+        <button class="people-btn" data-n="4">4人</button>
+        <button class="people-btn" data-n="5">5人</button>
+        <button class="people-btn" data-n="6">6人</button>
+      </div>
+    </div>
+
+    <!-- Step 2: 罰ゲーム選択 -->
+    <div class="ps-pane" id="ps-2" style="display:none;">
+      <div class="ps-q">負けたらなに飲む？</div>
+      <div class="penalty-list">
+        <button class="penalty" data-penalty="tequila">
+          <span class="pe pe-svg">
+            <svg viewBox="0 0 40 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <!-- テキーラ1800 ボトル -->
+              <defs>
+                <linearGradient id="teqLiq" x1="0" x2="0" y1="0" y2="1">
+                  <stop offset="0" stop-color="#c97a2b"/>
+                  <stop offset="1" stop-color="#5d2a08"/>
+                </linearGradient>
+              </defs>
+              <!-- コルク -->
+              <rect x="14" y="2" width="12" height="6" rx="1" fill="#5a3a20"/>
+              <rect x="13" y="7" width="14" height="3" fill="#3a2410"/>
+              <!-- 首 -->
+              <rect x="16" y="10" width="8" height="6" fill="url(#teqLiq)" stroke="#2a1505" stroke-width=".5"/>
+              <!-- 肩から胴 -->
+              <path d="M10 18 Q10 16 14 16 L26 16 Q30 16 30 18 L30 58 Q30 60 28 60 L12 60 Q10 60 10 58 Z"
+                    fill="url(#teqLiq)" stroke="#2a1505" stroke-width=".8"/>
+              <!-- ハイライト -->
+              <path d="M13 22 L13 54" stroke="rgba(255,200,120,.5)" stroke-width="1.5" stroke-linecap="round"/>
+              <!-- ラベル -->
+              <rect x="13" y="28" width="14" height="20" fill="#0a0a0a" stroke="#d4a23a" stroke-width=".6"/>
+              <text x="20" y="40" font-family="serif" font-weight="900" font-size="7"
+                    fill="#d4a23a" text-anchor="middle">1800</text>
+              <text x="20" y="46" font-family="sans-serif" font-weight="900" font-size="3"
+                    fill="#d4a23a" text-anchor="middle">AÑEJO</text>
+            </svg>
+          </span>
+          <span class="pn">テキーラ1杯</span>
+        </button>
+        <button class="penalty" data-penalty="cocabomb">
+          <span class="pe pe-svg">
+            <svg viewBox="0 0 40 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <!-- コカレロボム グラス -->
+              <!-- 上部の球：緑のコカレロ -->
+              <circle cx="20" cy="18" r="11" fill="#5fd84a" stroke="#2d6a1c" stroke-width=".6"/>
+              <ellipse cx="20" cy="13" rx="9" ry="3" fill="#88e677" opacity=".5"/>
+              <!-- グラス縁 -->
+              <ellipse cx="20" cy="9" rx="6" ry="1.5" fill="none" stroke="#aef0a3" stroke-width=".8"/>
+              <!-- くびれ -->
+              <path d="M14 28 Q16 32 14 36 M26 28 Q24 32 26 36" stroke="#2d6a1c" stroke-width=".5" fill="none"/>
+              <!-- 下部三角：黄色のエナドリ -->
+              <path d="M9 36 Q10 34 14 34 L26 34 Q30 34 31 36 L34 60 Q34 62 32 62 L8 62 Q6 62 6 60 Z"
+                    fill="#ffd819" stroke="#a87a00" stroke-width=".6"/>
+              <ellipse cx="20" cy="38" rx="11" ry="2" fill="#fff39c" opacity=".5"/>
+              <!-- ロゴ -->
+              <text x="20" y="52" font-family="serif" font-weight="900" font-size="4"
+                    fill="#1a1a1a" text-anchor="middle">COCALERO</text>
+            </svg>
+          </span>
+          <span class="pn">コカボム1杯</span>
+        </button>
+        <button class="penalty" data-penalty="kleiner">
+          <span class="pe pe-svg">
+            <svg viewBox="0 0 40 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <!-- クライナー フェイグリング ボトル -->
+              <!-- 紫キャップ -->
+              <rect x="14" y="2" width="12" height="6" rx=".5" fill="#9577c4"/>
+              <rect x="13" y="7" width="14" height="3" fill="#6f53a0"/>
+              <!-- 首 -->
+              <rect x="17" y="10" width="6" height="5" fill="rgba(255,255,255,.7)" stroke="#666" stroke-width=".4"/>
+              <!-- 平らなボトル胴体 -->
+              <path d="M8 16 Q8 14 12 14 L28 14 Q32 14 32 16 L32 60 Q32 62 30 62 L10 62 Q8 62 8 60 Z"
+                    fill="rgba(245,250,255,.6)" stroke="#666" stroke-width=".6"/>
+              <!-- ハイライト -->
+              <path d="M11 20 L11 56" stroke="rgba(255,255,255,.85)" stroke-width="1.2" stroke-linecap="round"/>
+              <!-- 黒ラベル＋緑枠 -->
+              <rect x="10" y="22" width="20" height="28" fill="#0a0a0a" stroke="#9bd24f" stroke-width="1"/>
+              <!-- 目玉 -->
+              <circle cx="16" cy="28" r="2" fill="#fff"/>
+              <circle cx="16.7" cy="27.5" r=".7" fill="#000"/>
+              <circle cx="24" cy="28" r="2" fill="#fff"/>
+              <circle cx="24.7" cy="27.5" r=".7" fill="#000"/>
+              <!-- 髪の毛 -->
+              <path d="M14 26 L13 24 M16 25 L15.5 23 M20 25 L20 23 M24 25 L24.5 23 M26 26 L27 24"
+                    stroke="#fff" stroke-width=".6"/>
+              <!-- Feigling文字 -->
+              <text x="20" y="40" font-family="cursive" font-style="italic" font-weight="700"
+                    font-size="6" fill="#b09cd6" text-anchor="middle">Feigling</text>
+              <text x="20" y="46" font-family="sans-serif" font-weight="900" font-size="3"
+                    fill="#fff" text-anchor="middle">ORIGINAL</text>
+            </svg>
+          </span>
+          <span class="pn">クライナー1杯</span>
+        </button>
+        <button class="penalty" data-penalty="half"><span class="pe">🍻</span><span class="pn">アルコール半分一気</span></button>
+        <button class="penalty" data-penalty="full"><span class="pe">🍻🔥</span><span class="pn">アルコール一気</span></button>
+      </div>
+    </div>
+
+    <!-- Step 3: 名前入力 -->
+    <div class="ps-pane" id="ps-3" style="display:none;">
+      <div class="ps-q">プレイヤー名を入力</div>
+      <div class="name-list" id="nameList"></div>
+      <button class="ps-go" id="psGoBtn">スタート！</button>
+    </div>
+
+    <button class="ps-back" id="psBackBtn">← 戻る</button>
+  </div>
   <div id="game">
     <div class="hud">
       <div class="row"><span class="lbl">COIN</span><span class="val coin" id="coinV">0</span></div>
       <div class="row"><span class="lbl">NEXT</span><span class="val next" id="nextV">1</span></div>
       <div class="row"><span class="lbl">BPM</span><span class="val bpm" id="bpmV">50</span></div>
-      <div class="row"><span class="lbl">BEST</span><span class="val best" id="bestV">0</span></div>
+      <div class="row"><span class="lbl" id="bestLbl">BEST</span><span class="val best" id="bestV">0</span></div>
     </div>
 
     <div class="screen">
@@ -392,11 +677,21 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9998;
 
       <!-- countdown overlay inside screen -->
       <div id="cd">3</div>
+
+      <!-- 次の人インターミッション (パーティモード) -->
+      <div id="intermission">
+        <div class="im-arrow">▼</div>
+        <div class="im-label">つぎは</div>
+        <div class="im-name" id="imName">—</div>
+        <div class="im-hint">スマホを渡して<br>準備ができたらタップ</div>
+        <button class="im-go" id="imGoBtn">準備OK！</button>
+      </div>
       <!-- game over overlay inside screen -->
       <div id="gameover">
         <div class="strobe" id="strobe"></div>
         <div class="go-stage">
           <div class="slam">飲めよー！</div>
+          <div class="go-bottle" id="goBottle"></div>
           <div class="tequila">
             テキーラ<br>一杯！
             <small>★ TEQUILA SHOT ★</small>
@@ -413,10 +708,23 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9998;
             <div class="s">COIN<span class="v" id="goCoin">0</span></div>
             <div class="s">REACHED<span class="v" id="goNum">0</span></div>
           </div>
-          <input class="name-in" id="nameIn" type="text" maxlength="12" placeholder="NAME (12文字まで)">
-          <div class="go-btns">
-            <button class="go-btn retry" id="retryBtn">RETRY</button>
-            <button class="go-btn send"  id="sendBtn">SUBMIT</button>
+
+          <!-- 1人モード用 -->
+          <div id="go-solo" style="display:flex;flex-direction:column;gap:0;">
+            <input class="name-in" id="nameIn" type="text" maxlength="12" placeholder="NAME (12文字まで)">
+            <div class="go-btns">
+              <button class="go-btn retry" id="retryBtn">RETRY</button>
+              <button class="go-btn send"  id="sendBtn">SUBMIT</button>
+            </div>
+          </div>
+
+          <!-- パーティモード用 -->
+          <div id="go-party" style="display:none;flex-direction:column;gap:8px;">
+            <div class="go-loser-line">負けたんは <b id="goLoser">—</b></div>
+            <div class="go-btns">
+              <button class="go-btn retry" id="retryPartyBtn">もう一回</button>
+              <button class="go-btn home"  id="homePartyBtn">タイトルへ</button>
+            </div>
           </div>
         </div>
       </div>
@@ -446,6 +754,7 @@ const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 /* ========== State ========== */
 const S = {
+  mode:'solo',     // 'solo' or 'party'
   running:false, current:0, turn:'cpu', coins:0,
   best:Number(localStorage.getItem('nabe_best')||0),
   history:[], tReq:null, tStart:0,
@@ -453,7 +762,228 @@ const S = {
   beatMs:600,     // 1拍のms（60000/bpm）
   bgmTimer:null,  // BGMの次拍スケジュール
   bgmStep:0,      // BGMステップカウンタ
+  // Party
+  players:[],          // [{name:'たろう'}, ...]
+  playerIdx:0,         // 現在のプレイヤー番号(0始まり)
+  penalty:'tequila',   // 選択した罰ゲーム
 };
+
+const PARTY_KEY = 'nabe_party_setup_v1';
+
+/* ========== Penalty definitions ========== */
+const PENALTIES = {
+  tequila: {
+    name:'テキーラ1杯',
+    emoji:'🥃',
+    main:'テキーラ',
+    sub:'1杯！',
+    voice:'飲めよー！テキーラ1杯！',
+    label:{top:'PREMIUM', big:'1800', bot:'AÑEJO  TEQUILA'},
+    color:'#ffd166',
+    // メキシカン風ラッパ：タタッ・タタッ・タター↑
+    sfx: ()=>{
+      const seq = [
+        [0,    784, .08],  // G5
+        [110,  784, .08],
+        [260,  988, .08],  // B5
+        [370,  988, .08],
+        [520, 1175, .25, 1568], // D6 → G6 スライド
+      ];
+      seq.forEach(([t,f,d,sl])=> setTimeout(()=> tone(f, d, 'square', .18, sl||0), t));
+    },
+  },
+  cocabomb: {
+    name:'コカボム1杯',
+    emoji:'🍺',
+    main:'コカボム',
+    sub:'1杯！',
+    voice:'飲めよー！コカボム1杯！',
+    label:{top:'JÄGER × ENERGY', big:'BOMB!!', bot:'COCA  ENERGY  SHOT'},
+    color:'#ff8a00',
+    // 爆発音 → 高音シャワー
+    sfx: ()=>{
+      boom(70, .35, .5);
+      noiseBurst(.5, .35, 200);  // 低音寄り爆発ノイズ
+      setTimeout(()=>{
+        noiseBurst(.4, .18, 4000); // 高音シャワー
+        tone(2400, .2, 'sine', .12);
+        tone(3200, .2, 'sine', .10);
+      }, 180);
+    },
+  },
+  kleiner: {
+    name:'クライナー1杯',
+    emoji:'🍷',
+    main:'クライナー',
+    sub:'1杯！',
+    voice:'飲めよー！クライナー1杯！',
+    label:{top:'KLEINER', big:'FEIGLING', bot:'17%  ALC.  VOL.'},
+    color:'#39ff14',
+    // ジャーマンビアホール風コード（アコーディオン的な重ね和音）
+    sfx: ()=>{
+      // C major ジャジャーン
+      chord([261, 329, 392], .35, 'sawtooth', .08);
+      setTimeout(()=> chord([293, 369, 440], .35, 'sawtooth', .08), 200); // D
+      setTimeout(()=> chord([329, 415, 493], .55, 'sawtooth', .09), 420); // E
+      // 上に乗せる甲高い音
+      setTimeout(()=> tone(880, .15, 'triangle', .12), 200);
+      setTimeout(()=> tone(987, .15, 'triangle', .12), 420);
+    },
+  },
+  half: {
+    name:'アルコール半分一気',
+    emoji:'🍻',
+    main:'半分',
+    sub:'一気！',
+    voice:'いっき！いっき！半分いけー！',
+    label:{top:'CHUG  IT', big:'1/2', bot:'HALF  PINT'},
+    color:'#00f5ff',
+    // ドンドンドン連打（応援団風）
+    sfx: ()=>{
+      const beats = [0, 180, 360, 540];
+      beats.forEach((t,i)=>{
+        setTimeout(()=>{
+          boom(80 + i*5, .15, .45);
+          tone(1200, .04, 'square', .12);  // ハイハット風
+        }, t);
+      });
+    },
+  },
+  full: {
+    name:'アルコール一気',
+    emoji:'🍻🔥',
+    main:'全部',
+    sub:'一気！！',
+    voice:'いっき！いっき！全部いけー！',
+    label:{top:'FULL  CHUG', big:'ALL  IN', bot:'BOTTOMS  UP!'},
+    color:'#ff2d78',
+    // 派手にシンバル＋爆発＋連打
+    sfx: ()=>{
+      // 0ms: シンバル＋爆発
+      noiseBurst(.7, .35, 5000);  // シンバル
+      boom(50, .4, .55);
+      noiseBurst(.4, .3, 200);    // 低音爆発
+      // 連打
+      [200, 360, 520, 680].forEach((t,i)=>{
+        setTimeout(()=>{
+          boom(70 + i*8, .12, .4);
+          tone(1800, .04, 'square', .14);
+        }, t);
+      });
+      // 〆のシンバル
+      setTimeout(()=> noiseBurst(.6, .28, 6000), 700);
+    },
+  },
+};
+
+/* ========== 罰ゲームのボトル絵（SVG） ========== */
+function bottleSVG(kind){
+  if(kind === 'tequila'){
+    return `<svg viewBox="0 0 80 128" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="bTeqLiq" x1="0" x2="0" y1="0" y2="1">
+          <stop offset="0" stop-color="#d68f3a"/>
+          <stop offset=".5" stop-color="#a85e1c"/>
+          <stop offset="1" stop-color="#3d1a05"/>
+        </linearGradient>
+      </defs>
+      <!-- コルク -->
+      <rect x="28" y="2" width="24" height="12" rx="2" fill="#6b4525"/>
+      <ellipse cx="40" cy="3" rx="11" ry="2" fill="#8a5d35"/>
+      <rect x="26" y="13" width="28" height="6" fill="#3a2410"/>
+      <!-- 首 -->
+      <rect x="32" y="19" width="16" height="12" fill="url(#bTeqLiq)" stroke="#1f0d03" stroke-width="1"/>
+      <!-- ネックタグ -->
+      <rect x="28" y="24" width="24" height="5" fill="#0f0f0f" stroke="#d4a23a" stroke-width=".5"/>
+      <text x="40" y="28" font-family="serif" font-size="3" fill="#d4a23a" text-anchor="middle">100% AGAVE</text>
+      <!-- 肩から胴 -->
+      <path d="M18 36 Q18 32 26 32 L54 32 Q62 32 62 36 L62 118 Q62 122 58 122 L22 122 Q18 122 18 118 Z"
+            fill="url(#bTeqLiq)" stroke="#1f0d03" stroke-width="1.2"/>
+      <!-- ハイライト -->
+      <path d="M24 44 L24 110" stroke="rgba(255,200,120,.6)" stroke-width="3" stroke-linecap="round"/>
+      <path d="M56 50 L56 100" stroke="rgba(255,200,120,.3)" stroke-width="2" stroke-linecap="round"/>
+      <!-- メインラベル -->
+      <rect x="24" y="56" width="32" height="44" fill="#0a0a0a" stroke="#d4a23a" stroke-width="1"/>
+      <rect x="26" y="58" width="28" height="40" fill="none" stroke="#d4a23a" stroke-width=".4"/>
+      <text x="40" y="68" font-family="serif" font-size="3.5" fill="#d4a23a" text-anchor="middle" font-weight="700">TEQUILA RESERVA</text>
+      <text x="40" y="84" font-family="serif" font-weight="900" font-size="14" fill="#d4a23a" text-anchor="middle">1800</text>
+      <text x="40" y="93" font-family="serif" font-size="5" fill="#d4a23a" text-anchor="middle" font-weight="700">AÑEJO</text>
+      <!-- 下ラベル -->
+      <rect x="24" y="105" width="32" height="10" fill="#f0e6d0" stroke="#a87a30" stroke-width=".4"/>
+      <text x="40" y="111" font-family="serif" font-size="2.5" fill="#5a3a10" text-anchor="middle" font-style="italic">Aged in oak barrels</text>
+      <text x="40" y="114" font-family="serif" font-size="2" fill="#5a3a10" text-anchor="middle">100% AGAVE</text>
+    </svg>`;
+  }
+  if(kind === 'cocabomb'){
+    return `<svg viewBox="0 0 80 128" xmlns="http://www.w3.org/2000/svg">
+      <!-- 上部の球：緑のコカレロ -->
+      <circle cx="40" cy="38" r="24" fill="#5fd84a" stroke="#2d6a1c" stroke-width="1"/>
+      <ellipse cx="40" cy="26" rx="18" ry="6" fill="#a8ee93" opacity=".5"/>
+      <!-- グラス内反射 -->
+      <ellipse cx="32" cy="38" rx="3" ry="14" fill="rgba(255,255,255,.35)"/>
+      <!-- グラス縁 -->
+      <ellipse cx="40" cy="18" rx="14" ry="3" fill="none" stroke="#aef0a3" stroke-width="1.5"/>
+      <ellipse cx="40" cy="18" rx="11" ry="2" fill="#3aa628" opacity=".7"/>
+      <!-- くびれ -->
+      <path d="M22 60 Q26 66 22 72 M58 60 Q54 66 58 72" stroke="#2d6a1c" stroke-width=".8" fill="none"/>
+      <!-- 下部三角：黄色のエナドリ -->
+      <path d="M14 72 Q16 68 22 68 L58 68 Q64 68 66 72 L70 118 Q70 122 66 122 L14 122 Q10 122 10 118 Z"
+            fill="#ffd819" stroke="#a87a00" stroke-width="1"/>
+      <!-- 下部反射 -->
+      <ellipse cx="40" cy="74" rx="22" ry="4" fill="#fff3a0" opacity=".6"/>
+      <ellipse cx="22" cy="95" rx="3" ry="20" fill="rgba(255,255,255,.4)"/>
+      <!-- ロゴ -->
+      <text x="40" y="105" font-family="serif" font-weight="900" font-size="9"
+            fill="#1a1a1a" text-anchor="middle" letter-spacing="-.5">COCALERO</text>
+      <text x="40" y="113" font-family="serif" font-size="3"
+            fill="#1a1a1a" text-anchor="middle">CLASSICO</text>
+    </svg>`;
+  }
+  if(kind === 'kleiner'){
+    return `<svg viewBox="0 0 80 128" xmlns="http://www.w3.org/2000/svg">
+      <!-- 紫キャップ -->
+      <rect x="28" y="2" width="24" height="14" rx="1" fill="#9577c4"/>
+      <ellipse cx="40" cy="3" rx="11" ry="2" fill="#b095d8"/>
+      <rect x="26" y="14" width="28" height="6" fill="#6f53a0"/>
+      <!-- キャップの溝 -->
+      <line x1="29" y1="6" x2="51" y2="6" stroke="#7a5fa8" stroke-width=".5"/>
+      <line x1="29" y1="10" x2="51" y2="10" stroke="#7a5fa8" stroke-width=".5"/>
+      <!-- 首（透明ボトル） -->
+      <rect x="34" y="20" width="12" height="10" fill="rgba(245,250,255,.55)" stroke="#888" stroke-width=".7"/>
+      <!-- 平たい平型ボトル胴体 -->
+      <path d="M16 32 Q16 28 24 28 L56 28 Q64 28 64 32 L64 118 Q64 122 60 122 L20 122 Q16 122 16 118 Z"
+            fill="rgba(240,248,255,.5)" stroke="#888" stroke-width="1"/>
+      <!-- ガラスの厚みハイライト -->
+      <path d="M22 38 L22 112" stroke="rgba(255,255,255,.85)" stroke-width="2.5" stroke-linecap="round"/>
+      <path d="M58 42 L58 108" stroke="rgba(255,255,255,.4)" stroke-width="1.5" stroke-linecap="round"/>
+      <!-- 黒ラベル＋緑枠 -->
+      <rect x="20" y="50" width="40" height="56" fill="#0a0a0a" stroke="#9bd24f" stroke-width="2"/>
+      <!-- 髪の毛（ジグザグ） -->
+      <path d="M28 56 L29 53 L30 56 L31.5 52 L33 56 L34.5 53 L36 56 L38 52 L40 56 L42 52 L44 56 L45.5 53 L47 56 L48.5 52 L50 56 L51.5 53 L52 56"
+            stroke="#fff" stroke-width=".8" fill="none"/>
+      <!-- 目玉 -->
+      <circle cx="32" cy="63" r="4" fill="#fff"/>
+      <circle cx="33.5" cy="62" r="1.5" fill="#000"/>
+      <circle cx="48" cy="63" r="4" fill="#fff"/>
+      <circle cx="49.5" cy="62" r="1.5" fill="#000"/>
+      <!-- Kleiner（小さく） -->
+      <text x="40" y="78" font-family="cursive" font-style="italic" font-size="4"
+            fill="#b09cd6" text-anchor="middle">Kleiner</text>
+      <!-- Feigling -->
+      <text x="40" y="92" font-family="cursive" font-style="italic" font-weight="700"
+            font-size="14" fill="#c4afe6" text-anchor="middle">Feigling</text>
+      <!-- DAS ORIGINAL -->
+      <text x="40" y="100" font-family="sans-serif" font-weight="900" font-size="3"
+            fill="#fff" text-anchor="middle" letter-spacing="1">DAS</text>
+      <text x="40" y="104" font-family="sans-serif" font-weight="900" font-size="4.5"
+            fill="#fff" text-anchor="middle" letter-spacing="1">ORIGINAL</text>
+    </svg>`;
+  }
+  // half / full：絵文字でデカ表示（フォールバック）
+  if(kind === 'half') return `<div style="font-size:90px;line-height:1;">🍻</div>`;
+  if(kind === 'full') return `<div style="font-size:90px;line-height:1;">🍻🔥</div>`;
+  return '';
+}
 
 /* テンポ設定 */
 const BPM_BASE = 50;    // 最初はゆっくり（1拍=1.2秒）
@@ -513,29 +1043,33 @@ const sfx = {
   count3: ()=> tone(500,.1,'square',.18),
 };
 
-/* ---- 「飲めよー！」音声 ---- */
-function speakNomeyo(){
-  // ブラザスSE: 和太鼓ドン＋ガラスチーン風
-  tone(80, 0.25, 'sine', 0.35, 40);
-  setTimeout(()=>{
-    tone(2400, 0.12, 'sine', 0.12);
-    tone(3200, 0.12, 'sine', 0.10);
-  }, 60);
-  // 日本語TTS
+/* ========== 罰ゲーム別SE用のヘルパー ========== */
+// ノイズバースト（爆発音・シンバル系）
+function noiseBurst(dur=0.3, gain=0.25, hpf=1500){
   try{
-    const synth = window.speechSynthesis;
-    if(!synth) return;
-    synth.cancel();
-    const u = new SpeechSynthesisUtterance('飲めよー！テキーラ一杯！');
-    u.lang = 'ja-JP';
-    u.rate = 1.0;
-    u.pitch = 1.3;
-    u.volume = 1.0;
-    const voices = synth.getVoices();
-    const jp = voices.find(v=>/ja|Japanese/i.test(v.lang||'') || /Japanese|Kyoko|Otoya/i.test(v.name||''));
-    if(jp) u.voice = jp;
-    synth.speak(u);
+    const a = ac();
+    const t = a.currentTime;
+    const len = Math.max(1, Math.floor(a.sampleRate * dur));
+    const buf = a.createBuffer(1, len, a.sampleRate);
+    const data = buf.getChannelData(0);
+    for(let i=0;i<len;i++){
+      // フェードアウトつきホワイトノイズ
+      data[i] = (Math.random()*2-1) * (1 - i/len);
+    }
+    const src = a.createBufferSource(); src.buffer = buf;
+    const filter = a.createBiquadFilter(); filter.type='highpass'; filter.frequency.value = hpf;
+    const g = a.createGain(); g.gain.setValueAtTime(gain, t); g.gain.exponentialRampToValueAtTime(.001, t+dur);
+    src.connect(filter); filter.connect(g); g.connect(a.destination);
+    src.start(t); src.stop(t+dur+0.02);
   }catch(e){}
+}
+// 和音（複数tone同時鳴らし）
+function chord(freqs, dur=0.4, type='sawtooth', gain=0.10){
+  freqs.forEach(f => tone(f, dur, type, gain));
+}
+// 低音ドン（キック系）
+function boom(freq=60, dur=0.3, gain=0.45){
+  tone(freq, dur, 'sine', gain, freq*0.4);
 }
 
 /* Safari/iOSでvoiceListの非同期ロード対策 */
@@ -625,8 +1159,8 @@ function showCountdown(cb){
   },700);
 }
 
-function startGame(){
-  S.running=true; S.current=0; S.coins=0; S.turn='cpu'; S.history=[];
+function resetGameState(){
+  S.running=true; S.current=0; S.coins=0; S.history=[];
   setBPM(0);
   $('coinV').textContent='0';
   $('bestV').textContent=S.best;
@@ -635,9 +1169,11 @@ function startGame(){
   $('numDisp').textContent='?';
   $('numDisp').className='number';
   $('gameover').style.display='none';
-  document.body.classList.remove('clean-fx');  // 走査線復活
-  goGame();
-  // ユーザー操作直後にAudio/TTSを解放
+  $('intermission').style.display='none';
+  document.body.classList.remove('clean-fx');
+}
+
+function unlockAudio(){
   ac();
   try{
     const synth = window.speechSynthesis;
@@ -647,16 +1183,59 @@ function startGame(){
       synth.speak(warmup);
     }
   }catch(e){}
+}
+
+/* ========== Solo Mode ========== */
+function startSolo(){
+  S.mode = 'solo';
+  S.turn = 'cpu';
+  resetGameState();
+  // HUDを1人モード仕様に
+  $('bestLbl').textContent = 'BEST';
+  $('bestV').textContent = S.best;
+
+  $('title').style.display='none';
+  $('party-setup').style.display='none';
+  goGame();
+  unlockAudio();
   showCountdown(()=>{
     bgmStart();
     cpuTurn();
   });
 }
 
+/* ========== Party Mode ========== */
+function startParty(){
+  S.mode = 'party';
+  S.playerIdx = 0;
+  S.turn = 'you';  // 常に人間のターン
+  resetGameState();
+  // HUDをパーティモード仕様に: BEST → PLAYER
+  $('bestLbl').textContent = 'PLAYER';
+  $('bestV').textContent = S.players[0].name.substring(0,6);
+
+  $('title').style.display='none';
+  $('party-setup').style.display='none';
+  goGame();
+  unlockAudio();
+  showCountdown(()=>{
+    bgmStart();
+    partyTurn();   // パーティ用のターン処理
+  });
+}
+
 function updateTurn(){
   const el = $('turn');
-  if(S.turn==='cpu'){ el.textContent='CPU TURN'; el.classList.remove('you'); }
-  else { el.textContent='YOUR TURN'; el.classList.add('you'); }
+  if(S.mode === 'party'){
+    el.textContent = (S.players[S.playerIdx]?.name || ('P'+(S.playerIdx+1))) + ' のばん';
+    el.classList.add('you');
+  } else if(S.turn==='cpu'){
+    el.textContent='CPU TURN';
+    el.classList.remove('you');
+  } else {
+    el.textContent='YOUR TURN';
+    el.classList.add('you');
+  }
 }
 
 function pushHistory(n, isClap, ok=true){
@@ -675,6 +1254,53 @@ function showNumber(n, isClap){
   const el = $('numDisp'); el.className='number';
   if(isClap){ el.textContent='パン！'; el.classList.add('clap'); }
   else { el.textContent = n; if(isAho(n)) el.classList.add('aho'); }
+}
+
+/* ---- Party turn flow ---- */
+function partyTurn(){
+  if(!S.running) return;
+  // 現在のプレイヤー表示を更新
+  $('bestV').textContent = S.players[S.playerIdx].name.substring(0,6);
+  S.turn = 'you';
+  updateTurn();
+  S.current++;
+  setBPM(S.current);
+  const n = S.current;
+  $('numBtnLabel').textContent = n;
+  $('numBtn').disabled=false; $('clapBtn').disabled=false;
+  const lim = Math.max(700, S.beatMs * 2);
+  S.tStart = performance.now();
+  S.tMaxCurrent = lim;
+  S.lastTickZone = 0;
+  S.tickNextAt = 0;
+  $('tFill').style.transform = 'scaleX(1)';
+  const tb = document.querySelector('.tbar');
+  if(tb) tb.classList.remove('warn','danger');
+  runTimer();
+}
+
+/* 次の人へ渡すインターミッション */
+function showIntermission(nextIdx, cb){
+  S.turn = 'wait';
+  $('numBtn').disabled=true; $('clapBtn').disabled=true;
+  bgmStop();
+  const im = $('intermission');
+  $('imName').textContent = S.players[nextIdx].name;
+  // imNameのアニメ再実行
+  const nameEl = $('imName');
+  nameEl.style.animation='none';
+  void nameEl.offsetWidth;
+  nameEl.style.animation='';
+  im.style.display='flex';
+  // ボタンタップで次に進む
+  const onGo = ()=>{
+    $('imGoBtn').removeEventListener('click', onGo);
+    im.style.display='none';
+    S.playerIdx = nextIdx;
+    bgmStart();
+    cb();
+  };
+  $('imGoBtn').addEventListener('click', onGo);
 }
 
 function cpuTurn(){
@@ -789,35 +1415,121 @@ function onAnswer(isClap){
   document.querySelector('.screen').appendChild(fx);
   setTimeout(()=> fx.remove(), 600);
   $('numBtn').disabled=true; $('clapBtn').disabled=true;
-  // 次のCPUターンまで1拍
-  setTimeout(()=> cpuTurn(), S.beatMs);
+
+  if(S.mode === 'party'){
+    // 次のプレイヤーへ → インターミッション挟む
+    const nextIdx = (S.playerIdx + 1) % S.players.length;
+    setTimeout(()=>{
+      if(!S.running) return;
+      showIntermission(nextIdx, ()=> partyTurn());
+    }, 500);
+  } else {
+    // 1人モード: 次のCPUターンまで1拍
+    setTimeout(()=> cpuTurn(), S.beatMs);
+  }
 }
 
 /* ========== Game Over ========== */
 function gameOver(reasonHtml){
   if(!S.running) return;
   S.running=false; stopTimer(); bgmStop();
-  if(S.coins > S.best){ S.best = S.coins; localStorage.setItem('nabe_best', S.best); }
+
+  // 1人モードのみベスト更新
+  if(S.mode === 'solo'){
+    if(S.coins > S.best){ S.best = S.coins; localStorage.setItem('nabe_best', S.best); }
+  }
+
   $('reason').innerHTML = reasonHtml;
   $('goCoin').textContent = S.coins;
   $('goNum').textContent = S.current;
-  $('nameIn').value = localStorage.getItem('uwasa_player_name') || '';
-  $('sendBtn').disabled=false; $('sendBtn').textContent='SUBMIT';
 
-  // ストロボを再生するため一度外してから付け直す（アニメ再実行）
+  // ストロボを再生するため一度外してから付け直す
   const strobe = $('strobe');
-  if(strobe){
-    strobe.style.animation='none';
-    // reflow
-    void strobe.offsetWidth;
-    strobe.style.animation='';
-  }
+  if(strobe){ strobe.style.animation='none'; void strobe.offsetWidth; strobe.style.animation=''; }
+
   // 走査線を弱めて演出文字をクリアに見せる
   document.body.classList.add('clean-fx');
+
+  if(S.mode === 'party'){
+    // パーティモード: 罰ゲーム演出 + 負けた人の名前
+    const loser = S.players[S.playerIdx];
+    const pen = PENALTIES[S.penalty] || PENALTIES.tequila;
+    applyPenaltyVisual(pen, loser);
+    $('go-solo').style.display = 'none';
+    $('go-party').style.display = 'flex';
+    $('goLoser').textContent = loser.name;
+  } else {
+    // 1人モード: 既存（テキーラ固定）
+    document.querySelector('.tequila').innerHTML = 'テキーラ<br>一杯！<small>★ TEQUILA SHOT ★</small>';
+    document.querySelector('.label1800 .l-top').textContent = 'PREMIUM';
+    document.querySelector('.label1800 .l-big').textContent = '1800';
+    document.querySelector('.label1800 .l-bot').textContent = 'AÑEJO  TEQUILA';
+    document.documentElement.style.setProperty('--penalty', PENALTIES.tequila.color);
+    const goBottle = $('goBottle');
+    if(goBottle) goBottle.innerHTML = bottleSVG('tequila');
+    $('go-solo').style.display = 'flex';
+    $('go-party').style.display = 'none';
+    $('nameIn').value = localStorage.getItem('uwasa_player_name') || '';
+    $('sendBtn').disabled=false; $('sendBtn').textContent='SUBMIT';
+  }
+
   $('gameover').style.display='flex';
 
-  // 「飲めよー！」＋テキーラSE
-  speakNomeyo();
+  // 音声＆SE
+  speakPenalty();
+}
+
+function applyPenaltyVisual(pen, loser){
+  // メインコピー差し替え
+  const teq = document.querySelector('.tequila');
+  teq.innerHTML = `${pen.main}<br>${pen.sub}<small>★ ${escTtl(pen.name)} ★</small>`;
+  // ラベル差し替え
+  document.querySelector('.label1800 .l-top').textContent = pen.label.top;
+  document.querySelector('.label1800 .l-big').textContent = pen.label.big;
+  document.querySelector('.label1800 .l-bot').textContent = pen.label.bot;
+  // メインカラー反映
+  document.documentElement.style.setProperty('--penalty', pen.color);
+  // ボトル絵差し替え（罰ゲームのキーをPENALTIESから逆引き）
+  const key = Object.keys(PENALTIES).find(k => PENALTIES[k] === pen) || 'tequila';
+  const goBottle = $('goBottle');
+  if(goBottle) goBottle.innerHTML = bottleSVG(key);
+}
+function escTtl(s){return String(s).replace(/[<>&]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]));}
+
+function speakPenalty(){
+  const pen = (S.mode==='party' && S.penalty) ? PENALTIES[S.penalty] : PENALTIES.tequila;
+  // 罰ゲーム別SE。未定義なら従来の太鼓ドン＋ガラスチーンにフォールバック
+  if(typeof pen.sfx === 'function'){
+    try{ pen.sfx(); }catch(e){}
+  } else {
+    tone(80, 0.25, 'sine', 0.35, 40);
+    setTimeout(()=>{
+      tone(2400, 0.12, 'sine', 0.12);
+      tone(3200, 0.12, 'sine', 0.10);
+    }, 60);
+  }
+  // 音声（少し遅らせてSEと被りを減らす）
+  setTimeout(()=>{
+    try{
+      const synth = window.speechSynthesis;
+      if(!synth) return;
+      synth.cancel();
+      let line = pen.voice;
+      if(S.mode === 'party'){
+        const loser = S.players[S.playerIdx];
+        line = (loser?.name || 'お前') + 'や！ ' + line;
+      }
+      const u = new SpeechSynthesisUtterance(line);
+      u.lang = 'ja-JP';
+      u.rate = 1.0;
+      u.pitch = 1.3;
+      u.volume = 1.0;
+      const voices = synth.getVoices();
+      const jp = voices.find(v=>/ja|Japanese/i.test(v.lang||'') || /Japanese|Kyoko|Otoya/i.test(v.name||''));
+      if(jp) u.voice = jp;
+      synth.speak(u);
+    }catch(e){}
+  }, 250);
 }
 
 async function submitScore(){
@@ -851,19 +1563,143 @@ async function submitScore(){
 
 function retry(){
   $('gameover').style.display='none';
-  startGame();
+  document.body.classList.remove('clean-fx');
+  if(S.mode === 'party') startParty();
+  else startSolo();
 }
 
 /* ========== Events ========== */
-$('startBtn').addEventListener('click', startGame);
+$('startBtn').addEventListener('click', startSolo);
+$('partyBtn').addEventListener('click', goPartySetup);
 $('numBtn').addEventListener('click', ()=> onAnswer(false));
 $('clapBtn').addEventListener('click', ()=> onAnswer(true));
 $('retryBtn').addEventListener('click', retry);
 $('sendBtn').addEventListener('click', submitScore);
 
+/* パーティ用ゲームオーバーのボタン */
+$('retryPartyBtn').addEventListener('click', ()=>{
+  // 走査線・ゲームオーバー画面を戻して、同じ設定で再スタート
+  $('gameover').style.display='none';
+  document.body.classList.remove('clean-fx');
+  startParty();
+});
+
+$('homePartyBtn').addEventListener('click', ()=>{
+  // タイトルに戻す
+  $('gameover').style.display='none';
+  document.body.classList.remove('clean-fx');
+  $('game').style.display='none';
+  $('party-setup').style.display='none';
+  $('title').style.display='flex';
+  // BGMが鳴ってる可能性があるので止める
+  try{ bgmStop(); }catch(e){}
+});
+
+/* パーティセットアップ */
+function showSetupPane(step){
+  $('ps-1').style.display = step===1 ? 'flex' : 'none';
+  $('ps-2').style.display = step===2 ? 'flex' : 'none';
+  $('ps-3').style.display = step===3 ? 'flex' : 'none';
+  const labels = {1:'1/3 人数選択', 2:'2/3 罰ゲーム選択', 3:'3/3 名前入力'};
+  $('psStepLabel').textContent = labels[step];
+  S.psStep = step;
+}
+
+function goPartySetup(){
+  // 前回設定を復元
+  let saved = null;
+  try { saved = JSON.parse(localStorage.getItem(PARTY_KEY)||'null'); } catch(e){}
+  if(saved){
+    S.penalty = saved.penalty || 'tequila';
+    S.players = (saved.players||[]).map(p=>({name:p.name||''}));
+  }
+  $('title').style.display='none';
+  $('party-setup').style.display='flex';
+  // 罰ゲーム選択を反映
+  document.querySelectorAll('.penalty').forEach(b=>{
+    b.classList.toggle('selected', b.dataset.penalty === S.penalty);
+  });
+  showSetupPane(1);
+  // 直接最初に来た場合はAudio解放
+  ac();
+}
+
+document.querySelectorAll('.penalty').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.penalty').forEach(b=> b.classList.remove('selected'));
+    btn.classList.add('selected');
+    S.penalty = btn.dataset.penalty;
+    // 罰ゲーム選択 → 名前入力へ
+    setTimeout(()=>{
+      renderNameList();
+      showSetupPane(3);
+    }, 200);
+  });
+});
+
+document.querySelectorAll('.people-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    const n = parseInt(btn.dataset.n, 10);
+    // 既存人数と違う場合のみ作り直す（戻る時の名前保持のため）
+    if(S.players.length !== n){
+      const old = S.players;
+      S.players = [];
+      for(let i=0;i<n;i++){
+        S.players.push({ name: (old[i]?.name) || '' });
+      }
+    }
+    // 人数選択 → 罰ゲーム選択へ
+    showSetupPane(2);
+  });
+});
+
+function renderNameList(){
+  const list = $('nameList'); list.innerHTML='';
+  S.players.forEach((p, i)=>{
+    const row = document.createElement('div');
+    row.className = 'name-row';
+    row.innerHTML = `<span class="nlabel">P${i+1}</span><input type="text" maxlength="10" value="${(p.name||'').replace(/"/g,'&quot;')}" placeholder="プレイヤー${i+1}">`;
+    const inp = row.querySelector('input');
+    inp.addEventListener('input', ()=>{ S.players[i].name = inp.value.trim(); });
+    list.appendChild(row);
+  });
+}
+
+$('psBackBtn').addEventListener('click', ()=>{
+  if(S.psStep === 3) showSetupPane(2);
+  else if(S.psStep === 2) showSetupPane(1);
+  else {
+    // step 1 で戻る → タイトルへ
+    $('party-setup').style.display='none';
+    $('title').style.display='flex';
+  }
+});
+
+$('psGoBtn').addEventListener('click', ()=>{
+  // 名前を確定（空ならP1, P2…で埋める）
+  S.players.forEach((p, i)=>{
+    if(!p.name) p.name = 'P'+(i+1);
+  });
+  // 保存
+  try{
+    localStorage.setItem(PARTY_KEY, JSON.stringify({
+      penalty: S.penalty,
+      players: S.players.map(p=>({name:p.name})),
+    }));
+  }catch(e){}
+  startParty();
+});
+
 window.addEventListener('keydown', e=>{
+  // パーティセットアップ表示中はキー無視
+  if($('party-setup').style.display === 'flex') return;
+  // インターミッション中はEnter/Spaceで「次へ」、それ以外は無視
+  if($('intermission') && $('intermission').style.display === 'flex'){
+    if(e.code==='Space'||e.code==='Enter'){ e.preventDefault(); $('imGoBtn').click(); }
+    return;
+  }
   if(!S.running){
-    if(e.code==='Space' || e.code==='Enter'){ e.preventDefault(); startGame(); }
+    if(e.code==='Space' || e.code==='Enter'){ e.preventDefault(); startSolo(); }
     return;
   }
   if(S.turn!=='you') return;
