@@ -18,14 +18,24 @@ html,body{
   font-family:'Press Start 2P',monospace;
   touch-action:manipulation;
 }
-/* CRT effects */
+/* 周辺の柔らかいビネット */
+body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9998;
+  background:radial-gradient(ellipse at center,transparent 60%,rgba(0,0,0,.55) 100%);}
+/* かすかな星屑（ネオンっぽいランダムドット） */
 body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;
-  background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.15) 2px,rgba(0,0,0,.15) 4px);
-  transition:opacity .3s;}
+  background-image:
+    radial-gradient(circle at 12% 18%, rgba(255,45,120,.25) 0, transparent 1.4px),
+    radial-gradient(circle at 78% 22%, rgba(0,245,255,.25) 0, transparent 1.4px),
+    radial-gradient(circle at 32% 67%, rgba(255,230,0,.20) 0, transparent 1.2px),
+    radial-gradient(circle at 88% 81%, rgba(191,0,255,.28) 0, transparent 1.4px),
+    radial-gradient(circle at 55% 42%, rgba(57,255,20,.20) 0, transparent 1.2px),
+    radial-gradient(circle at 22% 89%, rgba(0,245,255,.20) 0, transparent 1.2px);
+  background-size: 220px 220px, 280px 280px, 180px 180px, 320px 320px, 240px 240px, 200px 200px;
+  background-position: 0 0, 40px 60px, 120px 30px, 80px 100px, 30px 80px, 150px 50px;
+  opacity:.85;transition:opacity .3s;
+}
 body.clean-fx::before{opacity:0;}
 body.clean-fx .screen::after{opacity:0;}
-body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9998;
-  background:radial-gradient(ellipse at center,transparent 55%,rgba(0,0,0,.8) 100%);}
 
 .stage{
   max-width:480px;margin:0 auto;height:100dvh;display:flex;flex-direction:column;
@@ -198,7 +208,7 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9998;
   animation: pulseHot .3s ease-in-out infinite alternate;}
 @keyframes pulseHot{from{filter:brightness(1)}to{filter:brightness(1.15)}}
 .screen::after{content:'';position:absolute;inset:0;pointer-events:none;
-  background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,.18) 3px,rgba(0,0,0,.18) 4px);
+  background:radial-gradient(ellipse at center, transparent 65%, rgba(0,0,0,.35) 100%);
   transition:opacity .3s;}
 
 .turn{
