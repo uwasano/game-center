@@ -187,6 +187,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;
 .game-card.uwasa{border:2px solid var(--pink);  box-shadow:0 0 16px rgba(255,45,120,.5)}
 .game-card.nabe {border:2px solid var(--green); box-shadow:0 0 16px rgba(57,255,20,.45)}
 .game-card.darts{border:2px solid var(--purple);box-shadow:0 0 16px rgba(191,0,255,.5)}
+.game-card.land {border:2px solid var(--orange);box-shadow:0 0 16px rgba(255,136,0,.5)}
 /* POP Coming Soon — colorful teasers */
 .game-card.soon{
   cursor:default;position:relative;overflow:hidden;
@@ -208,6 +209,10 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;
 .game-card:hover.uwasa{box-shadow:0 0 28px rgba(255,45,120,.9),inset 0 0 20px rgba(255,45,120,.08)}
 .game-card:hover.nabe {box-shadow:0 0 28px rgba(57,255,20,.9),inset 0 0 20px rgba(57,255,20,.08)}
 .game-card:hover.darts{box-shadow:0 0 28px rgba(191,0,255,.9),inset 0 0 20px rgba(191,0,255,.1)}
+.game-card:hover.land {box-shadow:0 0 28px rgba(255,136,0,.9),inset 0 0 20px rgba(255,136,0,.1)}
+
+/* Make :root know orange */
+:root{--orange:#FF8800;}
 
 /* Screen thumb */
 .gc-screen{
@@ -223,12 +228,14 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;
 .game-card.uwasa .gc-screen{background:linear-gradient(135deg,#1a0020,#2a0010)}
 .game-card.nabe  .gc-screen{background:linear-gradient(135deg,#001a0a,#003015)}
 .game-card.darts .gc-screen{background:linear-gradient(135deg,#1a002a,#0a0020)}
+.game-card.land  .gc-screen{background:linear-gradient(135deg,#2a1500,#3a0a20)}
 .game-card.soon-cyan   .gc-screen{background:linear-gradient(135deg,#001a22,#003040)}
 .game-card.soon-purple .gc-screen{background:linear-gradient(135deg,#150025,#2a0045)}
 .gc-emoji{filter:drop-shadow(0 0 12px currentColor);animation:sf 2s ease-in-out infinite;}
 .game-card.uwasa .gc-emoji{color:var(--pink)}
 .game-card.nabe  .gc-emoji{color:var(--green)}
 .game-card.darts .gc-emoji{color:var(--purple)}
+.game-card.land  .gc-emoji{color:var(--orange)}
 .game-card.soon-cyan   .gc-emoji{color:var(--cyan);  animation:sfWobble 1.6s ease-in-out infinite}
 .game-card.soon-purple .gc-emoji{color:var(--purple);animation:sfWobble 1.6s ease-in-out infinite .3s}
 @keyframes sf{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
@@ -251,6 +258,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;
 .game-card.uwasa .gc-title{color:var(--pink);text-shadow:0 0 8px var(--pink)}
 .game-card.nabe  .gc-title{color:var(--green);text-shadow:0 0 8px var(--green)}
 .game-card.darts .gc-title{color:var(--purple);text-shadow:0 0 8px var(--purple)}
+.game-card.land  .gc-title{color:var(--orange);text-shadow:0 0 8px var(--orange)}
 .game-card.soon-cyan   .gc-title{color:var(--cyan);  text-shadow:0 0 8px var(--cyan)}
 .game-card.soon-purple .gc-title{color:var(--purple);text-shadow:0 0 8px var(--purple)}
 .gc-desc{font-family:'DotGothic16',sans-serif;font-size:11px;color:rgba(255,255,255,.5);line-height:1.5;}
@@ -259,6 +267,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;
 .tag.hot {background:var(--pink); color:#fff;animation:badgep .6s steps(2) infinite}
 .tag.new {background:var(--green);color:#000}
 .tag.new2{background:var(--yellow);color:#000;animation:badgep .6s steps(2) infinite}
+.tag.party{background:var(--orange);color:#000;animation:badgep .6s steps(2) infinite}
 .tag.soon-pop{
   background:linear-gradient(90deg,var(--pink),var(--yellow),var(--cyan),var(--purple),var(--pink));
   background-size:300% 100%;color:#000;font-weight:bold;
@@ -291,6 +300,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;
 .rtab.active.uwasa{border-color:var(--pink);  color:var(--pink);  background:rgba(255,45,120,.12);  box-shadow:0 0 8px rgba(255,45,120,.4)}
 .rtab.active.nabe {border-color:var(--green); color:var(--green); background:rgba(57,255,20,.1);    box-shadow:0 0 8px rgba(57,255,20,.35)}
 .rtab.active.darts{border-color:var(--purple);color:var(--purple);background:rgba(191,0,255,.12);  box-shadow:0 0 8px rgba(191,0,255,.4)}
+.rtab.active.land {border-color:var(--orange);color:var(--orange);background:rgba(255,136,0,.12);  box-shadow:0 0 8px rgba(255,136,0,.4)}
 .rtab.active.total{border-color:var(--yellow);color:var(--yellow);background:rgba(255,230,0,.1);   box-shadow:0 0 8px rgba(255,230,0,.3)}
 .rank-list{font-family:'DotGothic16',sans-serif;font-size:13px;min-height:120px;}
 .rank-row{display:flex;justify-content:space-between;align-items:center;
@@ -357,7 +367,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;
 
   <!-- MARQUEE -->
   <div class="marquee">
-    <span class="marquee-in">★ うわさのゲームセンター ★ UWASA GAME CENTER ★ 金沢市 片町 ★ U.wasano Shisha Bar presents ★ UWASA BROTHERS 稼働中！ ★ 3の倍数アホになる 稼働中！ ★ NEW! SHISHA DARTS 登場！ ★ 負けたら罰ゲーム🍻グイッ‼️ ★ 今週のトータル1位はシーシャ1台無料！ ★</span>
+    <span class="marquee-in">★ うわさのゲームセンター ★ UWASA GAME CENTER ★ 金沢市 片町 ★ U.wasano Shisha Bar presents ★ UWASA BROTHERS 稼働中！ ★ 3の倍数アホになる 稼働中！ ★ SHISHA DARTS 稼働中！ ★ NEW! UWASA LAND すごろく登場！ ★ 負けたら罰ゲーム🍻グイッ‼️ ★ 今週のトータル1位はシーシャ1台無料！ ★</span>
   </div>
 
   <!-- TOP BAR -->
@@ -436,7 +446,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;
       </div>
     </div>
 
-    <!-- ══ DARTS - 稼働中 ══ -->
+    <!-- DARTS -->
     <div class="game-card darts" onclick="openGame('games/darts/index.html')">
       <div class="gc-screen">
         <span class="gc-emoji">🎯</span>
@@ -445,6 +455,23 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;
         <div class="gc-title">SHISHA DARTS</div>
         <div class="gc-desc">負けたら罰ゲーム<br>🍻グイッ‼️</div>
         <div class="gc-tags">
+          <span class="tag new2">★ NEW</span>
+          <span class="tag new">RANKING</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ UWASA LAND - 新作！ ══ -->
+    <div class="game-card land" onclick="openGame('games/uwasa-land/index.html')">
+      <div class="gc-screen">
+        <span class="gc-emoji">🎲</span>
+        <div class="px-runner"><span></span><span></span><span></span></div>
+      </div>
+      <div class="gc-info">
+        <div class="gc-title">UWASA LAND</div>
+        <div class="gc-desc">2〜5人ですごろく対戦🎲<br>罰ゲーム連発で大盛り上がり！</div>
+        <div class="gc-tags">
+          <span class="tag party">★ PARTY</span>
           <span class="tag new2">★ NEW</span>
           <span class="tag new">RANKING</span>
         </div>
@@ -482,6 +509,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;
       <div class="rtab active uwasa" onclick="switchTab('uwasa')" id="tab-uwasa">UWASA</div>
       <div class="rtab nabe"         onclick="switchTab('nabe')"  id="tab-nabe">3アホ</div>
       <div class="rtab darts"        onclick="switchTab('darts')" id="tab-darts">DARTS</div>
+      <div class="rtab land"         onclick="switchTab('land')"  id="tab-land">LAND</div>
       <div class="rtab total"        onclick="switchTab('total')" id="tab-total">TOTAL</div>
     </div>
 
@@ -513,8 +541,8 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;
 
 <script>
 // ── Supabase ──
-const SUPABASE_URL = 'https://hwoltvzmsznprsbyrbaj.supabase.co';  // ← ここに貼る
-const SUPABASE_KEY = 'sb_publishable_1JsQKCxHNyH4fGzFUJeEHg_czjaZxPR';  // ← ここに貼る
+const SUPABASE_URL = 'https://hwoltvzmsznprsbyrbaj.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_1JsQKCxHNyH4fGzFUJeEHg_czjaZxPR';
 
 // ── Clock ──
 function tick(){
@@ -535,7 +563,6 @@ tick(); setInterval(tick,10000);
   document.getElementById('rank-period').textContent=fmt(mon)+'〜'+fmt(sun);
 })();
 
-// ── Coin SFX ──
 // ═══════════════════════════════════════════════════════
 // 🎵 ARCADE BGM — 8bit ゲームセンター風ループ
 // ═══════════════════════════════════════════════════════
@@ -714,7 +741,7 @@ let currentTab='uwasa';
 
 function switchTab(tab){
   currentTab=tab;
-  document.querySelectorAll('.rtab').forEach(t=>t.classList.remove('active','uwasa','nabe','darts','total'));
+  document.querySelectorAll('.rtab').forEach(t=>t.classList.remove('active','uwasa','nabe','darts','land','total'));
   const el=document.getElementById('tab-'+tab);
   el.classList.add('active',tab);
   loadRanking(tab);
@@ -731,7 +758,6 @@ function getMonday(){
 async function fetchRanking(game, limit=10, aggregate='best'){
   if(!SUPABASE_URL||!SUPABASE_KEY) return null;
   try{
-    // 多めに取得してクライアント側で集計
     const fetchLimit = 200;
     let url=SUPABASE_URL+'/rest/v1/scores?select=player_name,coins,score,stage,distance,game,created_at&created_at=gte.'+getMonday()+'&order=coins.desc&limit='+fetchLimit;
     if(game!=='total') url+='&game=eq.'+game;
@@ -740,7 +766,6 @@ async function fetchRanking(game, limit=10, aggregate='best'){
     const raw = await r.json();
 
     if(aggregate === 'sum'){
-      // プレイヤー単位で coins を累積
       const map = new Map();
       for(const row of raw){
         const key = (row.player_name||'???').trim().toLowerCase();
@@ -765,7 +790,6 @@ async function fetchRanking(game, limit=10, aggregate='best'){
       return arr.slice(0, limit);
     }
 
-    // 既存：ベスト1件のみ残す（プレイヤー名で重複除去）
     const seen = new Set();
     const deduped = [];
     for(const row of raw){
@@ -779,7 +803,7 @@ async function fetchRanking(game, limit=10, aggregate='best'){
   }catch(e){return null;}
 }
 
-// 🏆 先週の王者を取得（全ゲーム共通で最高コイン）
+// 🏆 先週の王者を取得
 async function fetchLastWeekChampion(){
   if(!SUPABASE_URL||!SUPABASE_KEY) return null;
   try{
@@ -803,7 +827,11 @@ async function showChampionBanner(){
   if(!banner||!content) return;
   const champ=await fetchLastWeekChampion();
   if(champ && champ.player_name){
-    const gameIcon=champ.game==='count_up_aho'?'👏':champ.game==='uwasa_brothers'?'🎮':champ.game==='shisha_darts'?'🎯':'🏆';
+    const gameIcon=
+      champ.game==='count_up_aho'   ? '👏' :
+      champ.game==='uwasa_brothers' ? '🎮' :
+      champ.game==='shisha_darts'   ? '🎯' :
+      champ.game==='uwasa_land'     ? '🎲' : '🏆';
     content.innerHTML=`
       <div class="champ-name">${gameIcon} ${champ.player_name}</div>
       <div class="champ-coins">🪙 ${champ.coins||0} コイン</div>
@@ -824,9 +852,10 @@ async function loadRanking(tab){
   const game = tab==='uwasa' ? 'uwasa_brothers'
              : tab==='nabe'  ? 'count_up_aho'
              : tab==='darts' ? 'shisha_darts'
+             : tab==='land'  ? 'uwasa_land'
              : 'total';
-  // ダーツは累積SUMで競う。他は既存仕様（ベスト残し）。
-  const aggregate = tab==='darts' ? 'sum' : 'best';
+  // ダーツとLANDは累積SUMで競う。他は既存仕様（ベスト残し）。
+  const aggregate = (tab==='darts'||tab==='land') ? 'sum' : 'best';
   const data = await fetchRanking(game, 10, aggregate);
 
   if(!data){
@@ -849,12 +878,13 @@ async function loadRanking(tab){
     const gIcon = g==='count_up_aho'   ? '👏'
                 : g==='uwasa_brothers' ? '🎮'
                 : g==='shisha_darts'   ? '🎯'
+                : g==='uwasa_land'     ? '🎲'
                 : '';
     const sub   = g==='count_up_aho'
       ? `→${row.distance||0}`
       : g==='uwasa_brothers'
         ? `ステージ${(row.stage||0)+1}`
-        : g==='shisha_darts'
+        : (g==='shisha_darts'||g==='uwasa_land')
           ? `×${row.plays||1}`
           : '';
     return `<div class="rank-row">
