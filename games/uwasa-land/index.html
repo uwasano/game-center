@@ -734,6 +734,23 @@ body::before{
   line-height:1.6;color:#fff;margin-bottom:18px;
   white-space:pre-wrap;
 }
+.modal-text .pen-main{
+  display:block;
+  font-size:24px;
+  font-weight:bold;
+  color:var(--yellow);
+  text-shadow:0 0 10px rgba(255,230,0,.8),0 0 18px rgba(255,136,0,.6);
+  margin-bottom:8px;
+  letter-spacing:1px;
+  line-height:1.4;
+}
+.modal-text .pen-flavor{
+  display:block;
+  font-size:14px;
+  color:#ccc;
+  opacity:.85;
+  line-height:1.5;
+}
 .modal-btn{
   width:100%;padding:12px;
   background:linear-gradient(135deg,var(--pink),var(--purple));
@@ -1511,36 +1528,36 @@ const RANDOM_POOL = ['tequila','cokebomb','kleiner','half','full'];
 // ════════════════════════════════════════════════════════════
 const BOARD = [
   {type:'start', label:'START', text:'スタート！'},
-  {type:'back',  label:'完璧主義\n最初に戻る', text:'自分は完璧主義だ！\n1マスなんて許せない！\n最初のマスに戻る。', action:'tostart'},
-  {type:'fun',   label:'もう1マス\n元気に進む', text:'2マスなんて悲しい…\nもう1マスだけ元気よく進む！', action:'forward1'},
+  {type:'back',  label:'完璧主義\n最初に戻る', text:'<span class="pen-main">最初のマスに戻る😤</span><span class="pen-flavor">自分は完璧主義だ！1マスなんて許せない！</span>', action:'tostart'},
+  {type:'fun',   label:'もう1マス\n元気に進む', text:'<span class="pen-main">もう1マス進む🚶</span><span class="pen-flavor">2マスなんて悲しい…元気よく進もう！</span>', action:'forward1'},
   {type:'safe',  label:'セーフ', text:'😌 セーフ！何もなし。'},
-  {type:'confess', label:'人生最悪\n告白', text:'人生でした1番の悪い事を今ここで告白する。\n笑えなそうな事だったらすぐに1杯グイ🍻'},
-  {type:'shot',  label:'健康診断\n2マス戻る', text:'健康診断に引っ掛かり入院になった！\n1ターンお休み + 2マス戻る。', action:'back2skip'},
-  {type:'shot',  label:'コロナ消毒\n罰ゲームグイ', text:'なんだかコロナになった気がする…\nアルコール消毒の為一杯グイ🥃', blast:true},
-  {type:'warp',  label:'お前は先に\n行けっ！\n右の人を13マス飛ばし', text:'ここは俺に任せてお前は先にいけぇ！！\n罰ゲーム1杯飲んで右の人を13マス飛ばし✨', action:'pushright13', blast:true},
-  {type:'drink', label:'敗北を知り\nたい\nジャンケン', text:'敗北を知りたい！\n左の人と罰ゲームをかけてジャンケン勝負🥃', action:'jankenleft'},
-  {type:'shot',  label:'俺は海賊王\nになる！\n2杯グイ', text:'俺は海賊王になる！\n音量あげて2杯グイ‼️🍻🍻', action:'double', blast:true, doubleBlast:true},
+  {type:'confess', label:'人生最悪\n告白', text:'<span class="pen-main">告白＋笑えなかったら1杯グイ‼️🍻</span><span class="pen-flavor">人生でした1番の悪い事を今ここで告白する。笑えなそうな事だったらすぐに飲む。</span>'},
+  {type:'shot',  label:'健康診断\n2マス戻る', text:'<span class="pen-main">2マス戻る＋1ターン休み🏥</span><span class="pen-flavor">健康診断に引っ掛かり入院になった！</span>', action:'back2skip'},
+  {type:'shot',  label:'コロナ消毒\n罰ゲームグイ', text:'<span class="pen-main">1杯グイ‼️🥃</span><span class="pen-flavor">なんだかコロナになった気がする…アルコール消毒の為。</span>', blast:true},
+  {type:'warp',  label:'お前は先に\n行けっ！\n右の人を13マス飛ばし', text:'<span class="pen-main">1杯グイ‼️🍻＋右の人を13マス飛ばし✨</span><span class="pen-flavor">ここは俺に任せてお前は先にいけぇ！！</span>', action:'pushright13', blast:true},
+  {type:'drink', label:'敗北を知り\nたい\nジャンケン', text:'<span class="pen-main">左の人とジャンケン、負けは1杯グイ‼️🥃</span><span class="pen-flavor">敗北を知りたい！</span>', action:'jankenleft'},
+  {type:'shot',  label:'俺は海賊王\nになる！\n2杯グイ', text:'<span class="pen-main">2杯グイ‼️🍻🍻</span><span class="pen-flavor">俺は海賊王になる！音量あげていけ！</span>', action:'double', blast:true, doubleBlast:true},
   {type:'safe',  label:'セーフ', text:'😌 セーフ！何もなし。'},
-  {type:'drink', label:'目が合った\n人と乾杯', text:'初めに目が合った人と「愛してるよ」と言い合い\nそのあと乾杯してグイ🍻'},
-  {type:'skip',  label:'死神の本\n2ターン休み', text:'死神の本を手に入れた。\n2ターン以上経過すれば、誰かを最初のマスに戻す😈', action:'skip2'},
-  {type:'back',  label:'勇者の盾\n5マス戻る', text:'勇者の盾が欲しい。\n5マス戻る🛡', action:'back5'},
-  {type:'shot',  label:'勇者の剣\n半きグイさせる', text:'勇者の剣を手に入れた！\nゲームが終わるまで毎ターン誰かを指名して半きグイさせる⚔'},
+  {type:'drink', label:'目が合った\n人と乾杯', text:'<span class="pen-main">目が合った人と乾杯してグイ‼️🍻</span><span class="pen-flavor">初めに目が合った人と「愛してるよ」と言い合ってから乾杯。</span>'},
+  {type:'skip',  label:'死神の本\n2ターン休み', text:'<span class="pen-main">2ターン経過後、誰かを最初のマスに戻す😈</span><span class="pen-flavor">死神の本を手に入れた。</span>', action:'skip2'},
+  {type:'back',  label:'勇者の盾\n5マス戻る', text:'<span class="pen-main">5マス戻る🛡</span><span class="pen-flavor">勇者の盾が欲しい。</span>', action:'back5'},
+  {type:'shot',  label:'勇者の剣\n半きグイさせる', text:'<span class="pen-main">毎ターン誰かを指名して半きグイ‼️⚔</span><span class="pen-flavor">勇者の剣を手に入れた！ゲームが終わるまで継続。</span>'},
   {type:'safe',  label:'セーフ', text:'😌 セーフ！何もなし。'},
-  {type:'warp',  label:'GOALに\nワープ\n最後尾の人グイ', text:'✨ GOALにワープ！ ✨\nこの時点で1番最後尾の人が一杯グイ🍻', action:'warpgoal'},
-  {type:'skip',  label:'つかれたよね\n1ターン休憩', text:'つかれたよね？\n1ターン休憩しても良いね😴', action:'skip1'},
-  {type:'drink', label:'みんなで\nじゃんけん', text:'みんなでじゃんけん！\n負けは1杯グイ。そして1マス戻る🍻'},
-  {type:'fun',   label:'勇者の鎧\n3ターン無敵', text:'勇者の鎧を手に入れた。\n3ターン無敵で、誰の指示も無効🛡'},
-  {type:'shot',  label:'好きな人\n6マス戻る', text:'自分の好きな人に会いたくなった。\n一杯のんでハイターン休憩する。\n6マス戻る💔', action:'back6', blast:true},
+  {type:'warp',  label:'GOALに\nワープ\n最後尾の人グイ', text:'<span class="pen-main">最後尾の人が1杯グイ‼️🍻</span><span class="pen-flavor">✨ GOALにワープ！ ✨ この時点で1番最後尾の人が飲む。</span>', action:'warpgoal'},
+  {type:'skip',  label:'つかれたよね\n1ターン休憩', text:'<span class="pen-main">1ターン休み😴</span><span class="pen-flavor">つかれたよね？休憩しても良いね。</span>', action:'skip1'},
+  {type:'drink', label:'みんなで\nじゃんけん', text:'<span class="pen-main">みんなでじゃんけん、負けは1杯グイ‼️🍻＋1マス戻る</span><span class="pen-flavor">勝負だ！</span>'},
+  {type:'fun',   label:'勇者の鎧\n3ターン無敵', text:'<span class="pen-main">3ターン無敵🛡</span><span class="pen-flavor">勇者の鎧を手に入れた。誰の指示も無効。</span>'},
+  {type:'shot',  label:'好きな人\n6マス戻る', text:'<span class="pen-main">1杯グイ‼️🍻＋6マス戻る💔</span><span class="pen-flavor">自分の好きな人に会いたくなった。1ターン休憩する。</span>', action:'back6', blast:true},
   {type:'safe',  label:'セーフ', text:'😌 セーフ！何もなし。'},
-  {type:'confess', label:'初体験の人\nの名前を呼ぶ', text:'最近恥ずかしかった話をみんなに発表する。\n初体験の相手の名前もちゃんと言う🙈'},
-  {type:'drink', label:'水分補給\n5マス戻る', text:'水分補給一杯グイ。\nあと5マス戻る💧', action:'back5', blast:true},
-  {type:'fun',   label:'右の人に\n1杯飲んで\nもらう', text:'たまにはゆっくり…\nただし右の人には1杯飲んでもらう🍺', action:'rightdrink'},
-  {type:'confess', label:'初体験の\n相手を告白', text:'初体験の相手を告白し、ゲームが終わるまでその名前で呼ばれる…\n呼ばなかったらグイ🙊'},
+  {type:'confess', label:'初体験の人\nの名前を呼ぶ', text:'<span class="pen-main">恥ずかしい話を発表＋初体験の相手の名前を言う🙈</span><span class="pen-flavor">最近恥ずかしかった話をみんなに発表する。</span>'},
+  {type:'drink', label:'水分補給\n5マス戻る', text:'<span class="pen-main">1杯グイ‼️💧＋5マス戻る</span><span class="pen-flavor">水分補給だ。</span>', action:'back5', blast:true},
+  {type:'fun',   label:'右の人に\n1杯飲んで\nもらう', text:'<span class="pen-main">右の人が1杯グイ‼️🍺</span><span class="pen-flavor">たまにはゆっくり…ただし右の人に飲んでもらう。</span>', action:'rightdrink'},
+  {type:'confess', label:'初体験の\n相手を告白', text:'<span class="pen-main">初体験の相手を告白＋呼ばれなかったら1杯グイ‼️🙊</span><span class="pen-flavor">ゲームが終わるまでその名前で呼ばれる。</span>'},
   {type:'safe',  label:'セーフ', text:'😌 セーフ！何もなし。'},
-  {type:'shot',  label:'今日の悪い\n話をシェア', text:'今日の悪い話をみんなで語る！\nストーリーを盛る😏'},
-  {type:'shot',  label:'足が痛風\n2マス戻る\n1ターン休み', text:'足が痛風になった。\n痛いから2マス戻る + 1ターンお休み。', action:'back2skip'},
-  {type:'shot',  label:'タメ口ミス\n最初のマスに戻る', text:'このゲームで1番偉くなれる！\nゲームが終わるまで全員にタメ口。\nタメ口をミスると偉いまま最初のマスに戻る👑', action:'tostart'},
-  {type:'safe',  label:'セーフポイント\n初体験の相手を呼ぶ', text:'🟣 セーブポイント！\n何があっても初体験の相手の名前を元気よく言えば何度でもここに戻れる✨', action:'savepoint'},
+  {type:'shot',  label:'今日の悪い\n話をシェア', text:'<span class="pen-main">今日の悪い話をみんなで語る😏</span><span class="pen-flavor">ストーリーを盛っていこう。</span>'},
+  {type:'shot',  label:'足が痛風\n2マス戻る\n1ターン休み', text:'<span class="pen-main">2マス戻る＋1ターン休み🦶</span><span class="pen-flavor">足が痛風になった。痛いから休む。</span>', action:'back2skip'},
+  {type:'shot',  label:'タメ口ミス\n最初のマスに戻る', text:'<span class="pen-main">全員にタメ口、ミスったら最初のマスに戻る👑</span><span class="pen-flavor">このゲームで1番偉くなれる！ゲームが終わるまで継続。</span>', action:'tostart'},
+  {type:'safe',  label:'セーフポイント\n初体験の相手を呼ぶ', text:'<span class="pen-main">🟣 セーブポイント！</span><span class="pen-flavor">何があっても初体験の相手の名前を元気よく言えば何度でもここに戻れる✨</span>', action:'savepoint'},
   {type:'goal',  label:'⭐GOAL⭐', text:'🎉 GOAL!! 🎉'},
 ];
 const GOAL = BOARD.length - 1;
@@ -2449,7 +2466,7 @@ function openModal({icon, type, color, text, onClose, silent}){
   const typeEl = document.getElementById('modal-type');
   typeEl.textContent = type;
   typeEl.style.color = color;
-  document.getElementById('modal-text').textContent = text;
+  document.getElementById('modal-text').innerHTML = text;
   document.getElementById('modal').classList.add('open');
   modalCallback = silent ? null : onClose;
   if(!silent) tone(660, .1, 'sine', .25);
