@@ -1552,12 +1552,34 @@ const BOARD = [
   {type:'confess', category:'event', label:'初体験の人\nの名前を呼ぶ', text:'<span class="pen-main">恥ずかしい話を発表＋初体験の相手の名前を言う🙈</span><span class="pen-flavor">最近恥ずかしかった話をみんなに発表する。</span>'},
   {type:'drink', category:'pen',   label:'水分補給\n5マス戻る', text:'<span class="pen-main">{{drink}}1杯グイ‼️💧＋5マス戻る</span><span class="pen-flavor">水分補給だ。</span>', action:'back5', blast:true},
   {type:'fun',   category:'pen',   label:'右の人に\n1杯飲んで\nもらう', text:'<span class="pen-main">右の人が{{drink}}1杯グイ‼️🍺</span><span class="pen-flavor">たまにはゆっくり…ただし右の人に飲んでもらう。</span>', action:'rightdrink', blast:true},
-  {type:'confess', category:'event', label:'初体験の\n相手を告白', text:'<span class="pen-main">初体験の相手を告白＋呼ばれなかったら{{drink}}1杯グイ‼️🙊</span><span class="pen-flavor">ゲームが終わるまでその名前で呼ばれる。</span>', blast:true},
+  {type:'confess', category:'event', label:'初体験の\n相手を告白', text:'<span class="pen-main">初体験の相手の名前を発表！</span><span class="pen-flavor">言った人はゲーム終了までその名前で呼ばれる👀\n違う名前で呼んだ人はそのたびに{{drink}}1杯グイ‼️🍻</span>', blast:true},
   {type:'safe',  category:'safe',  label:'セーフ', text:'😌 セーフ！何もなし。'},
   {type:'shot',  category:'event', label:'今日の悪い\n話をシェア', text:'<span class="pen-main">今日の悪い話をみんなで語る😏</span><span class="pen-flavor">ストーリーを盛っていこう。</span>'},
   {type:'shot',  category:'rest',  label:'足が痛風\n2マス戻る\n1ターン休み', text:'<span class="pen-main">2マス戻る＋1ターン休み🦶</span><span class="pen-flavor">足が痛風になった。痛いから休む。</span>', action:'back2skip'},
   {type:'shot',  category:'event', label:'タメ口ミス\n最初のマスに戻る', text:'<span class="pen-main">全員にタメ口、ミスったら最初のマスに戻る👑</span><span class="pen-flavor">このゲームで1番偉くなれる！ゲームが終わるまで継続。</span>', action:'tostart'},
   {type:'safe',  category:'safe',  label:'セーフポイント\n初体験の相手を呼ぶ', text:'<span class="pen-main">🟣 セーブポイント！</span><span class="pen-flavor">何があっても初体験の相手の名前を元気よく言えば何度でもここに戻れる✨</span>', action:'savepoint'},
+  // ══ ここから追加 20マス ══
+  {type:'drink', category:'pen',   label:'右隣の人と\n乾杯ドリンク', text:'<span class="pen-main">右隣の人と{{drink}}で乾杯！1杯グイ‼️🍻</span><span class="pen-flavor">仲良く乾杯タイム✨</span>', blast:true},
+  {type:'shot',  category:'pen',   label:'初恋の人の\n名前を叫んで\nグイ', text:'<span class="pen-main">初恋の人の名前を叫んで{{drink}}1杯グイ‼️📣🍻</span><span class="pen-flavor">あの人の名前、まだ覚えてる？</span>', blast:true},
+  {type:'fun',   category:'move',  label:'みんなに\n奢られタイム\n3マス進む', text:'<span class="pen-main">3マス進む🎉</span><span class="pen-flavor">人気者！全員からの祝福で進む。</span>', action:'forward3'},
+  {type:'safe',  category:'safe',  label:'セーフ', text:'😌 セーフ！何もなし。'},
+  {type:'shot',  category:'pen',   label:'最近\n泣いた話\n+1杯', text:'<span class="pen-main">{{drink}}1杯グイ‼️😭</span><span class="pen-flavor">最近泣いたエピソードを語る。</span>', blast:true},
+  {type:'back',  category:'move',  label:'転んだ\n3マス戻る', text:'<span class="pen-main">3マス戻る💢</span><span class="pen-flavor">転んだ！痛いから戻る。</span>', action:'back3'},
+  {type:'drink', category:'pen',   label:'対面の人と\nリンク乾杯', text:'<span class="pen-main">対面の人と{{drink}}でリンク乾杯‼️🍻</span><span class="pen-flavor">腕クロスで乾杯しよう。</span>', blast:true},
+  {type:'confess', category:'event', label:'恥ずかしい\nクセを暴露', text:'<span class="pen-main">恥ずかしいクセを発表😳</span><span class="pen-flavor">言えなかったら{{drink}}1杯グイ‼️🍻</span>', blast:true},
+  {type:'warp',  category:'move',  label:'ショート\nカット\n4マス進む', text:'<span class="pen-main">4マス進む🏃</span><span class="pen-flavor">近道発見！</span>', action:'forward4'},
+  {type:'safe',  category:'safe',  label:'セーフ', text:'😌 セーフ！何もなし。'},
+  {type:'shot',  category:'pen',   label:'モノマネ\nしないと\n2杯グイ', text:'<span class="pen-main">モノマネ失敗で{{drink}}2杯グイ‼️🍻🍻</span><span class="pen-flavor">みんなが知ってる人のモノマネをする！</span>', action:'double', blast:true, doubleBlast:true},
+  {type:'safe',  category:'safe',  label:'何もないことに\nほっとして', text:'<span class="pen-main">😌 セーフ！何もなし。</span><span class="pen-flavor">何もないことにほっとして…ふぅ。</span>'},
+  {type:'skip',  category:'rest',  label:'カラオケ\n大会で\n1ターン休み', text:'<span class="pen-main">1ターン休み🎤</span><span class="pen-flavor">カラオケ熱唱中…</span>', action:'skip1'},
+  {type:'shot',  category:'pen',   label:'元恋人と\n何年続いたか\nいっせーので', text:'<span class="pen-main">いっせーので元恋人と何年続いたか暴露‼️💔</span><span class="pen-flavor">一番少なかった人が{{drink}}1杯グイ‼️🍻</span>', blast:true},
+  {type:'drink', category:'pen',   label:'お疲れさま\n乾杯', text:'<span class="pen-main">みんなで{{drink}}乾杯‼️🍻</span><span class="pen-flavor">「お疲れさま！」</span>', blast:true},
+  {type:'back',  category:'move',  label:'酔いすぎ\n4マス戻る', text:'<span class="pen-main">4マス戻る🥴</span><span class="pen-flavor">飲みすぎた…ふらふら。</span>', action:'back4'},
+  {type:'warp',  category:'move',  label:'ラッキー\n3マス進む', text:'<span class="pen-main">3マス進む🍀</span><span class="pen-flavor">ラッキー！</span>', action:'forward3'},
+  {type:'confess', category:'event', label:'何フェチかを\n暴露', text:'<span class="pen-main">何フェチかを暴露😳</span><span class="pen-flavor">言えなかったら{{drink}}1杯グイ‼️🍻</span>', blast:true},
+  {type:'shot',  category:'pen',   label:'罰ゲーム\nラッシュ\n2杯グイ', text:'<span class="pen-main">{{drink}}2杯グイ‼️🍻🍻</span><span class="pen-flavor">ゴール直前ラッシュ！</span>', action:'double', blast:true, doubleBlast:true},
+  {type:'safe',  category:'safe',  label:'セーフ\nGOAL目前', text:'😌 ゴール目前！心の準備を…'},
+  // ══ 追加終わり ══
   {type:'goal',  category:'goal',  label:'⭐GOAL⭐', text:'🎉 GOAL!! 🎉'},
 ];
 const GOAL = BOARD.length - 1;
@@ -2281,7 +2303,11 @@ function spawnDiceShock(){
 function movePlayer(steps){
   const p = players[currentIdx];
   let target = p.pos + steps;
-  if(target > GOAL) target = GOAL;
+  // ゴールピッタリ判定: 超えたら超過分だけ戻る
+  if(target > GOAL){
+    const over = target - GOAL;
+    target = GOAL - over;
+  }
   animateMove(p, p.pos, target, () => {
     p.moves += steps;
     refreshTokens();
@@ -2425,10 +2451,30 @@ function applyCellAction(p, cell){
         } else nextTurn();
       });
       break;
+    case 'forward2':
+    case 'forward3':
+    case 'forward4': {
+      const n = parseInt(action.slice(7), 10);
+      animateMove(p, p.pos, Math.min(p.pos + n, GOAL), () => {
+        p.moves += n; renderPlayersBar();
+        if(p.pos === GOAL){
+          p.finished = true; winner = p;
+          SFX.win();
+          setTimeout(showWinScreen, 500);
+        } else nextTurn();
+      });
+      break;
+    }
     case 'back2skip':
       animateMove(p, p.pos, Math.max(0, p.pos - 2), () => {
         p.skip = 1; renderPlayersBar(); nextTurn();
       });
+      break;
+    case 'back3':
+      animateMove(p, p.pos, Math.max(0, p.pos - 3), () => { renderPlayersBar(); nextTurn(); });
+      break;
+    case 'back4':
+      animateMove(p, p.pos, Math.max(0, p.pos - 4), () => { renderPlayersBar(); nextTurn(); });
       break;
     case 'back5':
       animateMove(p, p.pos, Math.max(0, p.pos - 5), () => { renderPlayersBar(); nextTurn(); });
