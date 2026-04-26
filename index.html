@@ -62,10 +62,83 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;
   50%{box-shadow:0 0 22px rgba(255,230,0,.9)}
 }
 
-/* MARQUEE */
-.marquee{width:100%;background:var(--pink);padding:5px 0;overflow:hidden;box-shadow:0 0 18px var(--pink);}
-.marquee-in{display:inline-block;white-space:nowrap;animation:mq 22s linear infinite;font-size:8px;color:#000;letter-spacing:2px;}
-@keyframes mq{from{transform:translateX(100vw)}to{transform:translateX(-100%)}}
+/* ── MARQUEE: フロストガラス面 ── */
+.marquee{
+  position:relative;
+  width:calc(100% - 24px);
+  margin:14px auto 10px;
+  padding:9px 0;
+  overflow:hidden;
+  border-radius:14px;
+  /* 半透明な水色×ピンクの淡いガラス (ややトーンダウン) */
+  background:
+    linear-gradient(135deg,
+      rgba(180,240,255,.10) 0%,
+      rgba(255,255,255,.05) 35%,
+      rgba(255,200,230,.07) 65%,
+      rgba(180,240,255,.10) 100%);
+  border:1px solid rgba(255,255,255,.20);
+  -webkit-backdrop-filter:blur(12px) saturate(140%);
+  backdrop-filter:blur(12px) saturate(140%);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.30),
+    inset 0 -1px 0 rgba(255,255,255,.08),
+    0 4px 14px rgba(0,200,255,.08),
+    0 2px 6px rgba(0,0,0,.20);
+}
+/* ガラス上面のキラリ反射 (弱めに) */
+.marquee::before{
+  content:'';position:absolute;inset:0;
+  pointer-events:none;
+  background:linear-gradient(115deg,
+    transparent 0%,
+    transparent 40%,
+    rgba(255,255,255,.08) 50%,
+    rgba(255,255,255,.02) 56%,
+    transparent 65%,
+    transparent 100%);
+  border-radius:14px;
+}
+/* 左右にフェードマスク */
+.marquee::after{
+  content:'';position:absolute;inset:0;
+  pointer-events:none;
+  background:
+    linear-gradient(90deg,
+      rgba(10,5,25,.85) 0%,
+      rgba(10,5,25,0) 8%,
+      rgba(10,5,25,0) 92%,
+      rgba(10,5,25,.85) 100%);
+  border-radius:14px;
+}
+
+.marquee-track{
+  display:flex;
+  width:max-content;
+  animation:mq 40s linear infinite;
+  will-change:transform;
+}
+.marquee:hover .marquee-track{animation-play-state:paused;}
+
+.marquee-in{
+  display:inline-block;
+  white-space:nowrap;
+  font-size:12px;
+  /* 落ち着いた水色 (まぶしくない) */
+  color:#A8D8E8;
+  letter-spacing:3px;
+  font-family:'DotGothic16',sans-serif;
+  font-weight:bold;
+  /* 控えめなシャドウ */
+  text-shadow:
+    0 0 4px rgba(0,180,220,.35),
+    0 1px 2px rgba(0,0,0,.4);
+  padding:0 10px;
+}
+@keyframes mq{
+  from{transform:translateX(0);}
+  to{transform:translateX(-50%);}
+}
 
 /* 🏆 CHAMPION BANNER */
 .champ-banner{
@@ -268,6 +341,13 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;
 .tag.new {background:var(--green);color:#000}
 .tag.new2{background:var(--yellow);color:#000;animation:badgep .6s steps(2) infinite}
 .tag.party{background:var(--orange);color:#000;animation:badgep .6s steps(2) infinite}
+.tag.players{
+  background:rgba(0,245,255,.18);
+  color:var(--cyan);
+  border:1px solid rgba(0,245,255,.5);
+  letter-spacing:.5px;
+  text-shadow:0 0 4px rgba(0,245,255,.5);
+}
 .tag.soon-pop{
   background:linear-gradient(90deg,var(--pink),var(--yellow),var(--cyan),var(--purple),var(--pink));
   background-size:300% 100%;color:#000;font-weight:bold;
@@ -365,11 +445,6 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;
 
 <div class="wrap">
 
-  <!-- MARQUEE -->
-  <div class="marquee">
-    <span class="marquee-in">★ うわさのゲームセンター ★ UWASA GAME CENTER ★ 金沢市 片町 ★ U.wasano Shisha Bar presents ★ UWASA BROTHERS 稼働中！ ★ 3の倍数アホになる 稼働中！ ★ SHISHA DARTS 稼働中！ ★ NEW! UWASA LAND すごろく登場！ ★ 負けたら罰ゲーム🍻グイッ‼️ ★ 今週のトータル1位はシーシャ1台無料！ ★</span>
-  </div>
-
   <!-- TOP BAR -->
   <div class="topbar">
     <span class="tb-txt">CREDIT</span>
@@ -398,6 +473,14 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;
     <div id="champ-content"></div>
   </div>
 
+  <!-- ▼ MARQUEE (チャンピオンとゲーム一覧の間 / ガラス面風) -->
+  <div class="marquee">
+    <div class="marquee-track">
+      <span class="marquee-in">★ うわさのゲームセンター ★ UWASA GAME CENTER ★ 金沢市 片町 ★ U.wasano Shisha Bar presents ★ UWASA BROTHERS 稼働中！ ★ 3の倍数アホになる 稼働中！ ★ SHISHA DARTS 稼働中！ ★ NEW! UWASA LAND すごろく登場！ ★ 負けたら罰ゲーム🍻グイッ‼️ ★ 今週のトータル1位はシーシャ1台無料！ ★&nbsp;&nbsp;&nbsp;</span>
+      <span class="marquee-in" aria-hidden="true">★ うわさのゲームセンター ★ UWASA GAME CENTER ★ 金沢市 片町 ★ U.wasano Shisha Bar presents ★ UWASA BROTHERS 稼働中！ ★ 3の倍数アホになる 稼働中！ ★ SHISHA DARTS 稼働中！ ★ NEW! UWASA LAND すごろく登場！ ★ 負けたら罰ゲーム🍻グイッ‼️ ★ 今週のトータル1位はシーシャ1台無料！ ★&nbsp;&nbsp;&nbsp;</span>
+    </div>
+  </div>
+
   <!-- DECO LIGHTS -->
   <div class="lights">
     <div class="ld"></div><div class="ld"></div><div class="ld"></div><div class="ld"></div>
@@ -424,6 +507,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;
         <div class="gc-title">UWASA BROTHERS</div>
         <div class="gc-desc">石川縦断30ステージ！<br>ボス6体を倒せ！</div>
         <div class="gc-tags">
+          <span class="tag players">👥 1人</span>
           <span class="tag hot">★ HOT</span>
           <span class="tag new">RANKING</span>
         </div>
@@ -440,6 +524,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;
         <div class="gc-title">3 NO BAISUU AHO</div>
         <div class="gc-desc">3の倍数でアホになる！<br>失敗したら即・乾杯🍻</div>
         <div class="gc-tags">
+          <span class="tag players">👥 1〜6人</span>
           <span class="tag new2">★ NEW</span>
           <span class="tag new">RANKING</span>
         </div>
@@ -455,6 +540,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;
         <div class="gc-title">SHISHA DARTS</div>
         <div class="gc-desc">負けたら罰ゲーム<br>🍻グイッ‼️</div>
         <div class="gc-tags">
+          <span class="tag players">👥 1〜4人</span>
           <span class="tag new2">★ NEW</span>
           <span class="tag new">RANKING</span>
         </div>
@@ -469,8 +555,9 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;
       </div>
       <div class="gc-info">
         <div class="gc-title">UWASA LAND</div>
-        <div class="gc-desc">2〜5人ですごろく対戦🎲<br>罰ゲーム連発で大盛り上がり！</div>
+        <div class="gc-desc">すごろく対戦🎲<br>罰ゲーム連発で大盛り上がり！</div>
         <div class="gc-tags">
+          <span class="tag players">👥 2〜5人</span>
           <span class="tag party">★ PARTY</span>
           <span class="tag new2">★ NEW</span>
           <span class="tag new">RANKING</span>
