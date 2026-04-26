@@ -1,0 +1,2685 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>UWASA LAND - すごろく</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DotGothic16&family=Press+Start+2P&display=swap');
+:root{
+  --pink:#FF2D78; --cyan:#00F5FF; --yellow:#FFE600;
+  --green:#39FF14; --purple:#BF00FF; --orange:#FF8800;
+  --red:#FF3030; --blue:#3060FF;
+  --dark:#060410; --darker:#030208;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none;}
+html,body{
+  background:#080010;width:100%;min-height:100vh;
+  font-family:'DotGothic16',sans-serif;overflow-x:hidden;color:#fff;
+  touch-action:manipulation;
+}
+/* ───── 店内ネオン背景: 左=マゼンタ / 右=シアン のドラマ照明 ───── */
+body{
+  background:
+    /* 上部ハイライト */
+    radial-gradient(ellipse 100% 40% at 50% 0%, rgba(0,245,255,.18) 0%, transparent 60%),
+    /* 左壁マゼンタ */
+    radial-gradient(ellipse 70% 90% at 0% 50%, rgba(255,30,170,.55) 0%, rgba(180,0,140,.25) 35%, transparent 70%),
+    /* 右壁シアン */
+    radial-gradient(ellipse 70% 90% at 100% 45%, rgba(0,200,255,.45) 0%, rgba(0,80,200,.18) 40%, transparent 75%),
+    /* 中央のシーシャ煙ぼんやり */
+    radial-gradient(ellipse 60% 50% at 50% 35%, rgba(180,80,200,.22) 0%, transparent 65%),
+    /* ベース暗色 (床側) */
+    linear-gradient(180deg, #1a0030 0%, #0a0418 55%, #050208 100%);
+  background-attachment: fixed;
+}
+
+/* ───── ネオンチューブライン (画面端に走る光) ───── */
+body::after{
+  content:'';position:fixed;inset:0;pointer-events:none;z-index:1;
+  background:
+    /* 左端ピンクネオンチューブ - 段差状 */
+    linear-gradient(90deg, transparent 0, transparent 4px,
+      rgba(255,40,180,.8) 4px, rgba(255,80,200,.4) 6px, transparent 6px, transparent 100%),
+    /* 右端シアンネオンチューブ */
+    linear-gradient(270deg, transparent 0, transparent 4px,
+      rgba(0,220,255,.85) 4px, rgba(80,230,255,.5) 6px, transparent 6px, transparent 100%),
+    /* 上端シアンライン */
+    linear-gradient(180deg,
+      rgba(0,220,255,.6) 0, rgba(0,220,255,.6) 2px,
+      rgba(80,230,255,.25) 2px, rgba(80,230,255,.25) 4px,
+      transparent 4px, transparent 100%);
+  filter: blur(.5px);
+  opacity: .5;
+}
+
+/* ───── 細かい粒子(空気中の煙感) ───── */
+body::before{
+  content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;
+  background-image:
+    radial-gradient(circle at 12% 18%, rgba(255,45,180,.3) 0, transparent 1.5px),
+    radial-gradient(circle at 78% 22%, rgba(0,245,255,.3) 0, transparent 1.5px),
+    radial-gradient(circle at 32% 67%, rgba(255,230,0,.15) 0, transparent 1.2px),
+    radial-gradient(circle at 88% 81%, rgba(191,0,255,.3) 0, transparent 1.4px),
+    radial-gradient(circle at 55% 45%, rgba(255,255,255,.18) 0, transparent 1px),
+    radial-gradient(circle at 22% 88%, rgba(0,200,255,.25) 0, transparent 1.3px);
+  background-size: 220px 220px, 280px 280px, 180px 180px, 320px 320px, 150px 150px, 240px 240px;
+  opacity:.7;
+  animation:smokeDrift 18s ease-in-out infinite;
+}
+@keyframes smokeDrift{
+  0%,100%{transform:translate(0,0);}
+  33%{transform:translate(-8px,-12px);}
+  66%{transform:translate(10px,-6px);}
+}
+
+.wrap{
+  max-width:560px;margin:0 auto;min-height:100vh;
+  position:relative;z-index:2;
+  background:
+    /* シーシャの煙が中央に立ち上る感じ */
+    radial-gradient(ellipse 80% 50% at 50% 12%, rgba(191,80,220,.25) 0%, transparent 65%),
+    /* 左サイド残照 */
+    radial-gradient(ellipse 50% 90% at 0% 50%, rgba(255,30,170,.18) 0%, transparent 70%),
+    /* 右サイド残照 */
+    radial-gradient(ellipse 50% 90% at 100% 50%, rgba(0,180,255,.13) 0%, transparent 70%),
+    /* 床面ダーク */
+    linear-gradient(180deg, rgba(20,5,35,.7) 0%, rgba(10,4,24,.88) 60%, rgba(5,2,12,.95) 100%);
+  padding-bottom:30px;
+  box-shadow: 0 0 60px rgba(255,30,170,.15) inset, 0 0 80px rgba(0,180,255,.1) inset;
+}
+
+/* ── HEADER ── */
+.header{
+  text-align:center;padding:14px 12px 8px;
+  border-bottom:2px solid rgba(255,230,0,.3);
+  position:sticky;top:0;
+  background:
+    linear-gradient(90deg,
+      rgba(80,5,40,.92) 0%,
+      rgba(20,8,40,.95) 50%,
+      rgba(5,30,60,.92) 100%);
+  z-index:50;
+  backdrop-filter:blur(8px);
+  box-shadow:0 4px 24px rgba(255,30,170,.18), 0 4px 24px rgba(0,200,255,.15);
+}
+.header::before{
+  content:'';position:absolute;left:0;right:0;bottom:-1px;height:1px;
+  background:linear-gradient(90deg,
+    transparent 0%,
+    var(--pink) 20%,
+    var(--yellow) 50%,
+    var(--cyan) 80%,
+    transparent 100%);
+  filter:blur(.5px);box-shadow:0 0 10px currentColor;
+}
+.title{
+  font-family:'Press Start 2P',monospace;font-size:18px;
+  background:linear-gradient(180deg,#fff 0%,var(--yellow) 40%,var(--pink) 80%,#FF80C8 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  filter:
+    drop-shadow(0 0 12px rgba(255,230,0,.7))
+    drop-shadow(0 0 6px rgba(255,30,170,.6));
+  letter-spacing:3px;margin-bottom:4px;
+}
+.subtitle{
+  font-size:11px;color:var(--cyan);
+  text-shadow:0 0 8px var(--cyan),0 0 16px rgba(0,180,255,.5);
+  letter-spacing:2px;
+}
+
+/* ── SCREENS ── */
+.screen{display:none;padding:14px 10px;}
+.screen.active{display:block;}
+
+/* ── SETUP PANE (3段階) ── */
+.setup-box{
+  background:
+    radial-gradient(ellipse 80% 60% at 50% 0%, rgba(255,80,200,.18) 0%, transparent 70%),
+    linear-gradient(160deg,rgba(35,8,55,.92) 0%,rgba(15,5,35,.92) 100%);
+  border:2px solid var(--purple);border-radius:12px;
+  padding:18px 14px;margin-bottom:14px;
+  box-shadow:
+    0 0 18px rgba(191,0,255,.45),
+    0 0 30px rgba(255,30,170,.15),
+    inset 0 0 30px rgba(255,30,170,.08);
+  backdrop-filter:blur(4px);
+}
+.setup-pane{display:none;}
+.setup-pane.active{display:block;animation:paneIn .25s ease;}
+@keyframes paneIn{
+  from{opacity:0;transform:translateX(20px);}
+  to{opacity:1;transform:translateX(0);}
+}
+
+.setup-progress{
+  display:flex;gap:6px;justify-content:center;margin-bottom:14px;
+}
+.sp-dot{
+  width:24px;height:6px;border-radius:3px;background:#333;transition:all .3s;
+}
+.sp-dot.active{background:var(--yellow);box-shadow:0 0 8px var(--yellow);}
+.sp-dot.done{background:var(--green);}
+
+.setup-label{
+  font-family:'Press Start 2P',monospace;font-size:10px;color:var(--yellow);
+  text-shadow:0 0 6px var(--yellow);letter-spacing:2px;margin-bottom:12px;
+  text-align:center;
+}
+.setup-step{
+  font-family:'Press Start 2P',monospace;font-size:8px;
+  color:rgba(255,255,255,.4);text-align:center;margin-bottom:6px;letter-spacing:2px;
+}
+
+/* 人数選択 */
+.player-count{display:flex;gap:8px;justify-content:center;margin-bottom:6px;}
+.pc-btn{
+  flex:1;max-width:64px;height:64px;border:2px solid #444;border-radius:12px;
+  background:#111;color:#888;font-family:'Press Start 2P',monospace;
+  font-size:18px;cursor:pointer;transition:all .15s;
+}
+.pc-btn.active{
+  border-color:var(--cyan);color:var(--cyan);background:rgba(0,245,255,.1);
+  box-shadow:0 0 12px rgba(0,245,255,.5);transform:scale(1.05);
+}
+.pc-btn:active{transform:scale(.95);}
+.pc-hint{
+  font-family:'DotGothic16',sans-serif;font-size:11px;
+  color:rgba(255,255,255,.5);text-align:center;margin-top:4px;
+}
+
+/* 罰ゲーム種類選択 */
+.penalty-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:6px;}
+.pen-btn{
+  padding:10px 6px;border:2px solid #444;border-radius:10px;
+  background:#111;color:#888;cursor:pointer;transition:all .15s;
+  font-family:'DotGothic16',sans-serif;font-size:13px;font-weight:bold;
+  display:flex;flex-direction:column;align-items:center;gap:6px;
+  min-height:100px;
+}
+.pen-btn .pe-icon{
+  width:48px;height:62px;display:flex;align-items:center;justify-content:center;
+  filter:drop-shadow(0 2px 4px rgba(0,0,0,.6));
+}
+.pen-btn .pe-icon svg{width:100%;height:100%;}
+.pen-btn .pe-name{font-size:13px;line-height:1.15;text-align:center;}
+.pen-btn.active{
+  border-color:var(--orange);color:var(--orange);background:rgba(255,136,0,.12);
+  box-shadow:0 0 14px rgba(255,136,0,.5);transform:scale(1.04);
+}
+.pen-btn:active{transform:scale(.95);}
+.pen-btn.random.active{
+  border-color:var(--pink);color:var(--pink);
+  background:linear-gradient(135deg,rgba(255,45,120,.15),rgba(191,0,255,.15));
+  box-shadow:0 0 14px rgba(255,45,120,.5);
+}
+.pen-btn.active .pe-icon{
+  filter:drop-shadow(0 0 8px rgba(255,200,80,.7)) drop-shadow(0 2px 4px rgba(0,0,0,.6));
+}
+.pen-hint{
+  font-family:'DotGothic16',sans-serif;font-size:11px;
+  color:rgba(255,255,255,.5);text-align:center;margin-top:6px;line-height:1.5;
+}
+
+/* 名前入力 */
+.player-input{
+  display:flex;gap:8px;margin-bottom:8px;align-items:center;
+}
+.player-color{
+  width:34px;height:34px;border-radius:50%;flex-shrink:0;
+  border:2px solid #fff;display:flex;align-items:center;justify-content:center;
+  font-size:18px;
+}
+.player-name{
+  flex:1;background:#1a1428;border:2px solid #333;border-radius:8px;
+  padding:8px 12px;color:#fff;font-family:'DotGothic16',sans-serif;font-size:15px;
+  outline:none;
+}
+.player-name:focus{border-color:var(--yellow);box-shadow:0 0 10px rgba(255,230,0,.4);}
+
+/* セットアップ用ボタン */
+.setup-actions{display:flex;gap:8px;margin-top:12px;}
+.next-btn{
+  flex:1;padding:14px;
+  background:linear-gradient(135deg,var(--cyan),var(--blue));
+  border:2px solid #fff;border-radius:10px;
+  font-family:'Press Start 2P',monospace;font-size:11px;color:#fff;
+  letter-spacing:2px;cursor:pointer;
+  box-shadow:0 0 12px rgba(0,245,255,.5);
+}
+.next-btn:disabled{
+  background:#333;color:#666;border-color:#444;box-shadow:none;cursor:not-allowed;
+}
+.next-btn:not(:disabled):active{transform:scale(.97);}
+.back-btn{
+  padding:14px 16px;
+  background:#1a1428;border:2px solid #555;border-radius:10px;
+  font-family:'Press Start 2P',monospace;font-size:10px;color:#aaa;
+  cursor:pointer;
+}
+.back-btn:active{transform:scale(.95);}
+
+.start-btn{
+  flex:1;padding:14px;
+  background:linear-gradient(135deg,var(--pink),var(--purple));
+  border:2px solid var(--yellow);border-radius:10px;
+  font-family:'Press Start 2P',monospace;font-size:13px;color:#fff;
+  letter-spacing:3px;cursor:pointer;
+  box-shadow:0 0 18px rgba(255,45,120,.5);
+  animation:startPulse 1.8s ease-in-out infinite;
+}
+.start-btn:active{transform:scale(.97);}
+@keyframes startPulse{
+  0%,100%{box-shadow:0 0 18px rgba(255,45,120,.5);}
+  50%{box-shadow:0 0 32px rgba(255,45,120,.9),0 0 20px rgba(255,230,0,.4);}
+}
+
+.rules-box{
+  background:rgba(10,4,30,.7);
+  border:1px dashed rgba(0,245,255,.3);border-radius:10px;
+  padding:12px;font-size:12px;line-height:1.7;color:rgba(255,255,255,.7);
+  backdrop-filter:blur(4px);
+}
+.rules-box b{color:var(--yellow);}
+
+/* ── GAME SCREEN ── */
+.players-bar{
+  display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;
+  padding:10px;
+  background:linear-gradient(135deg,rgba(40,5,55,.85),rgba(10,5,35,.85));
+  border-radius:10px;
+  border:1px solid rgba(255,80,200,.25);
+  box-shadow:0 0 12px rgba(255,30,170,.15) inset, 0 2px 10px rgba(0,0,0,.4);
+  backdrop-filter:blur(4px);
+}
+.pchip{
+  display:flex;align-items:center;gap:5px;padding:5px 9px;
+  border-radius:14px;
+  background:rgba(20,10,40,.8);
+  font-size:12px;
+  border:2px solid transparent;transition:all .2s;
+  flex:1;min-width:fit-content;justify-content:center;
+}
+.pchip.current{
+  background:rgba(255,230,0,.15);border-color:var(--yellow);
+  box-shadow:0 0 10px rgba(255,230,0,.5),0 0 20px rgba(255,30,170,.2);
+  animation:chipBounce .8s ease-in-out infinite;
+}
+@keyframes chipBounce{0%,100%{transform:translateY(0);}50%{transform:translateY(-2px);}}
+.pchip-icon{font-size:15px;}
+.pchip-pos{font-family:'Press Start 2P',monospace;font-size:8px;color:var(--cyan);margin-left:2px;}
+
+.penalty-bar{
+  margin-bottom:10px;padding:8px 12px;
+  background:linear-gradient(135deg,rgba(255,136,0,.15),rgba(255,45,120,.12));
+  border:1px solid rgba(255,136,0,.4);border-radius:8px;
+  font-size:12px;color:var(--orange);text-align:center;
+  text-shadow:0 0 6px rgba(255,136,0,.5);
+}
+.penalty-bar b{color:var(--yellow);}
+
+/* ── BOARD ── */
+.board-wrap{
+  background:
+    /* 中央上のシーシャ煙のもや */
+    radial-gradient(ellipse 70% 40% at 50% 0%, rgba(255,80,200,.22) 0%, transparent 60%),
+    /* 左下マゼンタの残照 */
+    radial-gradient(ellipse 60% 70% at 0% 100%, rgba(255,30,170,.28) 0%, transparent 65%),
+    /* 右上シアンの残照 */
+    radial-gradient(ellipse 60% 70% at 100% 0%, rgba(0,200,255,.22) 0%, transparent 65%),
+    /* ベース壁面 */
+    linear-gradient(160deg, #2a0040 0%, #15022a 50%, #0a0118 100%);
+  border:2px solid var(--purple);border-radius:14px;padding:8px 4px;
+  margin-bottom:12px;position:relative;overflow:hidden;
+  box-shadow:
+    0 0 22px rgba(191,0,255,.5),
+    0 0 40px rgba(255,30,170,.2),
+    inset 0 0 40px rgba(255,30,170,.08);
+}
+/* 上部に流れる「煙」のアニメ層 */
+.board-wrap::before{
+  content:'';position:absolute;inset:0;pointer-events:none;
+  background:
+    radial-gradient(ellipse 50% 30% at 30% 15%, rgba(200,100,220,.15) 0%, transparent 70%),
+    radial-gradient(ellipse 40% 25% at 70% 20%, rgba(255,150,220,.12) 0%, transparent 70%),
+    radial-gradient(ellipse 35% 20% at 50% 8%, rgba(255,255,255,.08) 0%, transparent 70%);
+  animation:smokePuff 12s ease-in-out infinite;
+  mix-blend-mode:screen;
+}
+@keyframes smokePuff{
+  0%,100%{transform:translate(0,0) scale(1);opacity:.7;}
+  50%{transform:translate(15px,-8px) scale(1.08);opacity:1;}
+}
+/* 上部にネオンチューブのアクセント */
+.board-wrap::after{
+  content:'';position:absolute;top:0;left:8%;right:8%;height:2px;
+  background:linear-gradient(90deg,
+    transparent 0%,
+    var(--cyan) 15%,
+    var(--pink) 50%,
+    var(--cyan) 85%,
+    transparent 100%);
+  filter:blur(1px);
+  box-shadow:0 0 8px currentColor;
+  opacity:.7;
+}
+.board-title{
+  position:relative;text-align:center;font-family:'Press Start 2P',monospace;
+  font-size:13px;
+  color:#fff;
+  text-shadow:
+    0 0 4px #fff,
+    0 0 10px var(--pink),
+    0 0 20px var(--pink),
+    0 0 30px var(--purple);
+  letter-spacing:4px;margin-bottom:8px;padding:8px 6px 6px;
+  animation:neonFlicker 4s ease-in-out infinite;
+}
+@keyframes neonFlicker{
+  0%,18%,22%,25%,53%,57%,100%{
+    text-shadow:0 0 4px #fff,0 0 10px var(--pink),0 0 20px var(--pink),0 0 30px var(--purple);
+  }
+  20%,24%,55%{text-shadow:none;opacity:.85;}
+}
+.board-shop-tag{
+  position:absolute;top:6px;right:10px;
+  font-family:'Press Start 2P',monospace;font-size:7px;
+  color:rgba(255,180,220,.55);letter-spacing:1px;
+  text-shadow:0 0 4px rgba(255,80,200,.6);
+  z-index:2;
+  line-height:1.4;text-align:right;
+}
+.board-shop-tag b{color:var(--cyan);text-shadow:0 0 4px var(--cyan);}
+.board{
+  position:relative;display:grid;grid-template-columns:repeat(7,1fr);
+  gap:4px;padding:2px;
+  width:100%;
+  box-sizing:border-box;
+}
+.cell{
+  aspect-ratio:1;border-radius:5px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:8px;line-height:1.1;text-align:center;padding:1px;
+  border:1px solid rgba(255,255,255,.15);
+  position:relative;overflow:hidden;font-weight:bold;
+  color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.5);
+  cursor:pointer;
+  min-width:0;
+}
+.cell-text{
+  display:flex;align-items:center;justify-content:center;
+  width:100%;height:100%;padding:9px 1px 4px;
+  overflow:hidden;line-height:1.1;font-size:8px;
+  word-break:break-all;overflow-wrap:break-word;
+}
+.cell.invisible{visibility:hidden;}
+.cell.start{background:linear-gradient(135deg,#FF2D78,#BF00FF);
+  border-color:var(--yellow);box-shadow:0 0 8px var(--pink);font-size:10px;}
+.cell.goal{background:linear-gradient(135deg,#FFE600,#FF2D78);
+  border-color:#fff;box-shadow:0 0 14px var(--yellow);
+  animation:goalGlow 1.4s ease-in-out infinite;font-size:11px;}
+@keyframes goalGlow{0%,100%{box-shadow:0 0 14px var(--yellow);}50%{box-shadow:0 0 24px var(--yellow),0 0 12px var(--pink);}}
+.cell.safe{background:linear-gradient(135deg,#555,#777);color:#ccc;}
+.cell.drink{background:linear-gradient(135deg,#3060FF,#00F5FF);}
+.cell.shot{background:linear-gradient(135deg,#FF3030,#FF8800);
+  box-shadow:0 0 6px rgba(255,48,48,.5);}
+.cell.warp{background:linear-gradient(135deg,#FF8800,#FFE600);color:#000;
+  text-shadow:0 1px 2px rgba(255,255,255,.3);}
+.cell.back{background:linear-gradient(135deg,#BF00FF,#FF2D78);}
+.cell.skip{background:linear-gradient(135deg,#666,#888);color:#fff;}
+.cell.confess{background:linear-gradient(135deg,#FF2D78,#BF00FF);}
+.cell.fun{background:linear-gradient(135deg,#39FF14,#3060FF);color:#000;}
+
+/* 現在プレイヤーがいるマスをハイライト + スポットライト */
+.cell.current-cell{
+  outline:3px solid var(--yellow);outline-offset:-1px;
+  box-shadow:
+    0 0 16px var(--yellow),
+    0 0 30px rgba(255,230,0,.6),
+    inset 0 0 12px rgba(255,230,0,.4);
+  animation:currentCellPulse 1s ease-in-out infinite;
+  z-index:5;
+}
+.cell.current-cell::after{
+  content:'⬇';
+  position:absolute;
+  top:-22px;left:50%;
+  transform:translateX(-50%);
+  font-size:18px;color:var(--yellow);
+  text-shadow:0 0 8px var(--yellow),0 0 14px var(--pink);
+  z-index:10;
+  pointer-events:none;
+  animation:currentArrowBob .8s ease-in-out infinite;
+  filter:drop-shadow(0 0 4px var(--yellow));
+}
+@keyframes currentArrowBob{
+  0%,100%{transform:translateX(-50%) translateY(0);}
+  50%   {transform:translateX(-50%) translateY(4px);}
+}
+@keyframes currentCellPulse{
+  0%,100%{
+    outline-color:var(--yellow);
+    box-shadow:0 0 16px var(--yellow),0 0 30px rgba(255,230,0,.6),inset 0 0 12px rgba(255,230,0,.4);
+  }
+  50%{
+    outline-color:#fff;
+    box-shadow:0 0 28px var(--yellow),0 0 50px rgba(255,230,0,.8),0 0 14px var(--pink),inset 0 0 20px rgba(255,255,255,.5);
+  }
+}
+
+/* 進行方向矢印 (各セルに配置) */
+.cell-arrow{
+  position:absolute;
+  font-family:'Press Start 2P',monospace;font-size:10px;
+  color:rgba(255,230,0,.95);
+  text-shadow:0 0 5px rgba(255,230,0,.9),0 0 2px #000;
+  pointer-events:none;
+  z-index:3;line-height:1;
+  font-weight:bold;
+}
+.cell-arrow.right{ right:0px;  top:50%; transform:translateY(-50%); }
+.cell-arrow.left { left:0px;   top:50%; transform:translateY(-50%); }
+.cell-arrow.up   { right:50%;  top:0px; transform:translateX(50%); }
+/* GOAL直前マスは矢印無し */
+.cell.goal .cell-arrow,
+.cell:last-child .cell-arrow{display:none;}
+
+.tokens{
+  position:absolute;bottom:1px;left:1px;right:1px;
+  display:flex;flex-wrap:wrap;gap:1px;justify-content:center;
+  pointer-events:none;z-index:4;
+}
+.token{
+  width:12px;height:12px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:8px;border:1.5px solid #fff;
+  box-shadow:0 0 4px currentColor;
+  animation:tokenPulse 1.2s ease-in-out infinite;
+  position:relative;
+}
+@keyframes tokenPulse{0%,100%{transform:scale(1);}50%{transform:scale(1.15);}}
+
+/* 駒が前進する時のジャンプ */
+.token.hopping{
+  animation:tokenHop .24s ease-out;
+}
+@keyframes tokenHop{
+  0%  {transform:translateY(8px) scale(.9);filter:brightness(1);}
+  40% {transform:translateY(-12px) scale(1.3);filter:brightness(1.5) drop-shadow(0 0 8px currentColor);}
+  70% {transform:translateY(-4px) scale(1.15);}
+  100%{transform:translateY(0) scale(1);filter:brightness(1);}
+}
+
+/* 駒が後退する時のしょんぼりホップ */
+.token.hopping-back{
+  animation:tokenHopBack .24s ease-out;
+}
+@keyframes tokenHopBack{
+  0%  {transform:translateY(0) scale(1);}
+  50% {transform:translateY(-6px) scale(.85) rotate(-8deg);filter:saturate(.6);}
+  100%{transform:translateY(0) scale(1) rotate(0);}
+}
+
+/* 通り過ぎた時の足跡 */
+.footprint{
+  position:absolute;top:50%;left:50%;
+  width:18px;height:18px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:13px;font-weight:bold;
+  pointer-events:none;z-index:3;
+  transform:translate(-50%,-50%) scale(.4);
+  text-shadow:0 0 8px currentColor;
+  animation:footprintFade .7s ease-out forwards;
+}
+@keyframes footprintFade{
+  0%  {opacity:0;transform:translate(-50%,-50%) scale(.4) rotate(0);}
+  20% {opacity:1;transform:translate(-50%,-50%) scale(1.4) rotate(45deg);}
+  100%{opacity:0;transform:translate(-50%,-50%) scale(2) rotate(180deg);}
+}
+
+/* 着地波紋 */
+.landing-ring{
+  position:absolute;left:50%;top:50%;
+  width:10px;height:10px;border-radius:50%;
+  border:3px solid #fff;
+  transform:translate(-50%,-50%);
+  pointer-events:none;z-index:3;
+  animation:landingRing .6s ease-out forwards;
+}
+@keyframes landingRing{
+  0%  {opacity:1;width:10px;height:10px;border-width:4px;}
+  100%{opacity:0;width:90px;height:90px;border-width:1px;}
+}
+
+.cell-num{
+  position:absolute;top:0;left:0;font-family:'Press Start 2P',monospace;
+  font-size:7px;color:#FFE600;
+  text-shadow:0 0 4px rgba(0,0,0,.9),0 1px 1px rgba(0,0,0,.9);
+  background:rgba(0,0,0,.55);
+  padding:1px 2px;border-radius:0 0 4px 0;
+  z-index:2;line-height:1;
+}
+.cell.start .cell-num,
+.cell.goal .cell-num{display:none;}
+
+/* ── DICE & CONTROLS ── */
+.controls{
+  background:
+    radial-gradient(ellipse 80% 100% at 100% 50%, rgba(0,200,255,.18) 0%, transparent 70%),
+    linear-gradient(135deg,rgba(8,15,40,.92) 0%,rgba(5,8,25,.92) 100%);
+  border:2px solid var(--cyan);border-radius:12px;
+  padding:10px 12px;margin-bottom:12px;
+  box-shadow:
+    0 0 16px rgba(0,245,255,.4),
+    inset 0 0 20px rgba(0,180,255,.08);
+  backdrop-filter:blur(4px);
+}
+.ctrl-row{
+  display:flex;gap:10px;align-items:stretch;
+}
+.ctrl-left{flex:1;display:flex;flex-direction:column;justify-content:center;gap:6px;}
+.ctrl-right{flex-shrink:0;display:flex;align-items:center;justify-content:center;}
+
+.turn-info{
+  font-family:'Press Start 2P',monospace;font-size:8px;
+  color:var(--yellow);text-shadow:0 0 8px var(--yellow);
+  letter-spacing:2px;text-align:left;line-height:1.5;
+}
+.turn-name{font-family:'DotGothic16',sans-serif;font-size:16px;
+  margin-top:2px;text-shadow:0 0 8px currentColor;}
+
+.dice{
+  width:70px;height:70px;
+  background:linear-gradient(135deg,#fff,#ddd);
+  border:3px solid #000;border-radius:12px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:42px;color:#000;
+  box-shadow:0 4px 12px rgba(0,0,0,.5),inset 0 -3px 0 rgba(0,0,0,.15);
+  position:relative;
+  transform-style:preserve-3d;
+  transition:filter .2s;
+}
+/* 振ってる時 - 激しい3D回転 + 拡大縮小 + グロー */
+.dice.rolling{
+  animation:diceShake3D .12s linear infinite;
+  filter:drop-shadow(0 0 12px rgba(255,230,0,.8)) drop-shadow(0 0 20px rgba(255,45,120,.5));
+}
+@keyframes diceShake3D{
+  0%  {transform:translate(0,-6px) rotate(0deg) scale(1.15);}
+  20% {transform:translate(-5px,3px) rotate(-25deg) scale(1.1);}
+  40% {transform:translate(4px,-4px) rotate(35deg) scale(1.18);}
+  60% {transform:translate(-4px,-2px) rotate(-15deg) scale(1.05);}
+  80% {transform:translate(5px,4px) rotate(20deg) scale(1.2);}
+  100%{transform:translate(2px,-5px) rotate(-30deg) scale(1.1);}
+}
+/* 着地スタンプ瞬間のドン！ */
+.dice.landed{
+  animation:diceLand .5s cubic-bezier(.34,1.56,.64,1) forwards;
+  filter:drop-shadow(0 0 16px rgba(255,230,0,1)) drop-shadow(0 0 30px rgba(0,245,255,.7));
+}
+@keyframes diceLand{
+  0%  {transform:scale(1.4) translateY(-12px);}
+  35% {transform:scale(.85) translateY(4px);}
+  60% {transform:scale(1.1) translateY(-2px);}
+  100%{transform:scale(1) translateY(0);}
+}
+/* 着地時の波紋 */
+.dice-shock{
+  position:absolute;left:50%;top:50%;
+  width:30px;height:30px;border-radius:50%;
+  border:3px solid var(--yellow);
+  transform:translate(-50%,-50%);pointer-events:none;
+  animation:diceShock .5s ease-out forwards;
+  z-index:1;
+}
+@keyframes diceShock{
+  0%  {opacity:1;width:30px;height:30px;border-width:4px;}
+  100%{opacity:0;width:180px;height:180px;border-width:1px;}
+}
+.ctrl-right{position:relative;}
+
+/* ボード全体がカタカタ振動（サイコロ振ってる時） */
+.board-wrap.shaking{animation:boardShake .08s linear infinite;}
+@keyframes boardShake{
+  0%  {transform:translate(0,0);}
+  25% {transform:translate(-2px,1px);}
+  50% {transform:translate(2px,-1px);}
+  75% {transform:translate(-1px,-2px);}
+  100%{transform:translate(1px,2px);}
+}
+/* 着地の瞬間ボードに大きな衝撃 */
+.board-wrap.thump{animation:boardThump .35s ease-out;}
+@keyframes boardThump{
+  0%  {transform:translateY(0);}
+  20% {transform:translateY(8px) scale(.99);}
+  50% {transform:translateY(-3px) scale(1.005);}
+  100%{transform:translateY(0) scale(1);}
+}
+
+.dice-result{
+  font-family:'Press Start 2P',monospace;font-size:10px;
+  color:var(--green);text-shadow:0 0 8px var(--green);
+  min-height:12px;letter-spacing:1px;text-align:left;
+  transition:transform .3s, color .3s;
+}
+.dice-result.pop{
+  animation:resultPop .5s cubic-bezier(.34,1.56,.64,1);
+  color:var(--yellow);text-shadow:0 0 12px var(--yellow),0 0 20px var(--pink);
+}
+@keyframes resultPop{
+  0%  {transform:scale(.5) rotate(-10deg);opacity:0;}
+  50% {transform:scale(1.4) rotate(5deg);opacity:1;}
+  100%{transform:scale(1) rotate(0);opacity:1;}
+}
+
+.roll-btn{
+  width:100%;padding:12px;
+  background:linear-gradient(135deg,var(--green),var(--cyan));
+  border:2px solid #fff;border-radius:10px;
+  font-family:'Press Start 2P',monospace;font-size:12px;color:#000;
+  letter-spacing:2px;cursor:pointer;
+  box-shadow:0 0 16px rgba(57,255,20,.5);
+  animation:rollBtnPulse 1.5s ease-in-out infinite;
+}
+.roll-btn:disabled{
+  background:#333;color:#666;border-color:#444;box-shadow:none;
+  cursor:not-allowed;animation:none;
+}
+.roll-btn:not(:disabled):active{transform:scale(.97);}
+@keyframes rollBtnPulse{
+  0%,100%{box-shadow:0 0 16px rgba(57,255,20,.5);}
+  50%{box-shadow:0 0 28px rgba(57,255,20,.9),0 0 14px rgba(0,245,255,.6);}
+}
+
+.board-legend{
+  text-align:center;font-size:10px;color:rgba(255,255,255,.5);
+  margin-bottom:6px;letter-spacing:1px;
+}
+.board-legend .lg-arrow{
+  color:var(--yellow);font-size:14px;
+  text-shadow:0 0 6px var(--yellow);
+  margin-right:4px;
+}
+
+/* ── EVENT MODAL (通常) ── */
+.modal{
+  display:none;position:fixed;inset:0;z-index:200;
+  background:rgba(0,0,0,.85);backdrop-filter:blur(6px);
+  align-items:center;justify-content:center;padding:20px;
+}
+.modal.open{display:flex;animation:fadeIn .2s ease;}
+@keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
+.modal-card{
+  max-width:380px;width:100%;
+  background:linear-gradient(135deg,#1a0030,#0a0020);
+  border:3px solid var(--yellow);border-radius:16px;
+  padding:24px 20px;text-align:center;
+  box-shadow:0 0 30px rgba(255,230,0,.6);
+  animation:cardPop .35s cubic-bezier(.34,1.56,.64,1);
+}
+@keyframes cardPop{
+  from{transform:scale(.5);opacity:0;}
+  to{transform:scale(1);opacity:1;}
+}
+.modal-icon{font-size:48px;margin-bottom:8px;
+  filter:drop-shadow(0 0 12px currentColor);
+  animation:iconBounce 1.2s ease-in-out infinite;}
+@keyframes iconBounce{0%,100%{transform:translateY(0);}50%{transform:translateY(-6px);}}
+.modal-type{
+  font-family:'Press Start 2P',monospace;font-size:11px;
+  letter-spacing:3px;margin-bottom:10px;
+}
+.modal-text{
+  font-family:'DotGothic16',sans-serif;font-size:17px;
+  line-height:1.6;color:#fff;margin-bottom:18px;
+  white-space:pre-wrap;
+}
+.modal-btn{
+  width:100%;padding:12px;
+  background:linear-gradient(135deg,var(--pink),var(--purple));
+  border:2px solid #fff;border-radius:10px;
+  font-family:'Press Start 2P',monospace;font-size:11px;color:#fff;
+  letter-spacing:2px;cursor:pointer;
+  box-shadow:0 0 12px rgba(255,45,120,.5);
+}
+.modal-btn:active{transform:scale(.97);}
+
+/* ════════════════════════════════════════ */
+/* 🔥 DRINK BLAST MODAL — 激しい「飲めよ‼️」演出 */
+/* ════════════════════════════════════════ */
+.drink-blast{
+  display:none;position:fixed;inset:0;z-index:300;
+  align-items:center;justify-content:center;
+  overflow:hidden;
+  background:radial-gradient(circle at center,rgba(255,30,0,.85) 0%,rgba(80,0,0,.95) 60%,#000 100%);
+}
+.drink-blast.open{display:flex;animation:dbStrobe .15s steps(2) infinite;}
+@keyframes dbStrobe{
+  0%{filter:brightness(1) hue-rotate(0deg);}
+  50%{filter:brightness(1.4) hue-rotate(20deg);}
+}
+.drink-blast::before{
+  content:'';position:absolute;inset:0;pointer-events:none;
+  background:
+    repeating-conic-gradient(from 0deg at 50% 50%,
+      rgba(255,255,0,.25) 0deg 10deg,
+      transparent 10deg 20deg);
+  animation:dbSpin 1.6s linear infinite;
+}
+.drink-blast::after{
+  content:'';position:absolute;inset:0;pointer-events:none;
+  background:
+    repeating-linear-gradient(45deg,
+      transparent 0 22px,
+      rgba(255,255,255,.06) 22px 24px);
+  animation:dbStripe 2s linear infinite;
+}
+@keyframes dbSpin{to{transform:rotate(360deg);}}
+@keyframes dbStripe{from{background-position:0 0;}to{background-position:80px 0;}}
+
+.db-inner{
+  position:relative;z-index:2;text-align:center;padding:20px;
+  max-width:520px;
+}
+.db-warning{
+  font-family:'Press Start 2P',monospace;font-size:14px;
+  color:#fff;letter-spacing:6px;margin-bottom:14px;
+  text-shadow:0 0 12px #FF0,0 0 24px #F00;
+  animation:dbWarn .35s steps(2) infinite;
+}
+@keyframes dbWarn{0%,49%{opacity:1;}50%,100%{opacity:.3;}}
+.db-target{
+  font-family:'DotGothic16',sans-serif;font-size:38px;font-weight:bold;
+  color:#fff;margin-bottom:8px;letter-spacing:2px;
+  text-shadow:0 0 14px var(--yellow),0 0 28px var(--pink);
+  animation:dbTargetShake .25s linear infinite;
+  word-break:break-all;
+}
+@keyframes dbTargetShake{
+  0%{transform:translate(0,0) rotate(0);}
+  25%{transform:translate(-4px,3px) rotate(-2deg);}
+  50%{transform:translate(4px,-2px) rotate(2deg);}
+  75%{transform:translate(-3px,-3px) rotate(-1deg);}
+  100%{transform:translate(3px,2px) rotate(1deg);}
+}
+.db-emoji{
+  display:flex;align-items:center;justify-content:center;
+  width:130px;height:170px;margin:8px auto 4px;
+  filter:drop-shadow(0 0 18px var(--yellow)) drop-shadow(0 4px 8px rgba(0,0,0,.5));
+  animation:dbEmojiBounce .45s ease-in-out infinite;
+}
+.db-emoji svg{width:100%;height:100%;}
+@keyframes dbEmojiBounce{
+  0%,100%{transform:scale(1) rotate(-8deg);}
+  50%{transform:scale(1.15) rotate(8deg);}
+}
+.db-call{
+  font-family:'DotGothic16',sans-serif;font-weight:bold;
+  color:#FFE600;letter-spacing:1px;line-height:1.1;margin-bottom:14px;
+  text-shadow:
+    0 0 10px #FFE600,
+    0 0 20px #FF2D78,
+    0 0 40px #FF0000,
+    -3px 3px 0 #000,
+    3px 3px 0 #000;
+  animation:dbCallPump .32s ease-in-out infinite;
+  white-space:pre-wrap;
+  padding:0 6px;
+}
+.db-call .dc-drink{
+  display:block;font-size:32px;margin-bottom:10px;
+  letter-spacing:0;line-height:1.15;
+}
+.db-call .dc-shout{
+  display:block;font-size:46px;letter-spacing:2px;
+  line-height:1.15;
+  text-shadow:
+    0 0 14px #FFE600,
+    0 0 28px #FF2D78,
+    0 0 50px #FF0000,
+    -3px 3px 0 #000,
+    3px 3px 0 #000;
+}
+@media(max-width:380px){
+  .db-call .dc-drink{font-size:28px;}
+  .db-call .dc-shout{font-size:40px;}
+}
+.db-call .dc-count{
+  display:inline-block;
+  background:rgba(0,0,0,.4);border:2px solid #FFE600;
+  border-radius:20px;padding:2px 14px;
+  font-size:26px;margin-bottom:8px;
+}
+@keyframes dbCallPump{
+  0%,100%{transform:scale(1);}
+  50%{transform:scale(1.08);}
+}
+.db-drink{
+  display:inline-block;padding:8px 18px;border-radius:30px;
+  background:rgba(0,0,0,.55);border:3px solid #FFE600;
+  font-family:'DotGothic16',sans-serif;font-size:22px;font-weight:bold;
+  color:#FFE600;letter-spacing:2px;margin-bottom:18px;
+  text-shadow:0 0 10px #FFE600;
+  box-shadow:0 0 20px rgba(255,230,0,.7);
+  animation:dbDrinkGlow 1s ease-in-out infinite;
+}
+@keyframes dbDrinkGlow{
+  0%,100%{box-shadow:0 0 18px rgba(255,230,0,.7);}
+  50%{box-shadow:0 0 36px rgba(255,230,0,1),0 0 18px rgba(255,45,120,.7);}
+}
+.db-btn{
+  display:inline-block;padding:14px 28px;
+  background:linear-gradient(135deg,#FFE600,#FF2D78);
+  border:3px solid #fff;border-radius:14px;
+  font-family:'Press Start 2P',monospace;font-size:13px;color:#000;
+  letter-spacing:3px;cursor:pointer;
+  box-shadow:0 0 22px rgba(255,230,0,.9),0 0 40px rgba(255,45,120,.5);
+  animation:dbBtnPulse 1s ease-in-out infinite;
+}
+.db-btn:active{transform:scale(.95);}
+@keyframes dbBtnPulse{
+  0%,100%{transform:scale(1);}
+  50%{transform:scale(1.05);}
+}
+.db-confetti{position:absolute;width:14px;height:14px;pointer-events:none;
+  animation:dbConfettiFall linear forwards;z-index:1;}
+@keyframes dbConfettiFall{
+  to{transform:translateY(110vh) rotate(900deg);opacity:0;}
+}
+.db-shock{
+  position:absolute;left:50%;top:50%;width:20px;height:20px;
+  border:4px solid #FFE600;border-radius:50%;
+  transform:translate(-50%,-50%);pointer-events:none;
+  animation:dbShock 1s ease-out forwards;
+}
+@keyframes dbShock{
+  0%{opacity:1;width:20px;height:20px;border-width:6px;}
+  100%{opacity:0;width:600px;height:600px;border-width:1px;}
+}
+
+/* ── WIN SCREEN ── */
+.win-screen{text-align:center;padding:30px 14px;}
+.win-trophy{font-size:80px;margin-bottom:14px;
+  filter:drop-shadow(0 0 20px var(--yellow));
+  animation:trophyShine 1.5s ease-in-out infinite;}
+@keyframes trophyShine{
+  0%,100%{filter:drop-shadow(0 0 20px var(--yellow));transform:scale(1) rotate(-3deg);}
+  50%{filter:drop-shadow(0 0 35px var(--yellow));transform:scale(1.05) rotate(3deg);}
+}
+.win-label{font-family:'Press Start 2P',monospace;font-size:11px;
+  color:var(--yellow);text-shadow:0 0 10px var(--yellow);
+  letter-spacing:3px;margin-bottom:8px;}
+.win-name{font-family:'DotGothic16',sans-serif;font-size:32px;font-weight:bold;
+  margin-bottom:14px;
+  background:linear-gradient(180deg,#fff,var(--yellow),var(--pink));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  filter:drop-shadow(0 0 12px rgba(255,230,0,.6));}
+.win-msg{font-size:15px;line-height:1.7;color:rgba(255,255,255,.8);margin-bottom:18px;}
+.win-msg b{color:var(--cyan);}
+
+.coin-input-box{
+  background:#0a0818;border:2px solid var(--yellow);border-radius:10px;
+  padding:14px;margin-bottom:14px;
+}
+.coin-info{font-size:13px;color:var(--yellow);margin-bottom:8px;
+  text-shadow:0 0 6px var(--yellow);}
+.name-input{
+  width:100%;padding:10px;background:#1a1428;
+  border:2px solid #333;border-radius:8px;
+  color:#fff;font-family:'DotGothic16',sans-serif;font-size:16px;
+  text-align:center;outline:none;margin-bottom:10px;
+}
+.name-input:focus{border-color:var(--yellow);}
+.submit-btn{
+  width:100%;padding:11px;
+  background:linear-gradient(135deg,var(--yellow),var(--orange));
+  border:2px solid #fff;border-radius:8px;
+  font-family:'Press Start 2P',monospace;font-size:11px;color:#000;
+  letter-spacing:2px;cursor:pointer;
+}
+.submit-btn:disabled{opacity:.5;cursor:not-allowed;}
+.submit-status{font-size:11px;color:var(--green);margin-top:6px;min-height:14px;}
+
+.again-btn{
+  width:100%;padding:13px;
+  background:linear-gradient(135deg,var(--cyan),var(--blue));
+  border:2px solid #fff;border-radius:10px;
+  font-family:'Press Start 2P',monospace;font-size:12px;color:#fff;
+  letter-spacing:3px;cursor:pointer;
+  box-shadow:0 0 14px rgba(0,245,255,.5);
+}
+.again-btn:active{transform:scale(.97);}
+
+.confetti{position:fixed;width:8px;height:8px;
+  pointer-events:none;z-index:150;animation:confettiFall linear forwards;}
+@keyframes confettiFall{
+  to{transform:translateY(110vh) rotate(720deg);opacity:0;}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="header">
+    <div class="title">UWASA LAND</div>
+    <div class="subtitle">★ すごろく BATTLE ★</div>
+  </div>
+
+  <!-- ════════════════════════════ -->
+  <!-- SETUP SCREEN (3ペイン)        -->
+  <!-- ════════════════════════════ -->
+  <div class="screen active" id="screen-setup">
+    <div class="setup-box">
+
+      <div class="setup-progress">
+        <div class="sp-dot active" id="sp-dot-1"></div>
+        <div class="sp-dot" id="sp-dot-2"></div>
+        <div class="sp-dot" id="sp-dot-3"></div>
+      </div>
+
+      <!-- ───── ps-1 = 人数選択 (最初に出る画面) ───── -->
+      <div class="setup-pane active" id="ps-1">
+        <div class="setup-step">STEP 1 / 3</div>
+        <div class="setup-label">👥 プレイヤー人数</div>
+        <div class="player-count" id="player-count">
+          <button class="pc-btn" data-n="2">2</button>
+          <button class="pc-btn active" data-n="3">3</button>
+          <button class="pc-btn" data-n="4">4</button>
+          <button class="pc-btn" data-n="5">5</button>
+        </div>
+        <div class="pc-hint">2〜5人で対戦！</div>
+        <div class="setup-actions">
+          <button class="next-btn" onclick="goNextPane(2)">▶ NEXT</button>
+        </div>
+      </div>
+
+      <!-- ───── ps-2 = 罰ゲーム選択 (お酒の種類) ───── -->
+      <div class="setup-pane" id="ps-2">
+        <div class="setup-step">STEP 2 / 3</div>
+        <div class="setup-label">🥃 罰ゲーム(お酒の種類)</div>
+        <div class="penalty-grid" id="penalty-grid">
+          <!-- ボタンはJSで生成される -->
+        </div>
+        <div class="pen-hint">罰ゲームマスで飲むお酒を選ぶ🍻</div>
+        <div class="setup-actions">
+          <button class="back-btn" onclick="goNextPane(1)">◀ 戻る</button>
+          <button class="next-btn" id="ps2-next" onclick="goNextPane(3)" disabled>▶ NEXT</button>
+        </div>
+      </div>
+
+      <!-- ───── ps-3 = 名前入力 (最後・START) ───── -->
+      <div class="setup-pane" id="ps-3">
+        <div class="setup-step">STEP 3 / 3</div>
+        <div class="setup-label">📝 名前を入力</div>
+        <div id="player-inputs"></div>
+        <div class="setup-actions">
+          <button class="back-btn" onclick="goNextPane(2)">◀ 戻る</button>
+          <button class="start-btn" onclick="startGame()">▶ START</button>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="rules-box">
+      <b>📜 ルール:</b><br>
+      ・順番にサイコロを振って進む<br>
+      ・止まったマスのお題を実行！<br>
+      ・<b>セーフ</b>マスは何もなし😌<br>
+      ・<b>🍻グイ</b>マスはドリンク1杯飲む<br>
+      ・罰ゲームマスは選んだお酒で<b>飲めよー‼️</b>🔥<br>
+      ・<b>ワープ</b>はゴールへ一気にワープ✨<br>
+      ・最初に<b>GOAL</b>に着いた人の勝ち！<br>
+      ・優勝者以外は<b>罰ゲーム1杯グイ</b>🥃<br>
+      ・コインは「移動マス数の合計」<br>
+      ・優勝者にボーナス +50コイン
+    </div>
+  </div>
+
+  <!-- ════════════════════════════ -->
+  <!-- GAME SCREEN                  -->
+  <!-- ════════════════════════════ -->
+  <div class="screen" id="screen-game">
+    <div class="players-bar" id="players-bar"></div>
+    <div class="penalty-bar" id="penalty-bar">
+      🔥 罰ゲーム: <b id="pb-name">-</b>
+    </div>
+    <!-- ▼ コントロールをボードの「上」に移動 -->
+    <div class="controls">
+      <div class="ctrl-row">
+        <div class="ctrl-left">
+          <div class="turn-info">
+            NOW PLAYING
+            <div class="turn-name" id="turn-name">-</div>
+          </div>
+          <button class="roll-btn" id="roll-btn" onclick="rollDice()">🎲 サイコロを振る</button>
+          <div class="dice-result" id="dice-result">&nbsp;</div>
+        </div>
+        <div class="ctrl-right">
+          <div class="dice" id="dice">🎲</div>
+        </div>
+      </div>
+    </div>
+    <div class="board-wrap">
+      <div class="board-shop-tag">U.wasano<br><b>S.hisha</b><br>B.ar</div>
+      <div class="board-title">★ U.WASA LAND ★</div>
+      <div class="board-legend">
+        <span class="lg-arrow">⬆</span> START から GOAL へ進む
+      </div>
+      <div class="board" id="board"></div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════ -->
+  <!-- WIN SCREEN                   -->
+  <!-- ════════════════════════════ -->
+  <div class="screen" id="screen-win">
+    <div class="win-screen">
+      <div class="win-trophy">🏆</div>
+      <div class="win-label">★ WINNER ★</div>
+      <div class="win-name" id="win-name">-</div>
+      <div class="win-msg">
+        おめでとう御座います‼️<br>
+        他の人は<b id="win-penalty">罰ゲーム</b><b>1杯グイ🥃</b>
+      </div>
+      <div class="coin-input-box">
+        <div class="coin-info">🪙 獲得コイン: <span id="win-coins">0</span></div>
+        <input type="text" class="name-input" id="rank-name" maxlength="8" placeholder="名前(8文字以内)">
+        <button class="submit-btn" id="submit-btn" onclick="submitScore()">📡 ランキング登録</button>
+        <div class="submit-status" id="submit-status">&nbsp;</div>
+      </div>
+      <button class="again-btn" onclick="resetGame()">🔄 もう一回</button>
+    </div>
+  </div>
+</div>
+
+<!-- 通常モーダル -->
+<div class="modal" id="modal">
+  <div class="modal-card">
+    <div class="modal-icon" id="modal-icon">🎲</div>
+    <div class="modal-type" id="modal-type" style="color:var(--yellow);">EVENT</div>
+    <div class="modal-text" id="modal-text">-</div>
+    <button class="modal-btn" onclick="closeModal()">OK！</button>
+  </div>
+</div>
+
+<!-- 🔥 DRINK BLAST MODAL — 「◯◯飲めよー‼️」 -->
+<div class="drink-blast" id="drink-blast">
+  <div class="db-inner">
+    <div class="db-warning">⚠ PENALTY ⚠</div>
+    <div class="db-target" id="db-target">-</div>
+    <div class="db-emoji" id="db-emoji"></div>
+    <div class="db-call" id="db-call">飲めよー‼️</div>
+    <button class="db-btn" onclick="closeDrinkBlast()">グイッ‼️🍻</button>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════════════
+// CONFIG
+// ════════════════════════════════════════════════════════════
+const SUPABASE_URL = 'https://hwoltvzmsznprsbyrbaj.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_1JsQKCxHNyH4fGzFUJeEHg_czjaZxPR';
+
+const PLAYER_ICONS  = ['🦊','🐉','🦄','🐯','🦁'];
+const PLAYER_COLORS = ['#FF2D78','#00F5FF','#FFE600','#39FF14','#BF00FF'];
+
+// 罰ゲーム種類
+// ボトル/カクテルのSVGアイコン (本物再現)
+const PEN_SVG = {
+  // クライナー Feigling — 小瓶 (写真本物に忠実 / 他のボトルより一回り小さい)
+  kleiner: `<svg viewBox="0 0 100 140" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <!-- ガラスのグラデーション -->
+      <linearGradient id="kl-glass" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0"   stop-color="#c8ccd8" stop-opacity=".55"/>
+        <stop offset=".15" stop-color="#fafbff" stop-opacity=".85"/>
+        <stop offset=".5"  stop-color="#fff"    stop-opacity=".75"/>
+        <stop offset=".85" stop-color="#e0e4ee" stop-opacity=".75"/>
+        <stop offset="1"   stop-color="#9ea2b0" stop-opacity=".55"/>
+      </linearGradient>
+      <linearGradient id="kl-cap" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0"   stop-color="#b599d4"/>
+        <stop offset=".4"  stop-color="#8e6cb5"/>
+        <stop offset=".7"  stop-color="#6b4a96"/>
+        <stop offset="1"   stop-color="#523878"/>
+      </linearGradient>
+      <linearGradient id="kl-cap-top" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0"   stop-color="#5a3d7a"/>
+        <stop offset=".3"  stop-color="#a583c4"/>
+        <stop offset=".5"  stop-color="#c8acdc"/>
+        <stop offset=".7"  stop-color="#a583c4"/>
+        <stop offset="1"   stop-color="#5a3d7a"/>
+      </linearGradient>
+    </defs>
+
+    <!-- 床影 -->
+    <ellipse cx="50" cy="132" rx="20" ry="2" fill="#000" opacity=".25"/>
+
+    <!-- ▼ 全体を 0.72倍 にスケール + 下寄せ ▼ -->
+    <g transform="translate(14, 50) scale(0.72)">
+      <!-- ボトル本体 (フラスコ型 / さらに胴体短め) -->
+      <path d="M22 42
+               Q22 30 32 28
+               L40 26
+               L40 18
+               L60 18
+               L60 26
+               L68 28
+               Q78 30 78 42
+               L78 103
+               Q78 109 72 109
+               L28 109
+               Q22 109 22 103 Z"
+            fill="url(#kl-glass)" stroke="#7a7e90" stroke-width="1.4"/>
+      <!-- ガラスの底の影 -->
+      <ellipse cx="50" cy="106" rx="26" ry="2.2" fill="#000" opacity=".15"/>
+      <!-- ガラス左ハイライト -->
+      <path d="M27 50 L27 100" stroke="#fff" stroke-width="2.5" opacity=".75" stroke-linecap="round"/>
+      <!-- ガラス右ハイライト -->
+      <path d="M73 50 L73 100" stroke="#fff" stroke-width="1.4" opacity=".5" stroke-linecap="round"/>
+
+      <!-- 首 -->
+      <rect x="40" y="14" width="20" height="14" fill="url(#kl-glass)" stroke="#7a7e90" stroke-width="1.4"/>
+      <line x1="40" y1="20" x2="60" y2="20" stroke="#7a7e90" stroke-width=".6" opacity=".6"/>
+      <line x1="40" y1="24" x2="60" y2="24" stroke="#7a7e90" stroke-width=".6" opacity=".6"/>
+
+      <!-- ▼ 紫キャップ ▼ -->
+      <rect x="36" y="3" width="28" height="14" rx="1.5" fill="url(#kl-cap)" stroke="#3e2960" stroke-width=".8"/>
+      <ellipse cx="50" cy="3" rx="14" ry="2.2" fill="url(#kl-cap-top)" stroke="#3e2960" stroke-width=".7"/>
+      <line x1="36" y1="6"  x2="64" y2="6"  stroke="#3e2960" stroke-width=".8" opacity=".7"/>
+      <line x1="36" y1="9"  x2="64" y2="9"  stroke="#3e2960" stroke-width=".8" opacity=".5"/>
+      <line x1="36" y1="12" x2="64" y2="12" stroke="#3e2960" stroke-width=".8" opacity=".5"/>
+      <line x1="36" y1="15" x2="64" y2="15" stroke="#3e2960" stroke-width=".8" opacity=".7"/>
+      <rect x="38" y="4" width="1.5" height="12" fill="#d6c0e6" opacity=".7"/>
+      <rect x="61" y="4" width="2" height="12" fill="#3e2960" opacity=".5"/>
+
+      <!-- ▼ ラベル (短い胴に合わせてさらに圧縮) ▼ -->
+      <path d="M28 46 Q50 42 72 46 L72 50 Q50 47 28 50 Z" fill="#a4d135"/>
+      <path d="M28 95 Q50 99 72 95 L72 91 Q50 94 28 91 Z" fill="#a4d135"/>
+      <path d="M28 50 Q50 47 72 50 L72 91 Q50 94 28 91 Z"
+            fill="#0e0a18" stroke="#0e0a18" stroke-width=".7"/>
+
+      <!-- ▼ 目玉 ▼ -->
+      <ellipse cx="42" cy="58" rx="4.5" ry="4.8" fill="#fff"/>
+      <ellipse cx="58" cy="58" rx="4.5" ry="4.8" fill="#fff"/>
+      <circle cx="43" cy="56.5" r="2.4" fill="#000"/>
+      <circle cx="59" cy="56.5" r="2.4" fill="#000"/>
+      <circle cx="44" cy="55.5" r=".7" fill="#fff"/>
+      <circle cx="60" cy="55.5" r=".7" fill="#fff"/>
+
+      <!-- ▼ 髪のとがり ▼ -->
+      <path d="M40 53 L38.5 50" stroke="#fff" stroke-width="1.4" stroke-linecap="round"/>
+      <path d="M45 52 L44.5 48.5" stroke="#fff" stroke-width="1.4" stroke-linecap="round"/>
+      <path d="M50 52 L50 48" stroke="#fff" stroke-width="1.4" stroke-linecap="round"/>
+      <path d="M55 52 L55.5 48.5" stroke="#fff" stroke-width="1.4" stroke-linecap="round"/>
+      <path d="M60 53 L61.5 50" stroke="#fff" stroke-width="1.4" stroke-linecap="round"/>
+
+      <!-- ▼ ロゴ階層 ▼ -->
+      <text x="50" y="69" font-family="'Brush Script MT',cursive" font-size="6.5"
+            fill="#b48cd6" text-anchor="middle" font-style="italic">Kleiner</text>
+      <text x="50" y="80" font-family="'Brush Script MT',cursive" font-size="12"
+            fill="#c8a5e0" text-anchor="middle" font-style="italic" font-weight="bold"
+            stroke="#9c78c0" stroke-width=".4">Feigling</text>
+      <text x="50" y="86" font-family="serif" font-size="3.2"
+            fill="#fff" text-anchor="middle" letter-spacing="1.5">DAS</text>
+      <text x="50" y="91" font-family="serif" font-size="4.5"
+            fill="#fff" text-anchor="middle" letter-spacing="1.2" font-weight="bold">ORIGINAL</text>
+
+      <!-- ボトル底のガラス厚み -->
+      <ellipse cx="50" cy="101" rx="22" ry="1.8" fill="#fff" opacity=".15"/>
+    </g>
+  </svg>`,
+
+  // テキーラ 1800 Añejo風 — 木製キャップ + 琥珀色 + 黒×金ラベル + 台形ボトル
+  tequila: `<svg viewBox="0 0 100 140" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="tq-amber" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0" stop-color="#7a3a10"/>
+        <stop offset=".4" stop-color="#c97a35"/>
+        <stop offset=".55" stop-color="#e8a050"/>
+        <stop offset="1" stop-color="#5a280a"/>
+      </linearGradient>
+      <linearGradient id="tq-wood" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#8b5a2b"/>
+        <stop offset=".5" stop-color="#6b4220"/>
+        <stop offset="1" stop-color="#4a2e15"/>
+      </linearGradient>
+    </defs>
+    <!-- 台形ボトル -->
+    <path d="M22 130 L22 50 Q22 40 30 35 L40 30 L40 16 L60 16 L60 30 L70 35 Q78 40 78 50 L78 130 Q78 134 74 134 L26 134 Q22 134 22 130 Z"
+          fill="url(#tq-amber)" stroke="#3a1a08" stroke-width="1"/>
+    <!-- 首 -->
+    <rect x="40" y="10" width="20" height="8" fill="url(#tq-amber)" stroke="#3a1a08" stroke-width="1"/>
+    <!-- 木製キャップ -->
+    <path d="M37 0 L63 0 L62 12 L38 12 Z" fill="url(#tq-wood)" stroke="#2a1808" stroke-width="1"/>
+    <ellipse cx="50" cy="0" rx="13" ry="2" fill="#6b4220"/>
+    <!-- 上部ラベル(細い帯) -->
+    <rect x="28" y="42" width="44" height="6" fill="#1a1a1a"/>
+    <text x="50" y="46.5" font-family="serif" font-size="3" fill="#d4af37" text-anchor="middle">100% AGAVE</text>
+    <!-- メインラベル(黒+金縁) -->
+    <rect x="26" y="58" width="48" height="48" fill="#1a1a1a" stroke="#d4af37" stroke-width="1.5"/>
+    <text x="50" y="68" font-family="serif" font-size="4.5" fill="#d4af37" text-anchor="middle" letter-spacing=".5">TEQUILA</text>
+    <text x="50" y="74" font-family="serif" font-size="3.5" fill="#d4af37" text-anchor="middle">RESERVA</text>
+    <!-- 1800大文字 -->
+    <text x="50" y="90" font-family="serif" font-weight="bold" font-size="14" fill="#d4af37" text-anchor="middle" letter-spacing="1">1800</text>
+    <text x="50" y="98" font-family="serif" font-size="4" fill="#d4af37" text-anchor="middle" letter-spacing="1">AÑEJO</text>
+    <!-- 下部ラベル -->
+    <rect x="30" y="115" width="40" height="14" fill="#f5e8c8" stroke="#8b6f3a" stroke-width=".5"/>
+    <text x="50" y="121" font-family="serif" font-size="2.5" fill="#3a2810" text-anchor="middle" font-style="italic">French &amp; American Oak</text>
+    <text x="50" y="125" font-family="serif" font-size="2.5" fill="#3a2810" text-anchor="middle">12 MONTHS</text>
+    <text x="50" y="128.5" font-family="serif" font-size="2" fill="#7a5520" text-anchor="middle">100% AGAVE</text>
+  </svg>`,
+
+  // コカボム Cocalero — 写真本物に忠実 / 球+三角の砂時計型ショットグラス (一回り小さく)
+  cokebomb: `<svg viewBox="0 0 100 140" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <!-- 緑液体: 上明るい→下深い -->
+      <linearGradient id="cb-green" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0"   stop-color="#bdf04a"/>
+        <stop offset=".25" stop-color="#a5e028"/>
+        <stop offset=".6"  stop-color="#6fb010"/>
+        <stop offset="1"   stop-color="#3a7805"/>
+      </linearGradient>
+      <!-- 黄液体: 内側明るい→外側深い -->
+      <radialGradient id="cb-yellow" cx=".5" cy=".4" r=".75">
+        <stop offset="0"   stop-color="#fff5a0"/>
+        <stop offset=".35" stop-color="#ffd838"/>
+        <stop offset=".75" stop-color="#e0a812"/>
+        <stop offset="1"   stop-color="#7a5008"/>
+      </radialGradient>
+    </defs>
+
+    <!-- 床の影 -->
+    <ellipse cx="50" cy="132" rx="22" ry="2.5" fill="#000" opacity=".22"/>
+
+    <!-- ▼ 全体を 0.78倍 にスケール ▼ -->
+    <g transform="translate(11, 14) scale(0.78)">
+
+      <!-- ============== 上部: 球形ショットグラス ============== -->
+      <!-- 球本体 (透明ガラス輪郭) -->
+      <ellipse cx="50" cy="42" rx="30" ry="28" fill="rgba(255,255,255,.05)"
+               stroke="#5a8a25" stroke-width="1.2"/>
+
+      <!-- 緑液体 (球の下65%を満たす、上に空気層あり) -->
+      <path d="M 22 32
+               Q 22 70 50 70
+               Q 78 70 78 32
+               Q 78 18 50 22
+               Q 22 18 22 32 Z"
+            fill="url(#cb-green)" opacity=".95"/>
+      <!-- 緑液体の表面 (水平な楕円) -->
+      <ellipse cx="50" cy="22" rx="28" ry="2.5" fill="#1e5a05" opacity=".4"/>
+      <ellipse cx="50" cy="21.5" rx="27" ry="1.8" fill="#7ed825"/>
+
+      <!-- 緑液体の左側ハイライト (大きな白反射) -->
+      <ellipse cx="36" cy="44" rx="9" ry="14" fill="#fff" opacity=".4" transform="rotate(-15 36 44)"/>
+      <ellipse cx="34" cy="40" rx="4" ry="8" fill="#fff" opacity=".7" transform="rotate(-15 34 40)"/>
+
+      <!-- 緑液体の上面に小さな反射 -->
+      <ellipse cx="42" cy="24" rx="9" ry="1.5" fill="#fff" opacity=".55"/>
+
+      <!-- 球グラスの口リング (空気層の上) -->
+      <ellipse cx="50" cy="14" rx="16" ry="3" fill="rgba(255,255,255,.15)" stroke="#aaa" stroke-width=".6"/>
+      <ellipse cx="50" cy="13" rx="16" ry="2.5" fill="rgba(255,255,255,.3)"/>
+      <!-- 口の内側暗線 -->
+      <ellipse cx="50" cy="14" rx="14" ry="2.2" fill="none" stroke="#666" stroke-width=".4" opacity=".5"/>
+
+      <!-- 球の右側ハイライト -->
+      <path d="M73 38 Q75 52 68 60" fill="none" stroke="#fff" stroke-width="1.5" opacity=".5" stroke-linecap="round"/>
+
+      <!-- ============== くびれ部分 ============== -->
+      <!-- ガラスのくびれ (Y字風) -->
+      <path d="M 36 65 Q 50 78 64 65 L 65 78 Q 50 82 35 78 Z"
+            fill="rgba(255,200,80,.4)" stroke="#7a5008" stroke-width=".7"/>
+      <!-- 球と三角の境界の暗線 -->
+      <path d="M 40 68 Q 50 76 60 68" fill="none" stroke="#3a2805" stroke-width=".6" opacity=".5"/>
+
+      <!-- ============== 下部: 三角形のベース (黄液体) ============== -->
+      <!-- ベース全体 (末広がり台形) -->
+      <path d="M 16 130
+               L 26 78
+               Q 38 73 50 73
+               Q 62 73 74 78
+               L 84 130
+               Q 84 134 80 134
+               L 20 134
+               Q 16 134 16 130 Z"
+            fill="url(#cb-yellow)" stroke="#5a3808" stroke-width="1.4"/>
+
+      <!-- 三角ベースの左側ハイライト (写真の特徴的な縦の白光) -->
+      <path d="M 30 82 Q 27 105 23 128" fill="none" stroke="#fff" stroke-width="3"
+            opacity=".55" stroke-linecap="round"/>
+      <path d="M 33 82 Q 31 105 28 125" fill="none" stroke="#fff" stroke-width="1.2"
+            opacity=".4" stroke-linecap="round"/>
+
+      <!-- 中央の強い白光 (写真の特徴) -->
+      <ellipse cx="48" cy="92" rx="6" ry="14" fill="#fff" opacity=".45"/>
+      <ellipse cx="46" cy="88" rx="3" ry="7" fill="#fff" opacity=".7"/>
+
+      <!-- 右側のハイライト -->
+      <path d="M 73 84 Q 76 105 79 126" fill="none" stroke="#fff" stroke-width="1.2"
+            opacity=".35" stroke-linecap="round"/>
+
+      <!-- 底面の影 -->
+      <ellipse cx="50" cy="132" rx="32" ry="2" fill="#3a2805" opacity=".4"/>
+      <path d="M 16 130 L 84 130 Q 84 134 80 134 L 20 134 Q 16 134 16 130 Z"
+            fill="#3a2805" opacity=".25"/>
+
+      <!-- ============== COCALEROロゴ ============== -->
+      <!-- 文字の白フチ (視認性のため) -->
+      <text x="50" y="115" font-family="Georgia,'Times New Roman',serif" font-weight="900"
+            font-size="11" fill="none" stroke="#fff" stroke-width="2.2"
+            stroke-linejoin="round" text-anchor="middle" letter-spacing="0">COCALERO</text>
+      <!-- 黒メイン文字 -->
+      <text x="50" y="115" font-family="Georgia,'Times New Roman',serif" font-weight="900"
+            font-size="11" fill="#0a0a0a" text-anchor="middle" letter-spacing="0">COCALERO</text>
+      <!-- ®マーク -->
+      <text x="83" y="111" font-family="serif" font-size="3" fill="#0a0a0a" text-anchor="middle">®</text>
+    </g>
+  </svg>`,
+
+  // 手元の半分一気 — ビールグラス (液体が半分の状態) + ½マーク
+  half: `<svg viewBox="0 0 100 140" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="hf-beer" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0" stop-color="#ffd060"/>
+        <stop offset=".5" stop-color="#f0a020"/>
+        <stop offset="1" stop-color="#a06808"/>
+      </linearGradient>
+      <radialGradient id="hf-foam" cx=".5" cy=".5">
+        <stop offset="0" stop-color="#fff"/>
+        <stop offset="1" stop-color="#f0f0e0"/>
+      </radialGradient>
+    </defs>
+    <!-- ジョッキ本体 (空のガラス上半分 + 液体下半分) -->
+    <path d="M22 18 L22 125 Q22 132 30 132 L62 132 Q70 132 70 125 L70 18 Z"
+          fill="rgba(255,255,255,.1)" stroke="#3a2008" stroke-width="1.5"/>
+    <!-- 取っ手 -->
+    <path d="M70 38 Q88 43 88 70 Q88 92 70 97" fill="none" stroke="#3a2008" stroke-width="2.5"/>
+    <path d="M70 48 Q80 53 80 70 Q80 84 70 88" fill="none" stroke="#fff" stroke-width="1" opacity=".4"/>
+    <!-- ▼ 半分の液体 (下半分のみ満たす) ▼ -->
+    <path d="M22 75 L22 125 Q22 132 30 132 L62 132 Q70 132 70 125 L70 75 Z"
+          fill="url(#hf-beer)" stroke="#3a2008" stroke-width="1"/>
+    <!-- 液面のミニ泡 -->
+    <ellipse cx="46" cy="73" rx="22" ry="2.5" fill="url(#hf-foam)" stroke="#d8d8c0" stroke-width=".5"/>
+    <ellipse cx="40" cy="71" rx="6" ry="2" fill="#fff"/>
+    <ellipse cx="55" cy="71" rx="5" ry="1.8" fill="#fff"/>
+    <!-- 中の泡 (上昇する小さな粒) -->
+    <circle cx="38" cy="100" r="1.2" fill="#fff" opacity=".7"/>
+    <circle cx="50" cy="92" r="1" fill="#fff" opacity=".7"/>
+    <circle cx="56" cy="105" r="1.3" fill="#fff" opacity=".75"/>
+    <circle cx="44" cy="85" r=".8" fill="#fff" opacity=".8"/>
+    <circle cx="58" cy="115" r="1" fill="#fff" opacity=".7"/>
+    <!-- ガラスハイライト -->
+    <path d="M28 25 L28 125" stroke="#fff" stroke-width="2.5" opacity=".5" stroke-linecap="round"/>
+    <path d="M64 25 L64 125" stroke="#fff" stroke-width="1" opacity=".3" stroke-linecap="round"/>
+    <!-- 縦じま(ジョッキの溝) -->
+    <line x1="35" y1="78" x2="35" y2="125" stroke="#3a2008" stroke-width=".5" opacity=".3"/>
+    <line x1="45" y1="78" x2="45" y2="125" stroke="#3a2008" stroke-width=".5" opacity=".3"/>
+    <line x1="55" y1="78" x2="55" y2="125" stroke="#3a2008" stroke-width=".5" opacity=".3"/>
+    <!-- 半分線(液面に水平ライン) -->
+    <line x1="22" y1="75" x2="70" y2="75" stroke="#FFE600" stroke-width="1" stroke-dasharray="2,2" opacity=".7"/>
+    <!-- ½マーク -->
+    <text x="85" y="50" font-size="14" fill="#FFE600" text-anchor="middle" font-weight="bold"
+          stroke="#000" stroke-width="2" paint-order="stroke">½</text>
+  </svg>`,
+
+  // 手元のグラス一気 — ビールジョッキ
+  full: `<svg viewBox="0 0 100 140" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="fl-beer" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0" stop-color="#ffd060"/>
+        <stop offset=".5" stop-color="#f0a020"/>
+        <stop offset="1" stop-color="#a06808"/>
+      </linearGradient>
+      <radialGradient id="fl-foam" cx=".5" cy=".5">
+        <stop offset="0" stop-color="#fff"/>
+        <stop offset="1" stop-color="#f0f0e0"/>
+      </radialGradient>
+    </defs>
+    <!-- ジョッキ本体 -->
+    <path d="M22 30 L22 125 Q22 132 30 132 L62 132 Q70 132 70 125 L70 30 Z"
+          fill="url(#fl-beer)" stroke="#3a2008" stroke-width="1.5"/>
+    <!-- 取っ手 -->
+    <path d="M70 50 Q88 55 88 78 Q88 100 70 105" fill="none" stroke="#3a2008" stroke-width="2.5"/>
+    <!-- 取っ手の内側 -->
+    <path d="M70 60 Q80 65 80 78 Q80 92 70 96" fill="none" stroke="#fff" stroke-width="1" opacity=".4"/>
+    <!-- ガラスのハイライト -->
+    <path d="M28 40 L28 120" stroke="#fff" stroke-width="2.5" opacity=".5" stroke-linecap="round"/>
+    <path d="M64 40 L64 120" stroke="#fff" stroke-width="1" opacity=".3" stroke-linecap="round"/>
+    <!-- 泡(白いふわふわ) -->
+    <ellipse cx="46" cy="28" rx="26" ry="9" fill="url(#fl-foam)" stroke="#d8d8c0" stroke-width=".6"/>
+    <ellipse cx="35" cy="22" rx="9" ry="6" fill="url(#fl-foam)"/>
+    <ellipse cx="55" cy="20" rx="11" ry="7" fill="url(#fl-foam)"/>
+    <ellipse cx="44" cy="16" rx="6" ry="4" fill="#fff"/>
+    <!-- 縦じま(ジョッキの溝) -->
+    <line x1="35" y1="40" x2="35" y2="125" stroke="#3a2008" stroke-width=".5" opacity=".3"/>
+    <line x1="45" y1="40" x2="45" y2="125" stroke="#3a2008" stroke-width=".5" opacity=".3"/>
+    <line x1="55" y1="40" x2="55" y2="125" stroke="#3a2008" stroke-width=".5" opacity=".3"/>
+    <!-- フルマーク矢印 -->
+    <text x="80" y="62" font-size="11" fill="#FFE600" text-anchor="middle" font-weight="bold">満</text>
+  </svg>`,
+
+  // ランダム — スロットマシン
+  random: `<svg viewBox="0 0 100 140" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="rd-body" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#ff5588"/>
+        <stop offset=".5" stop-color="#d63366"/>
+        <stop offset="1" stop-color="#8a1844"/>
+      </linearGradient>
+    </defs>
+    <!-- スロット本体 -->
+    <rect x="18" y="20" width="64" height="100" rx="8" fill="url(#rd-body)" stroke="#5a0a30" stroke-width="2"/>
+    <!-- 上部ライト -->
+    <circle cx="30" cy="14" r="5" fill="#FFE600"/>
+    <circle cx="50" cy="10" r="6" fill="#FF2D78"/>
+    <circle cx="70" cy="14" r="5" fill="#00F5FF"/>
+    <!-- 画面 (3つの絵柄スロット) -->
+    <rect x="26" y="35" width="48" height="35" fill="#1a1a1a" stroke="#FFE600" stroke-width="1.5"/>
+    <line x1="42" y1="35" x2="42" y2="70" stroke="#FFE600" stroke-width=".5"/>
+    <line x1="58" y1="35" x2="58" y2="70" stroke="#FFE600" stroke-width=".5"/>
+    <text x="34" y="58" font-size="13" text-anchor="middle">🍒</text>
+    <text x="50" y="58" font-size="13" text-anchor="middle">7</text>
+    <text x="66" y="58" font-size="13" text-anchor="middle">🍋</text>
+    <!-- レバー -->
+    <rect x="80" y="40" width="3" height="35" fill="#888"/>
+    <circle cx="81.5" cy="38" r="4" fill="#ff3030"/>
+    <!-- ボタン群 -->
+    <circle cx="32" cy="92" r="5" fill="#FFE600" stroke="#000" stroke-width="1"/>
+    <circle cx="50" cy="92" r="5" fill="#39FF14" stroke="#000" stroke-width="1"/>
+    <circle cx="68" cy="92" r="5" fill="#FF2D78" stroke="#000" stroke-width="1"/>
+    <!-- コイン投入口 -->
+    <rect x="40" y="105" width="20" height="8" fill="#1a1a1a" stroke="#FFE600" stroke-width="1"/>
+    <text x="50" y="111" font-size="4" fill="#FFE600" text-anchor="middle" font-weight="bold">COIN</text>
+    <!-- BAR文字 -->
+    <text x="50" y="130" font-size="9" fill="#fff" text-anchor="middle" font-weight="bold" letter-spacing="1">RANDOM</text>
+  </svg>`,
+};
+
+const PENALTIES = {
+  tequila:  { name:'テキーラ',          display:'テキーラ',                    emoji:'🥃', svg:PEN_SVG.tequila },
+  cokebomb: { name:'コカボム',          display:'コカボム',                    emoji:'🍹', svg:PEN_SVG.cokebomb },
+  kleiner:  { name:'クライナー',        display:'クライナー',                  emoji:'🌿', svg:PEN_SVG.kleiner },
+  half:     { name:'手元の半分一気',    display:'手元の半分<br>一気',          emoji:'🥂', svg:PEN_SVG.half },
+  full:     { name:'手元のグラス一気',  display:'手元のグラス<br>一気',        emoji:'🍺', svg:PEN_SVG.full },
+  random:   { name:'ごちゃまぜランダム',display:'ごちゃまぜ<br>ランダム',      emoji:'🎰', svg:PEN_SVG.random },
+};
+const RANDOM_POOL = ['tequila','cokebomb','kleiner','half','full'];
+
+// ════════════════════════════════════════════════════════════
+// BOARD
+// ════════════════════════════════════════════════════════════
+const BOARD = [
+  {type:'start', label:'START', text:'スタート！'},
+  {type:'back',  label:'完璧主義\n最初に戻る', text:'自分は完璧主義だ！\n1マスなんて許せない！\n最初のマスに戻る。', action:'tostart'},
+  {type:'fun',   label:'もう1マス\n元気に進む', text:'2マスなんて悲しい…\nもう1マスだけ元気よく進む！', action:'forward1'},
+  {type:'safe',  label:'セーフ', text:'😌 セーフ！何もなし。'},
+  {type:'confess', label:'人生最悪\n告白', text:'人生でした1番の悪い事を今ここで告白する。\n笑えなそうな事だったらすぐに1杯グイ🍻'},
+  {type:'shot',  label:'健康診断\n2マス戻る', text:'健康診断に引っ掛かり入院になった！\n1ターンお休み + 2マス戻る。', action:'back2skip'},
+  {type:'shot',  label:'コロナ消毒\n罰ゲームグイ', text:'なんだかコロナになった気がする…\nアルコール消毒の為一杯グイ🥃', blast:true},
+  {type:'warp',  label:'お前は先に\n行けっ！\n右の人を13マス飛ばし', text:'ここは俺に任せてお前は先にいけぇ！！\n罰ゲーム1杯飲んで右の人を13マス飛ばし✨', action:'pushright13', blast:true},
+  {type:'drink', label:'敗北を知り\nたい\nジャンケン', text:'敗北を知りたい！\n左の人と罰ゲームをかけてジャンケン勝負🥃', action:'jankenleft'},
+  {type:'shot',  label:'俺は海賊王\nになる！\n2杯グイ', text:'俺は海賊王になる！\n音量あげて2杯グイ‼️🍻🍻', action:'double', blast:true, doubleBlast:true},
+  {type:'safe',  label:'セーフ', text:'😌 セーフ！何もなし。'},
+  {type:'drink', label:'目が合った\n人と乾杯', text:'初めに目が合った人と「愛してるよ」と言い合い\nそのあと乾杯してグイ🍻'},
+  {type:'skip',  label:'死神の本\n2ターン休み', text:'死神の本を手に入れた。\n2ターン以上経過すれば、誰かを最初のマスに戻す😈', action:'skip2'},
+  {type:'back',  label:'勇者の盾\n5マス戻る', text:'勇者の盾が欲しい。\n5マス戻る🛡', action:'back5'},
+  {type:'shot',  label:'勇者の剣\n半きグイさせる', text:'勇者の剣を手に入れた！\nゲームが終わるまで毎ターン誰かを指名して半きグイさせる⚔'},
+  {type:'safe',  label:'セーフ', text:'😌 セーフ！何もなし。'},
+  {type:'warp',  label:'GOALに\nワープ\n最後尾の人グイ', text:'✨ GOALにワープ！ ✨\nこの時点で1番最後尾の人が一杯グイ🍻', action:'warpgoal'},
+  {type:'skip',  label:'つかれたよね\n1ターン休憩', text:'つかれたよね？\n1ターン休憩しても良いね😴', action:'skip1'},
+  {type:'drink', label:'みんなで\nじゃんけん', text:'みんなでじゃんけん！\n負けは1杯グイ。そして1マス戻る🍻'},
+  {type:'fun',   label:'勇者の鎧\n3ターン無敵', text:'勇者の鎧を手に入れた。\n3ターン無敵で、誰の指示も無効🛡'},
+  {type:'shot',  label:'好きな人\n6マス戻る', text:'自分の好きな人に会いたくなった。\n一杯のんでハイターン休憩する。\n6マス戻る💔', action:'back6', blast:true},
+  {type:'safe',  label:'セーフ', text:'😌 セーフ！何もなし。'},
+  {type:'confess', label:'初体験の人\nの名前を呼ぶ', text:'最近恥ずかしかった話をみんなに発表する。\n初体験の相手の名前もちゃんと言う🙈'},
+  {type:'drink', label:'水分補給\n5マス戻る', text:'水分補給一杯グイ。\nあと5マス戻る💧', action:'back5', blast:true},
+  {type:'fun',   label:'右の人に\n1杯飲んで\nもらう', text:'たまにはゆっくり…\nただし右の人には1杯飲んでもらう🍺', action:'rightdrink'},
+  {type:'confess', label:'初体験の\n相手を告白', text:'初体験の相手を告白し、ゲームが終わるまでその名前で呼ばれる…\n呼ばなかったらグイ🙊'},
+  {type:'safe',  label:'セーフ', text:'😌 セーフ！何もなし。'},
+  {type:'shot',  label:'今日の悪い\n話をシェア', text:'今日の悪い話をみんなで語る！\nストーリーを盛る😏'},
+  {type:'shot',  label:'足が痛風\n2マス戻る\n1ターン休み', text:'足が痛風になった。\n痛いから2マス戻る + 1ターンお休み。', action:'back2skip'},
+  {type:'shot',  label:'タメ口ミス\n最初のマスに戻る', text:'このゲームで1番偉くなれる！\nゲームが終わるまで全員にタメ口。\nタメ口をミスると偉いまま最初のマスに戻る👑', action:'tostart'},
+  {type:'safe',  label:'セーフポイント\n初体験の相手を呼ぶ', text:'🟣 セーブポイント！\n何があっても初体験の相手の名前を元気よく言えば何度でもここに戻れる✨', action:'savepoint'},
+  {type:'goal',  label:'⭐GOAL⭐', text:'🎉 GOAL!! 🎉'},
+];
+const GOAL = BOARD.length - 1;
+
+// ════════════════════════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════════════════════════
+let players = [];
+let currentIdx = 0;
+let isRolling = false;
+let winner = null;
+let scoreSubmitted = false;
+let savepointReached = [];
+let playerCount = 3;
+let selectedPenalty = null;
+
+// ════════════════════════════════════════════════════════════
+// AUDIO
+// ════════════════════════════════════════════════════════════
+let audioCtx = null;
+function getCtx(){
+  if(!audioCtx){
+    try{
+      const A = window.AudioContext || window.webkitAudioContext;
+      audioCtx = new A();
+    }catch(e){}
+  }
+  if(audioCtx && audioCtx.state === 'suspended'){
+    audioCtx.resume();
+  }
+  return audioCtx;
+}
+function tone(f, d, t='square', v=.3){
+  const ctx = getCtx(); if(!ctx) return;
+  const o = ctx.createOscillator(), g = ctx.createGain();
+  o.type = t; o.frequency.value = f;
+  g.gain.setValueAtTime(0, ctx.currentTime);
+  g.gain.linearRampToValueAtTime(v, ctx.currentTime + .01);
+  g.gain.exponentialRampToValueAtTime(.001, ctx.currentTime + d);
+  o.connect(g); g.connect(ctx.destination);
+  o.start(); o.stop(ctx.currentTime + d);
+}
+function noise(d, v=.4, ff=2000){
+  const ctx = getCtx(); if(!ctx) return;
+  const sr = ctx.sampleRate, len = Math.floor(sr * d);
+  const buf = ctx.createBuffer(1, len, sr);
+  const dt = buf.getChannelData(0);
+  for(let i=0;i<len;i++) dt[i] = Math.random()*2-1;
+  const s = ctx.createBufferSource(); s.buffer = buf;
+  const f = ctx.createBiquadFilter(); f.type='lowpass'; f.frequency.value = ff;
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(v, ctx.currentTime);
+  g.gain.exponentialRampToValueAtTime(.001, ctx.currentTime + d);
+  s.connect(f); f.connect(g); g.connect(ctx.destination);
+  s.start();
+}
+function sweep(fs, fe, d, t='sawtooth', v=.4){
+  const ctx = getCtx(); if(!ctx) return;
+  const o = ctx.createOscillator(), g = ctx.createGain();
+  o.type = t;
+  o.frequency.setValueAtTime(fs, ctx.currentTime);
+  o.frequency.exponentialRampToValueAtTime(fe, ctx.currentTime + d);
+  g.gain.setValueAtTime(0, ctx.currentTime);
+  g.gain.linearRampToValueAtTime(v, ctx.currentTime + .01);
+  g.gain.exponentialRampToValueAtTime(.001, ctx.currentTime + d);
+  o.connect(g); g.connect(ctx.destination);
+  o.start(); o.stop(ctx.currentTime + d);
+}
+
+const SFX = {
+  click:    () => tone(800, .05, 'square', .25),
+  // 旧 dice (互換用、未使用)
+  dice:     () => { for(let i=0;i<8;i++) setTimeout(()=>tone(400+Math.random()*600, .04, 'square', .2), i*60); },
+  // ▼ サイコロ振ってる時のカラカラ音 (反復呼び出し)
+  diceRoll: () => {
+    // 短いノイズ + ランダム高音 = カラカラ感
+    noise(.05, .25, 3500);
+    tone(400 + Math.random()*900, .04, 'square', .18);
+    setTimeout(() => {
+      noise(.04, .2, 4000);
+      tone(500 + Math.random()*800, .03, 'square', .15);
+    }, 70);
+  },
+  // ▼ サイコロ着地のドン！音
+  diceLand: () => {
+    // 低音バスドラム
+    sweep(180, 60, .2, 'sine', .65);
+    tone(80, .15, 'triangle', .55);
+    // 着地のクラック音
+    noise(.1, .45, 1200);
+    // ゴム弾性
+    setTimeout(() => sweep(300, 150, .12, 'sine', .35), 60);
+  },
+  // ▼ 出目発表ファンファーレ (出目に応じて)
+  diceFanfare: (n) => {
+    // ベース音(出目で変化)
+    const base = 400 + n * 80;
+    [base, base*1.25, base*1.5].forEach((f, i) =>
+      setTimeout(() => tone(f, .15, 'square', .35), i*60));
+    // キラキラ
+    setTimeout(() => tone(base*2, .2, 'triangle', .3), 220);
+  },
+  step:     () => tone(600, .06, 'square', .25),
+  // ▼ 1歩前進の「ぴょん」音 (ステップ番号で音階が上がる)
+  walkStep: (n=0) => {
+    const base = 500 + (n%6) * 60;
+    tone(base, .05, 'square', .22);
+    setTimeout(() => tone(base*1.5, .04, 'sine', .15), 30);
+  },
+  // ▼ 後退の「しょぼん」音
+  walkBack: () => {
+    sweep(500, 300, .12, 'triangle', .25);
+  },
+  // ▼ 着地ドン
+  landThump: () => {
+    tone(180, .1, 'sine', .4);
+    tone(90, .15, 'triangle', .35);
+    setTimeout(() => noise(.06, .25, 1500), 30);
+  },
+  good:     () => [523,659,784,1047].forEach((f,i)=>setTimeout(()=>tone(f,.1,'square',.3),i*70)),
+  bad:      () => [400,300,200].forEach((f,i)=>setTimeout(()=>tone(f,.15,'sawtooth',.3),i*100)),
+  warp:     () => [400,600,800,1200,1600].forEach((f,i)=>setTimeout(()=>tone(f,.08,'sine',.3),i*50)),
+  win:      () => [523,659,784,1047,1319,1568,2093].forEach((f,i)=>setTimeout(()=>tone(f,.15,'square',.35),i*100)),
+  alarm:    () => {
+    for(let i=0;i<3;i++){
+      setTimeout(()=>{
+        sweep(440, 880, .25, 'sawtooth', .35);
+        setTimeout(()=>sweep(880, 440, .25, 'sawtooth', .35), 250);
+      }, i*520);
+    }
+  },
+  drinkCall: () => {
+    for(let i=0;i<10;i++){
+      setTimeout(()=>noise(.04, .35, 1500), i*60);
+    }
+    setTimeout(()=>{
+      tone(180,.1,'sine',.45);
+      setTimeout(()=>tone(140,.1,'sine',.45),120);
+      setTimeout(()=>tone(100,.15,'sine',.5),240);
+    }, 600);
+    setTimeout(()=>{
+      [523,659,784].forEach((f,i)=>setTimeout(()=>tone(f,.18,'square',.4),i*80));
+    }, 850);
+    setTimeout(()=>{
+      noise(.6, .5, 800);
+      tone(60,.5,'triangle',.5);
+    }, 1200);
+  },
+  gulp: () => {
+    sweep(800, 200, .2, 'sine', .4);
+    setTimeout(()=>sweep(400, 100, .15, 'triangle', .35), 100);
+    setTimeout(()=>tone(150, .15, 'sine', .4), 250);
+  },
+};
+
+// ════════════════════════════════════════════════════════════
+// 🎵 BGM (8bit, 通常 / 罰ゲームモード切替)
+// ════════════════════════════════════════════════════════════
+// UWASA LAND 専用BGM — ミステリアス・カジノ風 (8bit 多層レイヤー)
+const BGM = (() => {
+  let on = false, timer = null, tick = 0;
+  let blastMode = false;
+
+  // === 通常モード ===
+  // A minor pentatonic + chromatic スパイス で「妖しいカジノ」感
+  // 32拍のループメロディ (1拍 = 1tick)
+  // null = 休符
+  const NORMAL_MEL = [
+    // A1: 主題提示 (低めから上昇)
+    440, null, 523, null, 659, null, 784, 880,
+    // A2: 折り返し
+    988, null, 880, null, 784, 659, 523, null,
+    // B1: 半音入れて妖しさ
+    554, 659, 698, 880, null, 784, 659, null,
+    // B2: ループへの戻り
+    523, null, 698, 880, 988, 880, 784, 440,
+  ];
+  // 副旋律 (主旋律より1オクターブ上で疎にキラキラ)
+  const NORMAL_HARM = [
+    null, null, null, null, 1319, null, null, 1760,
+    null, 1976, null, null, null, null, null, null,
+    null, 1319, null, 1760, null, null, null, null,
+    null, null, 1397, null, null, 1760, null, null,
+  ];
+  // ベース (4拍ごとに踏むAm-F-G-Em風進行)
+  const NORMAL_BASS = [
+    110, null, null, null,  110, null, null, null,
+    175, null, null, null,  175, null, null, null,
+    196, null, null, null,  196, null, null, null,
+    165, null, null, null,  165, null, null, null,
+  ];
+
+  // === 罰ゲームモード === (緊迫マイナーキー、半音多用)
+  const BLAST_MEL = [
+    415, 466, 415, 370, 311, 370, 415, null,
+    466, 554, 466, 415, 370, 415, 466, null,
+    622, 554, 466, 415, 370, 415, 466, 554,
+    622, 698, 622, 554, 466, 415, 370, 311,
+  ];
+  const BLAST_HARM = [
+    null, null, null, null, 622, null, null, null,
+    null, null, null, null, 932, null, null, null,
+    null, null, null, null, 1109, null, null, null,
+    null, null, null, null, 932, null, null, null,
+  ];
+  const BLAST_BASS = [
+    104, null, 104, null, 104, null, 104, null,
+    117, null, 117, null, 117, null, 117, null,
+    104, null, 104, null, 104, null, 104, null,
+     98, null,  98, null, 116, null, 117, null,
+  ];
+
+  function playNote(freq, duration, type, volume){
+    if(!freq) return;
+    const ctx = getCtx();
+    if(!ctx) return;
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.type = type;
+    o.frequency.value = freq;
+    g.gain.setValueAtTime(0, ctx.currentTime);
+    g.gain.linearRampToValueAtTime(volume, ctx.currentTime + .015);
+    g.gain.exponentialRampToValueAtTime(.001, ctx.currentTime + duration);
+    o.connect(g); g.connect(ctx.destination);
+    o.start();
+    o.stop(ctx.currentTime + duration);
+  }
+
+  // ハイハット風(短いノイズ)
+  function playHat(volume){
+    const ctx = getCtx();
+    if(!ctx) return;
+    const sr = ctx.sampleRate;
+    const len = Math.floor(sr * 0.04);
+    const buf = ctx.createBuffer(1, len, sr);
+    const dt = buf.getChannelData(0);
+    for(let i=0;i<len;i++) dt[i] = (Math.random()*2-1) * (1 - i/len);
+    const s = ctx.createBufferSource(); s.buffer = buf;
+    const f = ctx.createBiquadFilter();
+    f.type = 'highpass'; f.frequency.value = 6000;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(volume, ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(.001, ctx.currentTime + .04);
+    s.connect(f); f.connect(g); g.connect(ctx.destination);
+    s.start();
+  }
+
+  // キック風(低音パルス)
+  function playKick(){
+    const ctx = getCtx();
+    if(!ctx) return;
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = 'sine';
+    o.frequency.setValueAtTime(120, ctx.currentTime);
+    o.frequency.exponentialRampToValueAtTime(40, ctx.currentTime + .08);
+    g.gain.setValueAtTime(.35, ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(.001, ctx.currentTime + .12);
+    o.connect(g); g.connect(ctx.destination);
+    o.start(); o.stop(ctx.currentTime + .15);
+  }
+
+  function step(){
+    if(!on) return;
+    const ctx = getCtx();
+    if(!ctx){ timer = setTimeout(step, 200); return; }
+
+    const MEL  = blastMode ? BLAST_MEL  : NORMAL_MEL;
+    const HARM = blastMode ? BLAST_HARM : NORMAL_HARM;
+    const BASS = blastMode ? BLAST_BASS : NORMAL_BASS;
+    // tempo: ms per tick (1拍)
+    const tempo = blastMode ? 145 : 175;
+    const i = tick % MEL.length;
+
+    // メロディ
+    playNote(MEL[i], tempo*1.4/1000,
+             blastMode ? 'sawtooth' : 'square',
+             blastMode ? .13 : .11);
+    // ハーモニー (3拍にまたがる長い音)
+    playNote(HARM[i], tempo*2.5/1000, 'triangle', .07);
+    // ベース
+    playNote(BASS[i], tempo*1.5/1000, 'sine', .22);
+
+    // ドラム (8拍ごと=拍頭でキック、裏拍でハイハット)
+    if(i % 8 === 0)      playKick();
+    if(i % 4 === 2)      playHat(.12);
+    if(i % 8 === 6)      playHat(.18);
+
+    tick++;
+    timer = setTimeout(step, tempo);
+  }
+
+  function start(){
+    if(on) return;
+    getCtx();
+    on = true; tick = 0;
+    step();
+  }
+  function stop(){
+    on = false;
+    if(timer){ clearTimeout(timer); timer = null; }
+  }
+  function setBlast(v){
+    if(blastMode === !!v) return;
+    blastMode = !!v;
+    // 切替時にtickをリセットしてフレーズが頭から始まるように
+    tick = 0;
+  }
+  function isOn(){ return on; }
+  return { start, stop, setBlast, isOn };
+})();
+
+// ════════════════════════════════════════════════════════════
+// SETUP — 3ペイン制御
+// ════════════════════════════════════════════════════════════
+function renderPlayerInputs(){
+  const c = document.getElementById('player-inputs');
+  // 既存値を保存
+  const prev = [];
+  for(let i=0;i<5;i++){
+    const old = document.getElementById('pname-'+i);
+    if(old) prev[i] = old.value;
+  }
+  c.innerHTML = '';
+  for(let i=0;i<playerCount;i++){
+    const div = document.createElement('div');
+    div.className = 'player-input';
+    const v = (prev[i] !== undefined && prev[i] !== '') ? prev[i] : ('P'+(i+1));
+    div.innerHTML = `
+      <div class="player-color" style="background:${PLAYER_COLORS[i]};color:${i===2?'#000':'#fff'};border-color:${PLAYER_COLORS[i]};box-shadow:0 0 10px ${PLAYER_COLORS[i]};">${PLAYER_ICONS[i]}</div>
+      <input type="text" class="player-name" id="pname-${i}" maxlength="6" placeholder="プレイヤー${i+1}" value="${v}">
+    `;
+    c.appendChild(div);
+  }
+}
+
+// ペイン切替
+function showSetupPane(n){
+  for(let i=1;i<=3;i++){
+    const pane = document.getElementById('ps-'+i);
+    if(pane) pane.classList.toggle('active', i===n);
+    const dot = document.getElementById('sp-dot-'+i);
+    if(dot){
+      dot.classList.toggle('active', i===n);
+      dot.classList.toggle('done', i<n);
+    }
+  }
+  if(n === 3) renderPlayerInputs();
+}
+function goNextPane(n){
+  SFX.click();
+  showSetupPane(n);
+}
+
+// 人数選択 → 自動で次は罰ゲーム選択(ps-2)
+document.getElementById('player-count').addEventListener('click', e => {
+  const btn = e.target.closest('.pc-btn');
+  if(!btn) return;
+  document.querySelectorAll('.pc-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  playerCount = parseInt(btn.dataset.n);
+  SFX.click();
+  setTimeout(() => showSetupPane(2), 200);
+});
+
+// 罰ゲーム選択 → 自動で次は名前入力(ps-3)
+document.getElementById('penalty-grid').addEventListener('click', e => {
+  const btn = e.target.closest('.pen-btn');
+  if(!btn) return;
+  document.querySelectorAll('.pen-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  selectedPenalty = btn.dataset.pen;
+  document.getElementById('ps2-next').disabled = false;
+  SFX.click();
+  setTimeout(() => showSetupPane(3), 200);
+});
+
+function startGame(){
+  if(!selectedPenalty){
+    showSetupPane(2);
+    return;
+  }
+  SFX.click();
+  players = [];
+  for(let i=0;i<playerCount;i++){
+    const nameEl = document.getElementById('pname-'+i);
+    let name = (nameEl ? nameEl.value : '').trim() || ('P'+(i+1));
+    if(name.length > 6) name = name.substring(0,6);
+    players.push({
+      idx: i, name,
+      icon: PLAYER_ICONS[i], color: PLAYER_COLORS[i],
+      pos: 0, skip: 0, moves: 0, finished: false,
+    });
+  }
+  currentIdx = 0;
+  winner = null;
+  scoreSubmitted = false;
+  savepointReached = [];
+  const pen = PENALTIES[selectedPenalty];
+  document.getElementById('pb-name').textContent = pen.emoji + ' ' + pen.name;
+  document.getElementById('win-penalty').textContent = pen.name;
+  showScreen('game');
+  renderBoard();
+  renderPlayersBar();
+  updateTurnInfo();
+  BGM.start();
+}
+
+function showScreen(name){
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + name).classList.add('active');
+}
+
+// 罰ゲーム選択ボタンをSVGアイコンつきで動的生成
+function renderPenaltyButtons(){
+  const grid = document.getElementById('penalty-grid');
+  if(!grid) return;
+  const order = ['tequila','cokebomb','kleiner','half','full','random'];
+  grid.innerHTML = '';
+  order.forEach(key => {
+    const pen = PENALTIES[key];
+    const btn = document.createElement('button');
+    btn.className = 'pen-btn' + (key === 'random' ? ' random' : '');
+    btn.dataset.pen = key;
+    const labelHTML = (pen.display || pen.name);
+    btn.innerHTML = `
+      <span class="pe-icon">${pen.svg}</span>
+      <span class="pe-name">${labelHTML}</span>
+    `;
+    grid.appendChild(btn);
+  });
+}
+
+renderPenaltyButtons();
+renderPlayerInputs();
+showSetupPane(1);
+
+// ════════════════════════════════════════════════════════════
+// BOARD RENDER (ヘビ型) — 進行方向矢印つき
+// ════════════════════════════════════════════════════════════
+const COLS = 7;
+
+// idx → ヘビ型の (row, colInRow) を返す
+// row 0 = 一番下の行（START側）, 偶数行=左→右, 奇数行=右→左
+function idxToRC(idx){
+  const row = Math.floor(idx / COLS);
+  const colInBoard = idx % COLS; // 0..6
+  // 表示上の row番号（下=0として上に行くほど大）と col 位置
+  // 偶数 row は左→右進行、奇数 row は右→左進行
+  let displayCol;
+  if(row % 2 === 0){
+    displayCol = colInBoard;
+  } else {
+    displayCol = COLS - 1 - colInBoard;
+  }
+  return { row, displayCol, rowDir: row % 2 === 0 ? 'LR' : 'RL' };
+}
+
+// idx から idx+1 への進行方向を返す
+// 'right' | 'left' | 'up'
+function nextDirection(idx){
+  if(idx >= BOARD.length - 1) return null;
+  const a = idxToRC(idx);
+  const b = idxToRC(idx + 1);
+  if(a.row !== b.row) return 'up';   // 上の行へ
+  if(a.rowDir === 'LR') return 'right';
+  return 'left';
+}
+
+function renderBoard(){
+  const board = document.getElementById('board');
+  const totalCells = BOARD.length;
+  const rows = Math.ceil(totalCells / COLS);
+  board.innerHTML = '';
+  for(let r = rows - 1; r >= 0; r--){
+    for(let cInRow = 0; cInRow < COLS; cInRow++){
+      let idx;
+      if(r % 2 === 0){
+        idx = r * COLS + cInRow;
+      } else {
+        idx = r * COLS + (COLS - 1 - cInRow);
+      }
+      if(idx >= totalCells){
+        const empty = document.createElement('div');
+        empty.className = 'cell invisible';
+        board.appendChild(empty);
+        continue;
+      }
+      const cellData = BOARD[idx];
+      const cell = document.createElement('div');
+      cell.className = 'cell ' + cellData.type;
+      cell.dataset.idx = idx;
+
+      // 進行方向矢印
+      const dir = nextDirection(idx);
+      let arrowHTML = '';
+      if(dir === 'right')      arrowHTML = '<div class="cell-arrow right">▶</div>';
+      else if(dir === 'left')  arrowHTML = '<div class="cell-arrow left">◀</div>';
+      else if(dir === 'up')    arrowHTML = '<div class="cell-arrow up">▲</div>';
+
+      cell.innerHTML = `
+        <div class="cell-num">${idx===0?'S':idx===GOAL?'G':idx}</div>
+        <div class="cell-text">${cellData.label}</div>
+        ${arrowHTML}
+        <div class="tokens" id="tokens-${idx}"></div>
+      `;
+      cell.onclick = () => showCellInfo(idx);
+      board.appendChild(cell);
+    }
+  }
+  refreshTokens();
+}
+
+function refreshTokens(){
+  // すべてのマスから current-cell を外し、tokensもクリア
+  document.querySelectorAll('.cell').forEach(c => c.classList.remove('current-cell'));
+  for(let i = 0; i < BOARD.length; i++){
+    const el = document.getElementById('tokens-'+i);
+    if(el) el.innerHTML = '';
+  }
+  players.forEach(p => {
+    const el = document.getElementById('tokens-'+p.pos);
+    if(!el) return;
+    const t = document.createElement('div');
+    t.className = 'token';
+    t.style.background = p.color;
+    t.style.color = p.color;
+    t.style.borderColor = (p.idx === currentIdx && !p.finished) ? '#FFE600' : '#fff';
+    t.title = p.name;
+    t.textContent = p.icon;
+    el.appendChild(t);
+  });
+  // 現プレイヤーのいるマスをハイライト
+  if(players.length){
+    const cur = players[currentIdx];
+    if(cur && !cur.finished){
+      const cellEl = document.querySelector(`.cell[data-idx="${cur.pos}"]`);
+      if(cellEl) cellEl.classList.add('current-cell');
+    }
+  }
+}
+
+function showCellInfo(idx){
+  const cell = BOARD[idx];
+  if(!cell || idx === 0 || idx === GOAL) return;
+  openModal({
+    icon: cellTypeIcon(cell.type),
+    type: 'マス ' + idx,
+    color: cellTypeColor(cell.type),
+    text: cell.text || cell.label.replace(/\\n/g,'\n'),
+    silent: true,
+  });
+}
+
+function cellTypeIcon(t){
+  return {drink:'🍻',shot:'🥃',warp:'✨',back:'⬅',skip:'😴',confess:'🙊',fun:'🎉',safe:'😌',start:'🏁',goal:'🏆'}[t] || '🎲';
+}
+function cellTypeColor(t){
+  return {drink:'var(--cyan)',shot:'var(--red)',warp:'var(--orange)',back:'var(--purple)',skip:'#aaa',confess:'var(--pink)',fun:'var(--green)',safe:'#ccc'}[t] || 'var(--yellow)';
+}
+function cellTypeLabel(t){
+  return {drink:'🍻 DRINK',shot:'🥃 PENALTY',warp:'✨ WARP',back:'⬅ MOVE BACK',skip:'😴 SKIP',confess:'🙊 CONFESS',fun:'🎉 FUN',safe:'😌 SAFE'}[t] || 'EVENT';
+}
+
+// ════════════════════════════════════════════════════════════
+// PLAYERS BAR / TURN
+// ════════════════════════════════════════════════════════════
+function renderPlayersBar(){
+  const bar = document.getElementById('players-bar');
+  bar.innerHTML = '';
+  players.forEach(p => {
+    const el = document.createElement('div');
+    el.className = 'pchip' + (p.idx === currentIdx && !p.finished ? ' current' : '') + (p.finished ? ' finished' : '');
+    el.style.color = p.color;
+    el.innerHTML = `
+      <span class="pchip-icon">${p.icon}</span>
+      <span>${p.name}</span>
+      <span class="pchip-pos">${p.pos}/${GOAL}</span>
+    `;
+    bar.appendChild(el);
+  });
+}
+
+function updateTurnInfo(){
+  const p = players[currentIdx];
+  const el = document.getElementById('turn-name');
+  el.textContent = p.icon + ' ' + p.name;
+  el.style.color = p.color;
+  document.getElementById('roll-btn').disabled = isRolling;
+}
+
+// ════════════════════════════════════════════════════════════
+// DICE
+// ════════════════════════════════════════════════════════════
+function rollDice(){
+  if(isRolling) return;
+  const p = players[currentIdx];
+
+  if(p.skip > 0){
+    p.skip--;
+    openModal({
+      icon: '😴', type: 'お休み中', color: '#aaa',
+      text: `${p.name}は休憩中…\n残り${p.skip}ターン`,
+      onClose: () => nextTurn(),
+    });
+    return;
+  }
+
+  isRolling = true;
+  document.getElementById('roll-btn').disabled = true;
+  const resultEl = document.getElementById('dice-result');
+  resultEl.innerHTML = '&nbsp;';
+  resultEl.classList.remove('pop');
+  const dice = document.getElementById('dice');
+  const boardWrap = document.querySelector('.board-wrap');
+  dice.classList.remove('landed');
+  dice.classList.add('rolling');
+  if(boardWrap) boardWrap.classList.add('shaking');
+
+  // 振ってる間カラカラ音を継続的に鳴らす
+  SFX.diceRoll();
+  const rollSoundInterval = setInterval(() => SFX.diceRoll(), 180);
+
+  const finalRoll = 1 + Math.floor(Math.random() * 6);
+  const faces = ['⚀','⚁','⚂','⚃','⚄','⚅'];
+  let count = 0;
+  const totalFrames = 14;
+  const interval = setInterval(() => {
+    dice.textContent = faces[Math.floor(Math.random()*6)];
+    count++;
+    // 終盤は表示間隔を広げて減速感を出す
+    if(count >= totalFrames){
+      clearInterval(interval);
+      clearInterval(rollSoundInterval);
+      dice.classList.remove('rolling');
+      if(boardWrap) boardWrap.classList.remove('shaking');
+      dice.textContent = faces[finalRoll-1];
+      // 着地スタンプ
+      dice.classList.add('landed');
+      // 着地ドン音
+      SFX.diceLand();
+      // 波紋エフェクト
+      spawnDiceShock();
+      // ボードに衝撃
+      if(boardWrap){
+        boardWrap.classList.add('thump');
+        setTimeout(() => boardWrap.classList.remove('thump'), 400);
+      }
+      // 結果テキストを派手に表示
+      setTimeout(() => {
+        resultEl.textContent = `🎲 ${finalRoll} 出たっ‼️`;
+        resultEl.classList.add('pop');
+      }, 100);
+      // ファンファーレ
+      setTimeout(() => SFX.diceFanfare(finalRoll), 200);
+      setTimeout(() => movePlayer(finalRoll), 700);
+    }
+  }, 70);
+}
+
+function spawnDiceShock(){
+  const ctn = document.querySelector('.ctrl-right');
+  if(!ctn) return;
+  const s = document.createElement('div');
+  s.className = 'dice-shock';
+  ctn.appendChild(s);
+  setTimeout(() => s.remove(), 550);
+  // 2発目で重ねる
+  setTimeout(() => {
+    const s2 = document.createElement('div');
+    s2.className = 'dice-shock';
+    s2.style.borderColor = 'var(--pink)';
+    ctn.appendChild(s2);
+    setTimeout(() => s2.remove(), 550);
+  }, 120);
+}
+
+function movePlayer(steps){
+  const p = players[currentIdx];
+  let target = p.pos + steps;
+  if(target > GOAL) target = GOAL;
+  animateMove(p, p.pos, target, () => {
+    p.moves += steps;
+    refreshTokens();
+    renderPlayersBar();
+    handleCellEvent(p);
+  });
+}
+
+function animateMove(p, from, to, done){
+  let cur = from;
+  const dir = (to >= from) ? 1 : -1;
+  const totalSteps = Math.abs(to - from);
+  let stepCount = 0;
+  // 各ステップの間隔（短いほうがテンポ良い）
+  const STEP_MS = 240;
+  // バウンドアニメは setTimeout チェーンで
+  const step = () => {
+    if(cur === to){
+      p.pos = to;
+      refreshTokens();
+      // 着地スタンプ
+      stampLanding(to, p);
+      done();
+      return;
+    }
+    cur += dir;
+    p.pos = cur;
+    stepCount++;
+    // 通ってきたマスに軌跡を残す
+    leaveFootprint(cur - dir, p, dir);
+    // 歩行音 - 前進と後退で音が違う
+    if(dir > 0) SFX.walkStep(stepCount);
+    else        SFX.walkBack();
+    refreshTokens();
+    // 駒のジャンプアニメをトリガー
+    triggerTokenHop(cur, dir);
+    setTimeout(step, STEP_MS);
+  };
+  step();
+}
+
+// 移動中の駒をジャンプさせる
+function triggerTokenHop(idx, dir){
+  const cell = document.querySelector(`.cell[data-idx="${idx}"]`);
+  if(!cell) return;
+  const tokens = cell.querySelectorAll('.token');
+  tokens.forEach(t => {
+    t.classList.remove('hopping','hopping-back');
+    // reflowをトリガーしてからクラス付与
+    void t.offsetWidth;
+    t.classList.add(dir > 0 ? 'hopping' : 'hopping-back');
+  });
+}
+
+// 通り過ぎたマスに足跡を残す（一時的に光る）
+function leaveFootprint(idx, p, dir){
+  const cell = document.querySelector(`.cell[data-idx="${idx}"]`);
+  if(!cell) return;
+  const fp = document.createElement('div');
+  fp.className = 'footprint';
+  fp.textContent = dir > 0 ? '✦' : '✧';
+  fp.style.color = p.color;
+  fp.style.background = `radial-gradient(circle, ${p.color}55, transparent 70%)`;
+  cell.appendChild(fp);
+  setTimeout(() => fp.remove(), 700);
+}
+
+// 目的マスに着地した瞬間の演出
+function stampLanding(idx, p){
+  const cell = document.querySelector(`.cell[data-idx="${idx}"]`);
+  if(!cell) return;
+  // 着地波紋
+  const ring = document.createElement('div');
+  ring.className = 'landing-ring';
+  ring.style.borderColor = p.color;
+  ring.style.boxShadow = `0 0 18px ${p.color}`;
+  cell.appendChild(ring);
+  setTimeout(() => ring.remove(), 600);
+  // 着地音
+  SFX.landThump();
+}
+
+// ════════════════════════════════════════════════════════════
+// CELL EVENT
+// ════════════════════════════════════════════════════════════
+function handleCellEvent(p){
+  if(p.pos === GOAL){
+    p.finished = true; winner = p;
+    SFX.win();
+    setTimeout(showWinScreen, 500);
+    return;
+  }
+
+  const cell = BOARD[p.pos];
+
+  if(cell.action === 'savepoint'){
+    if(!savepointReached.includes(p.idx)) savepointReached.push(p.idx);
+  }
+
+  if(cell.type === 'safe'){
+    tone(523, .12, 'sine', .25);
+    setTimeout(() => nextTurn(), 600);
+    return;
+  }
+  if(cell.type === 'warp') SFX.warp();
+  else if(cell.type === 'shot' || cell.type === 'back') SFX.bad();
+  else if(cell.type === 'fun' || cell.type === 'drink') SFX.good();
+
+  openModal({
+    icon: cellTypeIcon(cell.type),
+    type: cellTypeLabel(cell.type),
+    color: cellTypeColor(cell.type),
+    text: cell.text,
+    onClose: () => {
+      if(cell.blast){
+        const callTimes = cell.doubleBlast ? 2 : 1;
+        showDrinkBlast(p, callTimes, () => applyCellAction(p, cell));
+      } else {
+        applyCellAction(p, cell);
+      }
+    },
+  });
+}
+
+function applyCellAction(p, cell){
+  const action = cell.action;
+  if(!action){ nextTurn(); return; }
+
+  switch(action){
+    case 'tostart':
+      animateMove(p, p.pos, 0, () => { SFX.bad(); renderPlayersBar(); nextTurn(); });
+      break;
+    case 'forward1':
+      animateMove(p, p.pos, Math.min(p.pos + 1, GOAL), () => {
+        p.moves += 1; renderPlayersBar();
+        if(p.pos === GOAL){
+          p.finished = true; winner = p;
+          SFX.win();
+          setTimeout(showWinScreen, 500);
+        } else nextTurn();
+      });
+      break;
+    case 'back2skip':
+      animateMove(p, p.pos, Math.max(0, p.pos - 2), () => {
+        p.skip = 1; renderPlayersBar(); nextTurn();
+      });
+      break;
+    case 'back5':
+      animateMove(p, p.pos, Math.max(0, p.pos - 5), () => { renderPlayersBar(); nextTurn(); });
+      break;
+    case 'back6':
+      animateMove(p, p.pos, Math.max(0, p.pos - 6), () => { renderPlayersBar(); nextTurn(); });
+      break;
+    case 'skip1': p.skip = 1; nextTurn(); break;
+    case 'skip2': p.skip = 2; nextTurn(); break;
+    case 'double':
+      p.moves += 2; renderPlayersBar(); nextTurn();
+      break;
+    case 'rightdrink': {
+      const r = players[(p.idx + 1) % players.length];
+      showDrinkBlast(r, 1, () => nextTurn());
+      break;
+    }
+    case 'jankenleft': {
+      const l = players[(p.idx - 1 + players.length) % players.length];
+      showDrinkBlast(l, 1, () => nextTurn(), {title:'ジャンケン勝負‼️', sub:'負けた方が…'});
+      break;
+    }
+    case 'pushright13': {
+      const r = players[(p.idx + 1) % players.length];
+      const newPos = Math.min(GOAL, r.pos + 13);
+      openModal({
+        icon: '🚀', type: '13マス飛ばし！', color: 'var(--orange)',
+        text: `${r.name}が13マス進む！`,
+        onClose: () => {
+          animateMove(r, r.pos, newPos, () => {
+            r.moves += 13;
+            renderPlayersBar();
+            if(r.pos === GOAL){
+              r.finished = true; winner = r;
+              SFX.win();
+              setTimeout(showWinScreen, 500);
+            } else nextTurn();
+          });
+        },
+      });
+      break;
+    }
+    case 'warpgoal': {
+      const last = [...players].filter(x=>!x.finished && x.idx !== p.idx).sort((a,b) => a.pos - b.pos)[0];
+      const distGoal = GOAL - p.pos;
+      animateMove(p, p.pos, GOAL, () => {
+        p.moves += distGoal;
+        p.finished = true; winner = p;
+        renderPlayersBar();
+        SFX.win();
+        if(last){
+          showDrinkBlast(last, 1, () => {
+            openModal({
+              icon: '✨', type: 'WARP TO GOAL!', color: 'var(--orange)',
+              text: `${p.name}がゴールにワープ！🏆`,
+              onClose: showWinScreen,
+            });
+          });
+        } else {
+          openModal({
+            icon: '✨', type: 'WARP TO GOAL!', color: 'var(--orange)',
+            text: `${p.name}がゴールにワープ！🏆`,
+            onClose: showWinScreen,
+          });
+        }
+      });
+      break;
+    }
+    case 'savepoint': nextTurn(); break;
+    default: nextTurn();
+  }
+}
+
+// ════════════════════════════════════════════════════════════
+// MODAL (通常)
+// ════════════════════════════════════════════════════════════
+let modalCallback = null;
+function openModal({icon, type, color, text, onClose, silent}){
+  document.getElementById('modal-icon').textContent = icon;
+  const typeEl = document.getElementById('modal-type');
+  typeEl.textContent = type;
+  typeEl.style.color = color;
+  document.getElementById('modal-text').textContent = text;
+  document.getElementById('modal').classList.add('open');
+  modalCallback = silent ? null : onClose;
+  if(!silent) tone(660, .1, 'sine', .25);
+}
+function closeModal(){
+  document.getElementById('modal').classList.remove('open');
+  SFX.click();
+  if(modalCallback){
+    const cb = modalCallback;
+    modalCallback = null;
+    setTimeout(cb, 100);
+  }
+}
+
+// ════════════════════════════════════════════════════════════
+// 🔥 DRINK BLAST — 「◯◯飲めよー‼️」激しい演出
+// ════════════════════════════════════════════════════════════
+let dbCallback = null;
+let dbActive = false;
+
+function pickPenaltyKey(){
+  if(selectedPenalty === 'random' || !selectedPenalty){
+    return RANDOM_POOL[Math.floor(Math.random() * RANDOM_POOL.length)];
+  }
+  return selectedPenalty;
+}
+
+function showDrinkBlast(targetPlayer, repeatCount, onClose, customCall){
+  const penKey = pickPenaltyKey();
+  const pen = PENALTIES[penKey];
+  document.getElementById('db-target').textContent = targetPlayer.icon + ' ' + targetPlayer.name;
+  document.getElementById('db-emoji').innerHTML = pen.svg || `<div style="font-size:100px">${pen.emoji}</div>`;
+
+  const callEl = document.getElementById('db-call');
+  if(customCall){
+    // customCallは [タイトル, サブ] のオブジェクト or "タイトル\nサブ" 文字列に対応
+    let title, sub;
+    if(typeof customCall === 'object'){
+      title = customCall.title || '';
+      sub = customCall.sub || '';
+    } else {
+      const parts = String(customCall).split('\n');
+      title = parts[0] || '';
+      sub = parts.slice(1).join('<br>');
+    }
+    callEl.innerHTML = `
+      <span class="dc-drink">${title}</span>
+      <span class="dc-shout">${sub}</span>
+    `;
+  } else {
+    const countLine = repeatCount > 1
+      ? `<span class="dc-count">${repeatCount} 杯</span><br>`
+      : '';
+    callEl.innerHTML = `
+      <span class="dc-drink">${pen.display || pen.name}</span>
+      ${countLine}
+      <span class="dc-shout">飲めよー‼️‼️</span>
+    `;
+  }
+
+  const blast = document.getElementById('drink-blast');
+  blast.classList.add('open');
+  dbActive = true;
+  dbCallback = onClose;
+
+  BGM.setBlast(true);
+  if(!BGM.isOn()) BGM.start();
+  SFX.alarm();
+  setTimeout(() => SFX.drinkCall(), 500);
+  spawnShock(blast);
+  setTimeout(() => spawnShock(blast), 350);
+  setTimeout(() => spawnShock(blast), 700);
+  spawnDbConfetti(blast, 50);
+
+  if(repeatCount > 1){
+    setTimeout(() => {
+      SFX.drinkCall();
+      spawnShock(blast);
+      spawnDbConfetti(blast, 30);
+    }, 1800);
+  }
+}
+
+function closeDrinkBlast(){
+  if(!dbActive) return;
+  dbActive = false;
+  const blast = document.getElementById('drink-blast');
+  blast.classList.remove('open');
+  blast.querySelectorAll('.db-confetti, .db-shock').forEach(el => el.remove());
+  BGM.setBlast(false);
+  SFX.gulp();
+  if(dbCallback){
+    const cb = dbCallback;
+    dbCallback = null;
+    setTimeout(cb, 200);
+  }
+}
+
+function spawnShock(parent){
+  const s = document.createElement('div');
+  s.className = 'db-shock';
+  parent.appendChild(s);
+  setTimeout(() => s.remove(), 1100);
+}
+
+function spawnDbConfetti(parent, n){
+  const colors = ['#FFE600','#FF2D78','#00F5FF','#39FF14','#BF00FF','#FF8800','#fff'];
+  for(let i = 0; i < n; i++){
+    const c = document.createElement('div');
+    c.className = 'db-confetti';
+    c.style.left = Math.random() * 100 + 'vw';
+    c.style.top = '-20px';
+    c.style.background = colors[Math.floor(Math.random()*colors.length)];
+    c.style.animationDuration = (1.2 + Math.random()*1.5) + 's';
+    c.style.animationDelay = (Math.random()*0.3) + 's';
+    if(Math.random() > .5) c.style.borderRadius = '50%';
+    parent.appendChild(c);
+    setTimeout(() => c.remove(), 3500);
+  }
+}
+
+// ════════════════════════════════════════════════════════════
+// TURN MANAGEMENT
+// ════════════════════════════════════════════════════════════
+function nextTurn(){
+  if(winner){ showWinScreen(); return; }
+  isRolling = false;
+  let safety = 0;
+  do {
+    currentIdx = (currentIdx + 1) % players.length;
+    safety++;
+    if(safety > 20) break;
+  } while(players[currentIdx].finished);
+
+  renderPlayersBar();
+  refreshTokens();
+  updateTurnInfo();
+}
+
+// ════════════════════════════════════════════════════════════
+// WIN SCREEN
+// ════════════════════════════════════════════════════════════
+function showWinScreen(){
+  if(!winner) return;
+  document.getElementById('win-name').textContent = winner.icon + ' ' + winner.name;
+  document.getElementById('win-name').style.filter = `drop-shadow(0 0 14px ${winner.color})`;
+  const coins = winner.moves + 50;
+  document.getElementById('win-coins').textContent = coins;
+  document.getElementById('rank-name').value = winner.name;
+  showScreen('win');
+  setTimeout(() => fireConfetti(), 100);
+  BGM.stop();
+}
+
+function fireConfetti(){
+  const colors = ['#FF2D78','#00F5FF','#FFE600','#39FF14','#BF00FF','#FF8800'];
+  for(let i = 0; i < 80; i++){
+    const c = document.createElement('div');
+    c.className = 'confetti';
+    c.style.left = Math.random() * 100 + 'vw';
+    c.style.top = '-20px';
+    c.style.background = colors[Math.floor(Math.random()*colors.length)];
+    c.style.animationDuration = (1.5 + Math.random()*2) + 's';
+    c.style.animationDelay = (Math.random()*0.5) + 's';
+    if(Math.random() > .5) c.style.borderRadius = '50%';
+    document.body.appendChild(c);
+    setTimeout(() => c.remove(), 4000);
+  }
+}
+
+// ════════════════════════════════════════════════════════════
+// SUPABASE
+// ════════════════════════════════════════════════════════════
+async function submitScore(){
+  if(scoreSubmitted) return;
+  const name = (document.getElementById('rank-name').value || '').trim().substring(0,8) || winner.name;
+  const coins = parseInt(document.getElementById('win-coins').textContent) || 0;
+  const status = document.getElementById('submit-status');
+  const btn = document.getElementById('submit-btn');
+  btn.disabled = true;
+  status.textContent = '送信中...';
+  status.style.color = 'var(--cyan)';
+
+  try {
+    const r = await fetch(SUPABASE_URL + '/rest/v1/scores', {
+      method: 'POST',
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': 'Bearer ' + SUPABASE_KEY,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=minimal',
+      },
+      body: JSON.stringify({
+        player_name: name,
+        game: 'uwasa_land',
+        coins: coins,
+        score: coins,
+        plays: 1,
+      }),
+    });
+    if(r.ok){
+      status.textContent = '✓ 登録完了！';
+      status.style.color = 'var(--green)';
+      scoreSubmitted = true;
+    } else {
+      status.textContent = '⚠ エラー: ' + r.status;
+      status.style.color = 'var(--red)';
+      btn.disabled = false;
+    }
+  } catch(e){
+    status.textContent = '⚠ ネットワークエラー';
+    status.style.color = 'var(--red)';
+    btn.disabled = false;
+  }
+}
+
+function resetGame(){
+  showScreen('setup');
+  showSetupPane(1);
+  selectedPenalty = null;
+  document.getElementById('ps2-next').disabled = true;
+  document.querySelectorAll('.pen-btn').forEach(b => b.classList.remove('active'));
+  SFX.click();
+}
+
+// ════════════════════════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════════════════════════
+document.addEventListener('touchstart', () => getCtx(), {once:true, passive:true});
+document.addEventListener('click', () => getCtx(), {once:true});
+</script>
+</body>
+</html>
