@@ -1531,7 +1531,7 @@ const BOARD = [
   {type:'back',  category:'move',  label:'完璧主義\n最初に戻る', text:'<span class="pen-main">最初のマスに戻る😤</span><span class="pen-flavor">自分は完璧主義だ！1マスなんて許せない！</span>', action:'tostart'},
   {type:'fun',   category:'move',  label:'もう1マス\n元気に進む', text:'<span class="pen-main">もう1マス進む🚶</span><span class="pen-flavor">2マスなんて悲しい…元気よく進もう！</span>', action:'forward1'},
   {type:'safe',  category:'safe',  label:'セーフ', text:'😌 セーフ！何もなし。'},
-  {type:'confess', category:'event', label:'人生最悪\n告白', text:'<span class="pen-main">人生最悪の出来事を告白🙊</span><span class="pen-flavor">笑えなかったら{{drink}}1杯グイ‼️</span>', blast:true},
+  {type:'confess', category:'event', label:'人生最悪\n告白', text:'<span class="pen-main">人生最悪の出来事を告白🙊</span><span class="pen-flavor">告白した人が{{drink}}1杯グイ‼️🍻</span>', blast:true},
   {type:'shot',  category:'rest',  label:'健康診断\n2マス戻る', text:'<span class="pen-main">2マス戻る＋1ターン休み🏥</span><span class="pen-flavor">健康診断に引っ掛かり入院になった！</span>', action:'back2skip'},
   {type:'shot',  category:'pen',   label:'コロナ消毒\n罰ゲームグイ', text:'<span class="pen-main">{{drink}}1杯グイ‼️🥃</span><span class="pen-flavor">なんだかコロナになった気がする…アルコール消毒の為。</span>', blast:true},
   {type:'warp',  category:'pen',   label:'お前は先に\n行けっ！\n右の人を13マス飛ばし', text:'<span class="pen-main">{{drink}}1杯グイ‼️🍻＋右の人を13マス飛ばし✨</span><span class="pen-flavor">ここは俺に任せてお前は先にいけぇ！！</span>', action:'pushright13', blast:true},
@@ -1543,7 +1543,7 @@ const BOARD = [
   {type:'back',  category:'move',  label:'勇者の盾\n5マス戻る', text:'<span class="pen-main">5マス戻る🛡</span><span class="pen-flavor">勇者の盾が欲しい。</span>', action:'back5'},
   {type:'shot',  category:'event', label:'勇者の剣\n半きグイさせる', text:'<span class="pen-main">毎ターン誰かを指名して半グイさせる⚔</span><span class="pen-flavor">勇者の剣を手に入れた！ゲームが終わるまで継続。</span>', blast:true},
   {type:'safe',  category:'safe',  label:'セーフ', text:'😌 セーフ！何もなし。'},
-  {type:'warp',  category:'pen',   label:'GOALに\nワープ\n最後尾の人グイ', text:'<span class="pen-main">最後尾の人が{{drink}}1杯グイ‼️🍻</span><span class="pen-flavor">✨ GOALにワープ！ ✨ この時点で1番最後尾の人が飲む。</span>', action:'warpgoal', blast:true},
+  {type:'warp',  category:'move',  label:'ゴール近くに\nワープ‼️', text:'<span class="pen-main">ゴール直前まで一気にワープ✨</span><span class="pen-flavor">ゴール手前まで近づける！最後の運試しへ。</span>', action:'warpneargoal'},
   {type:'skip',  category:'rest',  label:'つかれたよね\n1ターン休憩', text:'<span class="pen-main">1ターン休み😴</span><span class="pen-flavor">つかれたよね？休憩しても良いね。</span>', action:'skip1'},
   {type:'drink', category:'pen',   label:'みんなで\nじゃんけん', text:'<span class="pen-main">みんなでじゃんけん、負けは{{drink}}1杯グイ‼️🍻＋1マス戻る</span><span class="pen-flavor">勝負だ！</span>', blast:true},
   {type:'fun',   category:'event', label:'勇者の鎧\n3ターン無敵', text:'<span class="pen-main">3ターン無敵🛡</span><span class="pen-flavor">勇者の鎧を手に入れた。誰の指示も無効。</span>'},
@@ -1554,7 +1554,7 @@ const BOARD = [
   {type:'fun',   category:'pen',   label:'右の人に\n1杯飲んで\nもらう', text:'<span class="pen-main">右の人が{{drink}}1杯グイ‼️🍺</span><span class="pen-flavor">たまにはゆっくり…ただし右の人に飲んでもらう。</span>', action:'rightdrink', blast:true},
   {type:'confess', category:'event', label:'初体験の\n相手を告白', text:'<span class="pen-main">初体験の相手の名前を発表！</span><span class="pen-flavor">言った人はゲーム終了までその名前で呼ばれる👀\n違う名前で呼んだ人はそのたびに{{drink}}1杯グイ‼️🍻</span>', blast:true},
   {type:'safe',  category:'safe',  label:'セーフ', text:'😌 セーフ！何もなし。'},
-  {type:'shot',  category:'event', label:'今日の悪い\n話をシェア', text:'<span class="pen-main">今日の悪い話をみんなで語る😏</span><span class="pen-flavor">ストーリーを盛っていこう。</span>'},
+  {type:'confess', category:'event', label:'最近の不幸話\nを暴露', text:'<span class="pen-main">最近の不幸話を暴露😏</span><span class="pen-flavor">誰も笑わなかったら本人が{{drink}}1杯グイ‼️🍻\n誰か笑ったら笑った人が{{drink}}1杯グイ‼️🍻</span>', blast:true},
   {type:'shot',  category:'rest',  label:'足が痛風\n2マス戻る\n1ターン休み', text:'<span class="pen-main">2マス戻る＋1ターン休み🦶</span><span class="pen-flavor">足が痛風になった。痛いから休む。</span>', action:'back2skip'},
   {type:'shot',  category:'event', label:'タメ口ミス\n最初のマスに戻る', text:'<span class="pen-main">全員にタメ口、ミスったら最初のマスに戻る👑</span><span class="pen-flavor">このゲームで1番偉くなれる！ゲームが終わるまで継続。</span>', action:'tostart'},
   {type:'safe',  category:'safe',  label:'セーフポイント\n初体験の相手を呼ぶ', text:'<span class="pen-main">🟣 セーブポイント！</span><span class="pen-flavor">何があっても初体験の相手の名前を元気よく言えば何度でもここに戻れる✨</span>', action:'savepoint'},
@@ -1566,17 +1566,17 @@ const BOARD = [
   {type:'shot',  category:'pen',   label:'最近\n泣いた話\n+1杯', text:'<span class="pen-main">{{drink}}1杯グイ‼️😭</span><span class="pen-flavor">最近泣いたエピソードを語る。</span>', blast:true},
   {type:'back',  category:'move',  label:'転んだ\n3マス戻る', text:'<span class="pen-main">3マス戻る💢</span><span class="pen-flavor">転んだ！痛いから戻る。</span>', action:'back3'},
   {type:'drink', category:'pen',   label:'対面の人と\nリンク乾杯', text:'<span class="pen-main">対面の人と{{drink}}でリンク乾杯‼️🍻</span><span class="pen-flavor">腕クロスで乾杯しよう。</span>', blast:true},
-  {type:'confess', category:'event', label:'恥ずかしい\nクセを暴露', text:'<span class="pen-main">恥ずかしいクセを発表😳</span><span class="pen-flavor">言えなかったら{{drink}}1杯グイ‼️🍻</span>', blast:true},
+  {type:'confess', category:'event', label:'恥ずかしい\nクセを暴露', text:'<span class="pen-main">恥ずかしいクセを発表😳</span><span class="pen-flavor">言えなかった人が{{drink}}1杯グイ‼️🍻</span>', blast:true},
   {type:'warp',  category:'move',  label:'ショート\nカット\n4マス進む', text:'<span class="pen-main">4マス進む🏃</span><span class="pen-flavor">近道発見！</span>', action:'forward4'},
   {type:'safe',  category:'safe',  label:'セーフ', text:'😌 セーフ！何もなし。'},
-  {type:'shot',  category:'pen',   label:'モノマネ\nしないと\n2杯グイ', text:'<span class="pen-main">モノマネ失敗で{{drink}}2杯グイ‼️🍻🍻</span><span class="pen-flavor">みんなが知ってる人のモノマネをする！</span>', action:'double', blast:true, doubleBlast:true},
+  {type:'shot',  category:'pen',   label:'モノマネ\nしないと\n2杯グイ', text:'<span class="pen-main">みんなが知ってる人のモノマネをする🎭</span><span class="pen-flavor">失敗した人が{{drink}}2杯グイ‼️🍻🍻</span>', action:'double', blast:true, doubleBlast:true},
   {type:'safe',  category:'safe',  label:'何もないことに\nほっとして', text:'<span class="pen-main">😌 セーフ！何もなし。</span><span class="pen-flavor">何もないことにほっとして…ふぅ。</span>'},
   {type:'skip',  category:'rest',  label:'カラオケ\n大会で\n1ターン休み', text:'<span class="pen-main">1ターン休み🎤</span><span class="pen-flavor">カラオケ熱唱中…</span>', action:'skip1'},
   {type:'shot',  category:'pen',   label:'元恋人と\n何年続いたか\nいっせーので', text:'<span class="pen-main">いっせーので元恋人と何年続いたか暴露‼️💔</span><span class="pen-flavor">一番少なかった人が{{drink}}1杯グイ‼️🍻</span>', blast:true},
   {type:'drink', category:'pen',   label:'お疲れさま\n乾杯', text:'<span class="pen-main">みんなで{{drink}}乾杯‼️🍻</span><span class="pen-flavor">「お疲れさま！」</span>', blast:true},
   {type:'back',  category:'move',  label:'酔いすぎ\n4マス戻る', text:'<span class="pen-main">4マス戻る🥴</span><span class="pen-flavor">飲みすぎた…ふらふら。</span>', action:'back4'},
   {type:'warp',  category:'move',  label:'ラッキー\n3マス進む', text:'<span class="pen-main">3マス進む🍀</span><span class="pen-flavor">ラッキー！</span>', action:'forward3'},
-  {type:'confess', category:'event', label:'何フェチかを\n暴露', text:'<span class="pen-main">何フェチかを暴露😳</span><span class="pen-flavor">言えなかったら{{drink}}1杯グイ‼️🍻</span>', blast:true},
+  {type:'confess', category:'event', label:'何フェチかを\n暴露', text:'<span class="pen-main">何フェチかを暴露😳</span><span class="pen-flavor">言えなかった人が{{drink}}1杯グイ‼️🍻</span>', blast:true},
   {type:'shot',  category:'pen',   label:'罰ゲーム\nラッシュ\n2杯グイ', text:'<span class="pen-main">{{drink}}2杯グイ‼️🍻🍻</span><span class="pen-flavor">ゴール直前ラッシュ！</span>', action:'double', blast:true, doubleBlast:true},
   {type:'safe',  category:'safe',  label:'セーフ\nGOAL目前', text:'😌 ゴール目前！心の準備を…'},
   // ══ 追加終わり ══
@@ -2517,29 +2517,17 @@ function applyCellAction(p, cell){
       });
       break;
     }
-    case 'warpgoal': {
-      const last = [...players].filter(x=>!x.finished && x.idx !== p.idx).sort((a,b) => a.pos - b.pos)[0];
-      const distGoal = GOAL - p.pos;
-      animateMove(p, p.pos, GOAL, () => {
-        p.moves += distGoal;
-        p.finished = true; winner = p;
+    case 'warpneargoal': {
+      // ゴールの2マス手前まで進む (ピッタリじゃないとゴールできない仕様で運試し)
+      const target = Math.max(p.pos, GOAL - 2);
+      animateMove(p, p.pos, target, () => {
+        p.moves += (target - p.pos);
         renderPlayersBar();
-        SFX.win();
-        if(last){
-          showDrinkBlast(last, 1, () => {
-            openModal({
-              icon: '✨', type: 'WARP TO GOAL!', color: 'var(--orange)',
-              text: `${p.name}がゴールにワープ！🏆`,
-              onClose: showWinScreen,
-            });
-          });
-        } else {
-          openModal({
-            icon: '✨', type: 'WARP TO GOAL!', color: 'var(--orange)',
-            text: `${p.name}がゴールにワープ！🏆`,
-            onClose: showWinScreen,
-          });
-        }
+        openModal({
+          icon: '✨', type: 'WARP NEAR GOAL!', color: 'var(--orange)',
+          text: `${p.name}がゴール直前までワープ‼️🏆<br>あと少し！運試しの時間だ✨`,
+          onClose: nextTurn,
+        });
       });
       break;
     }
