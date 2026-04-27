@@ -308,6 +308,34 @@ body::before{
 @keyframes chipBounce{0%,100%{transform:translateY(0);}50%{transform:translateY(-2px);}}
 .pchip-icon{font-size:15px;}
 .pchip-pos{font-family:'Press Start 2P',monospace;font-size:8px;color:var(--cyan);margin-left:2px;}
+.pchip-sword{
+  font-family:'Press Start 2P',monospace;font-size:8px;
+  color:#000;background:linear-gradient(135deg,#FFE600,#FF8800);
+  padding:1px 5px;border-radius:8px;border:1px solid #fff;
+  box-shadow:0 0 6px rgba(255,230,0,.7);
+  margin-left:2px;letter-spacing:.5px;
+  animation:swordPulse 1.2s ease-in-out infinite;
+}
+.pchip-armor{
+  font-family:'Press Start 2P',monospace;font-size:8px;
+  color:#000;background:linear-gradient(135deg,#00F5FF,#0080FF);
+  padding:1px 5px;border-radius:8px;border:1px solid #fff;
+  box-shadow:0 0 6px rgba(0,245,255,.7);
+  margin-left:2px;letter-spacing:.5px;
+  animation:armorPulse 1.2s ease-in-out infinite;
+}
+@keyframes swordPulse{
+  0%,100%{box-shadow:0 0 6px rgba(255,230,0,.7);transform:scale(1);}
+  50%    {box-shadow:0 0 12px rgba(255,230,0,1);transform:scale(1.08);}
+}
+@keyframes armorPulse{
+  0%,100%{box-shadow:0 0 6px rgba(0,245,255,.7);transform:scale(1);}
+  50%    {box-shadow:0 0 12px rgba(0,245,255,1);transform:scale(1.08);}
+}
+@keyframes swordSwing{
+  0%,100%{transform:rotate(-15deg) scale(1);}
+  50%    {transform:rotate(15deg) scale(1.1);}
+}
 
 .penalty-bar{
   margin-bottom:10px;padding:8px 12px;
@@ -762,6 +790,510 @@ body::before{
 .modal-btn:active{transform:scale(.97);}
 
 /* ════════════════════════════════════════ */
+/* 👥 プレイヤー選択モーダル */
+/* ════════════════════════════════════════ */
+.pick-modal{
+  display:none;position:fixed;inset:0;z-index:250;
+  background:rgba(0,0,0,.85);backdrop-filter:blur(8px);
+  justify-content:center;align-items:center;padding:20px;
+}
+.pick-modal.open{display:flex;}
+.pick-card{
+  background:linear-gradient(180deg,#0a051a 0%,#1a0a30 100%);
+  border:3px solid var(--purple);border-radius:14px;padding:24px 18px;
+  width:100%;max-width:380px;
+  box-shadow:0 0 30px rgba(191,0,255,.5),inset 0 0 20px rgba(191,0,255,.15);
+  text-align:center;
+  animation:pickIn .3s cubic-bezier(.34,1.56,.64,1);
+}
+@keyframes pickIn{
+  from{opacity:0;transform:scale(.7);}
+  to  {opacity:1;transform:scale(1);}
+}
+.pick-icon{font-size:48px;margin-bottom:8px;animation:pickIconBob 1s ease-in-out infinite;}
+@keyframes pickIconBob{
+  0%,100%{transform:translateY(0) rotate(-5deg);}
+  50%    {transform:translateY(-6px) rotate(5deg);}
+}
+.pick-title{
+  font-family:'Press Start 2P',monospace;font-size:13px;
+  color:#FFE600;letter-spacing:2px;margin-bottom:8px;
+  text-shadow:0 0 8px #FFE600;
+}
+.pick-text{
+  font-family:'DotGothic16',sans-serif;font-size:13px;
+  color:#fff;line-height:1.6;margin-bottom:16px;
+}
+.pick-list{
+  display:flex;flex-direction:column;gap:10px;
+  max-height:55vh;overflow-y:auto;padding:4px;
+}
+.pick-btn{
+  display:flex;align-items:center;gap:14px;
+  padding:12px 16px;
+  background:linear-gradient(135deg,rgba(255,255,255,.08),rgba(255,255,255,.02));
+  border:2px solid rgba(255,255,255,.3);border-radius:10px;
+  font-family:'DotGothic16',sans-serif;font-size:14px;color:#fff;
+  cursor:pointer;text-align:left;
+  transition:all .15s;
+  width:100%;
+}
+.pick-btn:hover{
+  border-color:var(--yellow);
+  background:linear-gradient(135deg,rgba(255,230,0,.2),rgba(255,230,0,.05));
+  transform:translateX(4px);
+  box-shadow:0 0 16px rgba(255,230,0,.4);
+}
+.pick-btn:active{transform:scale(.96);}
+.pick-btn .pb-emoji{font-size:24px;}
+.pick-btn .pb-name{flex:1;font-weight:bold;letter-spacing:1px;}
+.pick-btn .pb-pos{font-size:10px;color:#888;font-family:'Press Start 2P',monospace;}
+
+/* ════════════════════════════════════════ */
+/* ⚔ SWORD SLASH エフェクト (強化版) */
+/* ════════════════════════════════════════ */
+.sword-overlay{
+  display:none;position:fixed;inset:0;z-index:285;
+  pointer-events:none;overflow:hidden;
+  /* 暗黒背景 (剣以外を暗く沈める) */
+  background:radial-gradient(ellipse at center,
+    rgba(20,0,40,.4) 0%,
+    rgba(0,0,0,.92) 80%);
+  opacity:0;
+  transition:opacity .4s;
+}
+.sword-overlay.open{display:block;opacity:1;}
+
+/* 動的な紫雷光バックグラウンド */
+.sword-overlay::before{
+  content:'';position:absolute;inset:-20%;
+  background:
+    radial-gradient(circle at 30% 30%, rgba(255,230,0,.3) 0%, transparent 35%),
+    radial-gradient(circle at 70% 70%, rgba(255,45,120,.25) 0%, transparent 35%);
+  filter:blur(20px);
+  animation:swordBgPulse 2s ease-in-out infinite;
+}
+@keyframes swordBgPulse{
+  0%,100%{transform:scale(1) rotate(0);opacity:.7;}
+  50%    {transform:scale(1.15) rotate(8deg);opacity:1;}
+}
+
+/* 白フラッシュ (衝撃の瞬間) */
+.sword-overlay.flash::after{
+  content:'';position:absolute;inset:0;
+  background:rgba(255,255,255,.95);
+  pointer-events:none;
+  animation:swordFlash .25s ease-out;
+}
+@keyframes swordFlash{
+  0%  {opacity:0;}
+  20% {opacity:1;}
+  100%{opacity:0;}
+}
+
+/* ━━ Phase 1: タイトルテキスト「勇者の剣！」 ━━ */
+.sword-title{
+  position:absolute;left:50%;top:30%;transform:translate(-50%,-50%);
+  z-index:5;
+  font-family:'Press Start 2P',monospace;
+  font-size:32px;
+  color:#FFE600;
+  text-shadow:
+    0 0 14px #FFE600,
+    0 0 28px #FF8800,
+    -3px 3px 0 #000,3px 3px 0 #000,
+    -3px -3px 0 #000,3px -3px 0 #000;
+  letter-spacing:6px;
+  white-space:nowrap;
+  animation:titleSlam .5s cubic-bezier(.34,1.56,.64,1) forwards;
+}
+@keyframes titleSlam{
+  0%  {transform:translate(-50%,-50%) scale(3);opacity:0;}
+  60% {transform:translate(-50%,-50%) scale(.85);opacity:1;}
+  100%{transform:translate(-50%,-50%) scale(1);opacity:1;}
+}
+
+/* ━━ Phase 2: 巨大な剣 (ためる) ━━ */
+.sword-blade{
+  position:absolute;
+  left:50%;top:50%;
+  font-size:200px;
+  filter:drop-shadow(0 0 24px #FFE600) drop-shadow(0 0 48px #FF8800);
+  z-index:3;
+  pointer-events:none;
+  transform:translate(-50%,-50%) rotate(-90deg) scale(0);
+  animation:bladeAppear .6s cubic-bezier(.34,1.56,.64,1) forwards;
+}
+@keyframes bladeAppear{
+  0%  {transform:translate(-50%,-50%) rotate(-90deg) scale(0);opacity:0;}
+  60% {transform:translate(-50%,-50%) rotate(-30deg) scale(1.4);opacity:1;}
+  100%{transform:translate(-50%,-50%) rotate(-15deg) scale(1.3);opacity:1;}
+}
+/* 振り抜き */
+.sword-blade.swing{
+  animation:bladeSwingMega .7s cubic-bezier(.6,0,.2,1) forwards;
+}
+@keyframes bladeSwingMega{
+  0%  {transform:translate(-50%,-50%) rotate(-15deg) scale(1.3);}
+  20% {transform:translate(-50%,-50%) rotate(-45deg) scale(1.5);}  /* 振りかぶる */
+  50% {transform:translate(-50%,-50%) rotate(60deg) scale(1.8);}    /* 振り抜く瞬間 */
+  100%{transform:translate(180%,180%) rotate(180deg) scale(.6);opacity:0;}
+}
+
+/* ━━ Phase 3: 巨大斬撃ライン (3本) ━━ */
+.sword-slash-mega{
+  position:absolute;
+  top:50%;left:-20%;
+  width:200%;
+  height:24px;
+  background:linear-gradient(90deg,
+    transparent 0%,
+    rgba(255,255,255,0) 15%,
+    rgba(255,230,0,.9) 35%,
+    #fff 49%,
+    #fff 51%,
+    rgba(255,230,0,.9) 65%,
+    rgba(255,255,255,0) 85%,
+    transparent 100%);
+  transform:translateY(-50%) rotate(-25deg) scaleX(0);
+  transform-origin:50% 50%;
+  filter:drop-shadow(0 0 18px #FFE600) drop-shadow(0 0 36px #FF8800);
+  animation:slashMega .35s cubic-bezier(.5,0,.2,1) forwards;
+  z-index:4;
+}
+@keyframes slashMega{
+  0%  {transform:translateY(-50%) rotate(-25deg) scaleX(0);opacity:0;}
+  20% {opacity:1;}
+  60% {transform:translateY(-50%) rotate(-25deg) scaleX(1);opacity:1;}
+  100%{transform:translateY(-50%) rotate(-25deg) scaleX(1);opacity:0;}
+}
+.sword-slash-mega.line2{
+  height:18px;
+  transform:translateY(-50%) rotate(20deg) scaleX(0);
+  animation-delay:.12s;
+}
+@keyframes slashMega2{
+  0%  {transform:translateY(-50%) rotate(20deg) scaleX(0);opacity:0;}
+  20% {opacity:1;}
+  60% {transform:translateY(-50%) rotate(20deg) scaleX(1);opacity:1;}
+  100%{transform:translateY(-50%) rotate(20deg) scaleX(1);opacity:0;}
+}
+.sword-slash-mega.line2{animation-name:slashMega2;}
+.sword-slash-mega.line3{
+  height:14px;
+  transform:translateY(-50%) rotate(-5deg) scaleX(0);
+  animation-delay:.24s;
+}
+@keyframes slashMega3{
+  0%  {transform:translateY(-50%) rotate(-5deg) scaleX(0);opacity:0;}
+  20% {opacity:1;}
+  60% {transform:translateY(-50%) rotate(-5deg) scaleX(1);opacity:1;}
+  100%{transform:translateY(-50%) rotate(-5deg) scaleX(1);opacity:0;}
+}
+.sword-slash-mega.line3{animation-name:slashMega3;}
+
+/* ━━ Phase 4: 衝撃中央 (✴ 巨大閃光、画面中央に固定) ━━ */
+.sword-impact-mega{
+  position:absolute;
+  left:50%;top:50%;
+  font-size:280px;
+  z-index:6;
+  pointer-events:none;
+  transform:translate(-50%,-50%) scale(0);
+  filter:drop-shadow(0 0 60px #FFE600) drop-shadow(0 0 120px #FF2D78);
+  animation:impactMega .9s cubic-bezier(.34,1.56,.64,1) forwards;
+}
+@keyframes impactMega{
+  0%  {transform:translate(-50%,-50%) scale(0) rotate(0);opacity:0;}
+  20% {transform:translate(-50%,-50%) scale(1.8) rotate(45deg);opacity:1;}
+  50% {transform:translate(-50%,-50%) scale(1.4) rotate(180deg);opacity:1;}
+  100%{transform:translate(-50%,-50%) scale(2.5) rotate(360deg);opacity:0;}
+}
+
+/* ━━ Phase 5: 「斬‼️」テキスト (超巨大) ━━ */
+.sword-shout{
+  position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+  z-index:7;
+  font-family:'Press Start 2P',monospace;
+  font-size:140px;
+  color:#FFE600;
+  text-shadow:
+    0 0 20px #FF2D78,
+    0 0 40px #FF2D78,
+    0 0 60px #BF00FF,
+    -6px 6px 0 #000,6px 6px 0 #000,
+    -6px -6px 0 #000,6px -6px 0 #000;
+  letter-spacing:8px;
+  animation:shoutMega 1s cubic-bezier(.34,1.56,.64,1) forwards;
+  white-space:nowrap;
+}
+@keyframes shoutMega{
+  0%  {transform:translate(-50%,-50%) scale(.1) rotate(-30deg);opacity:0;}
+  25% {transform:translate(-50%,-50%) scale(1.6) rotate(15deg);opacity:1;}
+  40% {transform:translate(-50%,-50%) scale(1.3) rotate(-8deg);opacity:1;}
+  55% {transform:translate(-50%,-50%) scale(1.5) rotate(5deg);opacity:1;}
+  85% {transform:translate(-50%,-50%) scale(1.4) rotate(0);opacity:1;}
+  100%{transform:translate(-50%,-50%) scale(2) rotate(0);opacity:0;}
+}
+
+/* ━━ 標的アバター (画面中央に標的の絵文字+名前を巨大表示) ━━ */
+.sword-target-display{
+  position:absolute;left:50%;top:62%;transform:translate(-50%,-50%);
+  z-index:5;
+  text-align:center;
+  animation:targetIn .4s ease-out forwards;
+  opacity:0;
+}
+@keyframes targetIn{
+  from{opacity:0;transform:translate(-50%,-50%) scale(.5);}
+  to  {opacity:1;transform:translate(-50%,-50%) scale(1);}
+}
+.sword-target-icon{
+  font-size:80px;
+  filter:drop-shadow(0 0 14px #FF2D78);
+  animation:targetShake .15s steps(2) infinite;
+}
+@keyframes targetShake{
+  0%,100%{transform:translateX(0);}
+  50%    {transform:translateX(-4px);}
+}
+.sword-target-name{
+  font-family:'Press Start 2P',monospace;
+  font-size:18px;
+  color:#fff;
+  text-shadow:0 0 10px #FF2D78,-2px 2px 0 #000,2px 2px 0 #000;
+  letter-spacing:3px;
+  margin-top:8px;
+}
+
+/* ━━ 火花 (大量に飛ばす) ━━ */
+.sword-spark{
+  position:absolute;
+  font-size:48px;
+  z-index:6;
+  pointer-events:none;
+  filter:drop-shadow(0 0 12px #FFE600);
+  animation:sparkFly 1.2s ease-out forwards;
+}
+@keyframes sparkFly{
+  0%  {transform:translate(-50%,-50%) scale(.3);opacity:0;}
+  15% {opacity:1;}
+  100%{transform:translate(var(--sx),var(--sy)) scale(1.6) rotate(720deg);opacity:0;}
+}
+
+/* ━━ 画面振動 (大きく、長く) ━━ */
+@keyframes screenShakeMega{
+  0%,100%{transform:translate(0,0) rotate(0);}
+  10%    {transform:translate(-8px,4px) rotate(-1deg);}
+  20%    {transform:translate(8px,-4px) rotate(1deg);}
+  30%    {transform:translate(-7px,6px) rotate(-1deg);}
+  40%    {transform:translate(7px,-6px) rotate(1deg);}
+  50%    {transform:translate(-5px,3px) rotate(-.5deg);}
+  60%    {transform:translate(5px,-3px) rotate(.5deg);}
+  70%    {transform:translate(-3px,4px) rotate(-.5deg);}
+  80%    {transform:translate(3px,-4px) rotate(.3deg);}
+  90%    {transform:translate(-2px,2px);}
+}
+.shake-hit{animation:screenShakeMega .8s steps(3) 2;}
+
+/* ━━ 標的の駒の被弾 ━━ */
+.token.slashed{
+  animation:tokenSlashedMega 1.2s ease-out;
+}
+@keyframes tokenSlashedMega{
+  0%  {transform:scale(1);filter:none;}
+  10% {transform:scale(2) rotate(-30deg);filter:drop-shadow(0 0 18px #FF2D78);}
+  25% {transform:scale(1.5) rotate(30deg);filter:drop-shadow(0 0 18px #FFE600);}
+  40% {transform:scale(1.8) rotate(-25deg);filter:drop-shadow(0 0 18px #FF2D78);}
+  55% {transform:scale(1.4) rotate(20deg);filter:drop-shadow(0 0 14px #FFE600);}
+  70% {transform:scale(1.5) rotate(-10deg);filter:drop-shadow(0 0 10px #FF2D78);}
+  100%{transform:scale(1) rotate(0);filter:none;}
+}
+
+/* ━━ スローモ風 (画面の周辺をビネット黒く) ━━ */
+.sword-vignette{
+  position:absolute;inset:0;
+  pointer-events:none;
+  background:radial-gradient(ellipse at center,
+    transparent 30%,
+    rgba(0,0,0,.5) 70%,
+    rgba(0,0,0,.85) 100%);
+  z-index:1;
+  animation:vignetteIn .3s forwards;
+}
+@keyframes vignetteIn{
+  from{opacity:0;}
+  to  {opacity:1;}
+}
+
+/* ════════════════════════════════════════ */
+/* 💀 DEATH BOOK エフェクト */
+/* ════════════════════════════════════════ */
+.death-overlay{
+  display:none;position:fixed;inset:0;z-index:280;
+  background:radial-gradient(ellipse at center,
+    rgba(40,0,60,.85) 0%,
+    rgba(10,0,20,.96) 60%,
+    #000 100%);
+  pointer-events:none;
+  overflow:hidden;
+}
+.death-overlay.open{display:block;animation:deathFadeIn .8s ease-out;}
+@keyframes deathFadeIn{
+  from{opacity:0;}
+  to{opacity:1;}
+}
+/* 紫の不気味な霧 */
+.death-overlay::before{
+  content:'';position:absolute;inset:-50%;
+  background:radial-gradient(circle at 30% 40%,rgba(140,40,200,.4) 0%,transparent 40%),
+             radial-gradient(circle at 70% 60%,rgba(60,0,120,.4) 0%,transparent 40%);
+  animation:deathFog 6s ease-in-out infinite;
+  filter:blur(20px);
+}
+@keyframes deathFog{
+  0%,100%{transform:rotate(0deg) scale(1);}
+  50%    {transform:rotate(20deg) scale(1.2);}
+}
+/* 紫の稲妻 */
+.death-overlay::after{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(45deg,transparent 48%,rgba(191,0,255,.3) 50%,transparent 52%);
+  opacity:0;
+  animation:deathLightning 3s ease-in-out infinite;
+}
+@keyframes deathLightning{
+  0%,90%,100%{opacity:0;}
+  92%        {opacity:1;}
+  94%        {opacity:0;}
+  96%        {opacity:1;}
+  98%        {opacity:0;}
+}
+
+/* 死神の絵文字 */
+.death-grim{
+  position:absolute;
+  font-size:84px;
+  filter:drop-shadow(0 0 20px #BF00FF) drop-shadow(0 0 40px #8000a0);
+  z-index:2;
+  pointer-events:none;
+  /* 初期位置: 画面右上の外 */
+  top:-100px;left:50%;
+  transform:translate(-50%,0);
+  /* スポーン時のアニメ */
+  animation:grimSpawn 1.2s cubic-bezier(.34,1.56,.64,1) forwards;
+}
+@keyframes grimSpawn{
+  from{top:-120px;opacity:0;transform:translate(-50%,0) scale(.3) rotate(-90deg);}
+  to  {top:30%;opacity:1;transform:translate(-50%,0) scale(1) rotate(0deg);}
+}
+.death-grim.floating{
+  animation:grimFloat 2s ease-in-out infinite;
+}
+@keyframes grimFloat{
+  0%,100%{transform:translate(-50%,0) rotate(-3deg) scale(1);}
+  50%    {transform:translate(-50%,-15px) rotate(3deg) scale(1.05);}
+}
+.death-grim.flying{
+  animation:grimFly 1.5s cubic-bezier(.5,0,.5,1) forwards;
+}
+@keyframes grimFly{
+  0%  {transform:translate(-50%,0) rotate(0deg) scale(1);}
+  20% {transform:translate(-50%,0) rotate(-15deg) scale(1.1);}
+  100%{transform:translate(var(--targetX),var(--targetY)) rotate(15deg) scale(.9);}
+}
+.death-grim.carrying{
+  animation:grimCarry 2.5s cubic-bezier(.5,0,.5,1) forwards;
+}
+@keyframes grimCarry{
+  0%  {transform:translate(var(--fromX),var(--fromY)) rotate(15deg) scale(.9);}
+  50% {transform:translate(50%,30%) rotate(-10deg) scale(1.05);}
+  100%{transform:translate(var(--toX),var(--toY)) rotate(20deg) scale(.85);}
+}
+.death-grim.fading{
+  animation:grimFade .8s ease-in forwards;
+}
+@keyframes grimFade{
+  to{opacity:0;transform:translate(-50%,40px) scale(.4) rotate(180deg);}
+}
+
+/* 死神のオーラ (背後の紫光) */
+.death-aura{
+  position:absolute;
+  width:200px;height:200px;
+  border-radius:50%;
+  background:radial-gradient(circle,
+    rgba(191,0,255,.5) 0%,
+    rgba(140,0,200,.2) 40%,
+    transparent 70%);
+  pointer-events:none;
+  z-index:1;
+  animation:auraPulse 1.5s ease-in-out infinite;
+}
+@keyframes auraPulse{
+  0%,100%{transform:scale(1);opacity:.7;}
+  50%    {transform:scale(1.3);opacity:1;}
+}
+
+/* 死神の宣告テキスト */
+.death-decree{
+  position:absolute;left:50%;top:65%;transform:translateX(-50%);
+  z-index:3;
+  font-family:'Press Start 2P',monospace;
+  font-size:18px;
+  color:#fff;
+  text-align:center;
+  text-shadow:
+    0 0 8px #BF00FF,
+    0 0 16px #BF00FF,
+    -2px 2px 0 #000,
+    2px 2px 0 #000;
+  letter-spacing:3px;
+  animation:decreeIn .8s ease-out forwards;
+  white-space:nowrap;
+}
+@keyframes decreeIn{
+  from{opacity:0;transform:translateX(-50%) scale(.5);}
+  to  {opacity:1;transform:translateX(-50%) scale(1);}
+}
+.death-decree .target-name{
+  color:#FF2D78;
+  display:block;margin-bottom:8px;
+  text-shadow:0 0 10px #FF2D78,-2px 2px 0 #000,2px 2px 0 #000;
+  font-size:22px;
+  animation:targetShake .3s steps(2) infinite;
+}
+@keyframes targetShake{
+  0%,100%{transform:translateX(0);}
+  50%    {transform:translateX(-3px);}
+}
+
+/* 駒に紫の発光エフェクト */
+.token.cursed{
+  animation:tokenCurse 1.5s ease-in-out infinite;
+  filter:drop-shadow(0 0 12px #BF00FF) drop-shadow(0 0 20px #8000a0);
+}
+@keyframes tokenCurse{
+  0%,100%{transform:scale(1);}
+  50%    {transform:scale(1.3);}
+}
+
+/* 落下時の煙 */
+.death-smoke{
+  position:absolute;
+  font-size:60px;
+  pointer-events:none;
+  z-index:2;
+  opacity:0;
+  animation:smokeBurst 1s ease-out forwards;
+}
+@keyframes smokeBurst{
+  0%  {opacity:0;transform:scale(.5) rotate(0);}
+  30% {opacity:1;}
+  100%{opacity:0;transform:scale(2.2) rotate(45deg) translateY(-20px);}
+}
+
+/* ════════════════════════════════════════ */
 /* 🔥 DRINK BLAST MODAL — 激しい「飲めよ‼️」演出 */
 /* ════════════════════════════════════════ */
 .drink-blast{
@@ -1093,17 +1625,14 @@ body::before{
       <div class="win-trophy">🏆</div>
       <div class="win-label">★ WINNER ★</div>
       <div class="win-name" id="win-name">-</div>
-      <div class="win-msg">
-        おめでとう御座います‼️<br>
-        他の人は<b id="win-penalty">罰ゲーム</b><b>1杯グイ🥃</b>
+      <div class="win-msg" id="win-msg">
+        おめでとう御座います‼️
       </div>
-      <div class="coin-input-box">
-        <div class="coin-info">🪙 獲得コイン: <span id="win-coins">0</span></div>
-        <input type="text" class="name-input" id="rank-name" maxlength="8" placeholder="名前(8文字以内)">
-        <button class="submit-btn" id="submit-btn" onclick="submitScore()">📡 ランキング登録</button>
-        <div class="submit-status" id="submit-status">&nbsp;</div>
-      </div>
+      <button class="again-btn" id="loser-pen-btn" style="background:linear-gradient(135deg,#FF2D78,#BF00FF);color:#fff;border-color:#FF2D78;margin-bottom:10px;display:none;" onclick="triggerLoserPenalty()">
+        🍻 敗者に罰ゲームを発動‼️
+      </button>
       <button class="again-btn" onclick="resetGame()">🔄 もう一回</button>
+      <button class="again-btn" style="background:linear-gradient(135deg,#444,#222);color:#fff;border-color:#fff;margin-top:8px;" onclick="goHome()">🏠 トップへ戻る</button>
     </div>
   </div>
 </div>
@@ -1117,6 +1646,22 @@ body::before{
     <button class="modal-btn" onclick="closeModal()">OK！</button>
   </div>
 </div>
+
+<!-- 👥 プレイヤー選択モーダル -->
+<div class="pick-modal" id="pick-modal">
+  <div class="pick-card">
+    <div class="pick-icon" id="pick-icon">👻</div>
+    <div class="pick-title" id="pick-title">SELECT</div>
+    <div class="pick-text" id="pick-text">-</div>
+    <div class="pick-list" id="pick-list"></div>
+  </div>
+</div>
+
+<!-- ⚔ SWORD SLASH エフェクト -->
+<div class="sword-overlay" id="sword-overlay"></div>
+
+<!-- 💀 DEATH BOOK エフェクト -->
+<div class="death-overlay" id="death-overlay"></div>
 
 <!-- 🔥 DRINK BLAST MODAL — 「◯◯飲めよー‼️」 -->
 <div class="drink-blast" id="drink-blast">
@@ -1539,14 +2084,14 @@ const BOARD = [
   {type:'shot',  category:'pen',   label:'俺は海賊王\nになる！\n2杯グイ', text:'<span class="pen-main">{{drink}}2杯グイ‼️🍻🍻</span><span class="pen-flavor">俺は海賊王になる！音量あげていけ！</span>', action:'double', blast:true, doubleBlast:true},
   {type:'safe',  category:'safe',  label:'セーフ', text:'😌 セーフ！何もなし。'},
   {type:'drink', category:'pen',   label:'目が合った\n人と乾杯', text:'<span class="pen-main">目が合った人と{{drink}}で乾杯してグイ‼️🍻</span><span class="pen-flavor">初めに目が合った人と「愛してるよ」と言い合ってから乾杯。</span>', blast:true},
-  {type:'skip',  category:'event', label:'死神の本\n2ターン休み', text:'<span class="pen-main">2ターン経過後、誰かを最初のマスに戻す😈</span><span class="pen-flavor">死神の本を手に入れた。</span>', action:'skip2'},
+  {type:'event', category:'event', label:'死神の本', text:'<span class="pen-main">誰か1人を選んで最初のマスに戻す😈</span><span class="pen-flavor">死神の本を手に入れた…📕</span>', action:'deathbook'},
   {type:'back',  category:'move',  label:'勇者の盾\n5マス戻る', text:'<span class="pen-main">5マス戻る🛡</span><span class="pen-flavor">勇者の盾が欲しい。</span>', action:'back5'},
-  {type:'shot',  category:'event', label:'勇者の剣\n半きグイさせる', text:'<span class="pen-main">毎ターン誰かを指名して半グイさせる⚔</span><span class="pen-flavor">勇者の剣を手に入れた！ゲームが終わるまで継続。</span>', blast:true},
+  {type:'event', category:'event', label:'勇者の剣\n5ターン\n半グイ召喚', text:'<span class="pen-main">勇者の剣を手に入れた⚔</span><span class="pen-flavor">5ターンの間、毎ターン誰かを指名して<br>半分グイさせる🍻</span>', action:'sword'},
   {type:'safe',  category:'safe',  label:'セーフ', text:'😌 セーフ！何もなし。'},
   {type:'warp',  category:'move',  label:'ゴール近くに\nワープ‼️', text:'<span class="pen-main">ゴール直前まで一気にワープ✨</span><span class="pen-flavor">ゴール手前まで近づける！最後の運試しへ。</span>', action:'warpneargoal'},
   {type:'skip',  category:'rest',  label:'つかれたよね\n1ターン休憩', text:'<span class="pen-main">1ターン休み😴</span><span class="pen-flavor">つかれたよね？休憩しても良いね。</span>', action:'skip1'},
   {type:'drink', category:'pen',   label:'みんなで\nじゃんけん', text:'<span class="pen-main">みんなでじゃんけん、負けは{{drink}}1杯グイ‼️🍻＋1マス戻る</span><span class="pen-flavor">勝負だ！</span>', blast:true},
-  {type:'fun',   category:'event', label:'勇者の鎧\n3ターン無敵', text:'<span class="pen-main">3ターン無敵🛡</span><span class="pen-flavor">勇者の鎧を手に入れた。誰の指示も無効。</span>'},
+  {type:'event', category:'event', label:'勇者の鎧\n5ターン\n反射無敵', text:'<span class="pen-main">勇者の鎧を装備🛡</span><span class="pen-flavor">5ターンの間、自分のグイは全て<br>跳ね返す‼️🪞</span>', action:'armor'},
   {type:'shot',  category:'pen',   label:'好きな人\n6マス戻る', text:'<span class="pen-main">{{drink}}1杯グイ‼️🍻＋6マス戻る💔</span><span class="pen-flavor">自分の好きな人に会いたくなった。</span>', action:'back6', blast:true},
   {type:'safe',  category:'safe',  label:'セーフ', text:'😌 セーフ！何もなし。'},
   {type:'confess', category:'event', label:'初体験の人\nの名前を呼ぶ', text:'<span class="pen-main">恥ずかしい話を発表＋初体験の相手の名前を言う🙈</span><span class="pen-flavor">最近恥ずかしかった話をみんなに発表する。</span>'},
@@ -1733,6 +2278,158 @@ const SFX = {
     setTimeout(()=>sweep(400, 100, .15, 'triangle', .35), 100);
     setTimeout(()=>tone(150, .15, 'sine', .4), 250);
   },
+  // 💀 死神召喚 - 重低音の鐘 + 不協和音
+  deathSummon: () => {
+    const ctx = getCtx(); if(!ctx) return;
+    // 巨大な鐘 (低周波)
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.type='sine'; o.frequency.value=55;
+    g.gain.setValueAtTime(0,ctx.currentTime);
+    g.gain.linearRampToValueAtTime(.55,ctx.currentTime+.05);
+    g.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+2);
+    o.connect(g); g.connect(ctx.destination);
+    o.start(); o.stop(ctx.currentTime+2);
+    // 不協和音の倍音
+    [82.4, 110, 138.6].forEach((f,i) => {
+      setTimeout(()=>{
+        const o2=ctx.createOscillator(), g2=ctx.createGain();
+        o2.type='triangle'; o2.frequency.value=f;
+        g2.gain.setValueAtTime(0,ctx.currentTime);
+        g2.gain.linearRampToValueAtTime(.18,ctx.currentTime+.04);
+        g2.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+1.6);
+        o2.connect(g2); g2.connect(ctx.destination);
+        o2.start(); o2.stop(ctx.currentTime+1.6);
+      }, i*60);
+    });
+  },
+  // 死神の囁き (高音の不協和スイープ)
+  deathWhisper: () => {
+    sweep(2400, 400, .8, 'sawtooth', .12);
+    setTimeout(() => sweep(2000, 350, .7, 'sawtooth', .10), 200);
+  },
+  // 落下/着地ドサッ
+  deathDrop: () => {
+    const ctx = getCtx(); if(!ctx) return;
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.type='sine';
+    o.frequency.setValueAtTime(140,ctx.currentTime);
+    o.frequency.exponentialRampToValueAtTime(30,ctx.currentTime+.3);
+    g.gain.setValueAtTime(.6,ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+.4);
+    o.connect(g); g.connect(ctx.destination);
+    o.start(); o.stop(ctx.currentTime+.45);
+    setTimeout(()=>sweep(800,200,.4,'sawtooth',.12),50);
+  },
+  // ⚔ 剣の振り抜き音 - 風切り音 (高音から低音へスイープ)
+  swordSwing: () => {
+    const ctx = getCtx(); if(!ctx) return;
+    // 風切り音 (ホワイトノイズ + バンドパスフィルタ)
+    const sr = ctx.sampleRate;
+    const len = Math.floor(sr * 0.45);  // 0.25→0.45 長く
+    const buf = ctx.createBuffer(1, len, sr);
+    const dt = buf.getChannelData(0);
+    for(let i=0;i<len;i++){
+      const t = i/len;
+      const env = Math.sin(t * Math.PI);
+      dt[i] = (Math.random()*2-1) * env;
+    }
+    const s = ctx.createBufferSource(); s.buffer = buf;
+    const f = ctx.createBiquadFilter();
+    f.type = 'bandpass'; f.Q.value = 5;
+    f.frequency.setValueAtTime(9000, ctx.currentTime);
+    f.frequency.exponentialRampToValueAtTime(1500, ctx.currentTime + .45);
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(.6, ctx.currentTime);  // 大きく
+    s.connect(f); f.connect(g); g.connect(ctx.destination);
+    s.start();
+  },
+  // ⚔ 剣を構える音 - ためる重低音ハム + キラリ
+  swordCharge: () => {
+    const ctx = getCtx(); if(!ctx) return;
+    // 低音ハム (徐々に上昇)
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = 'sawtooth';
+    o.frequency.setValueAtTime(60, ctx.currentTime);
+    o.frequency.exponentialRampToValueAtTime(180, ctx.currentTime + .5);
+    g.gain.setValueAtTime(0, ctx.currentTime);
+    g.gain.linearRampToValueAtTime(.25, ctx.currentTime + .1);
+    g.gain.linearRampToValueAtTime(.4, ctx.currentTime + .5);
+    g.gain.exponentialRampToValueAtTime(.001, ctx.currentTime + .55);
+    o.connect(g); g.connect(ctx.destination);
+    o.start(); o.stop(ctx.currentTime + .6);
+    // ハイハットキラキラ (上昇する金属音)
+    [880, 1100, 1320, 1660, 2200].forEach((freq, i) => {
+      setTimeout(() => {
+        const o2 = ctx.createOscillator(), g2 = ctx.createGain();
+        o2.type = 'triangle'; o2.frequency.value = freq;
+        g2.gain.setValueAtTime(.15, ctx.currentTime);
+        g2.gain.exponentialRampToValueAtTime(.001, ctx.currentTime + .15);
+        o2.connect(g2); g2.connect(ctx.destination);
+        o2.start(); o2.stop(ctx.currentTime + .2);
+      }, i * 90);
+    });
+  },
+  // 大太鼓ドン
+  bigDrum: () => {
+    const ctx = getCtx(); if(!ctx) return;
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = 'sine';
+    o.frequency.setValueAtTime(80, ctx.currentTime);
+    o.frequency.exponentialRampToValueAtTime(35, ctx.currentTime + .25);
+    g.gain.setValueAtTime(.85, ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(.001, ctx.currentTime + .4);
+    o.connect(g); g.connect(ctx.destination);
+    o.start(); o.stop(ctx.currentTime + .45);
+    // ノイズ層 (撃)
+    const sr = ctx.sampleRate;
+    const len = Math.floor(sr * 0.08);
+    const buf = ctx.createBuffer(1, len, sr);
+    const dt = buf.getChannelData(0);
+    for(let i=0;i<len;i++) dt[i] = (Math.random()*2-1) * (1 - i/len) * .5;
+    const s = ctx.createBufferSource(); s.buffer = buf;
+    const f = ctx.createBiquadFilter();
+    f.type = 'lowpass'; f.frequency.value = 400;
+    s.connect(f); f.connect(ctx.destination); s.start();
+  },
+  // ⚔ 剣の衝撃音 (強化版) - メタリック + 大太鼓 + 残響
+  swordHit: () => {
+    const ctx = getCtx(); if(!ctx) return;
+    // メイン: 高音メタリック (3音重ね、強化)
+    [3200, 4400, 6000].forEach((freq, i) => {
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = i===0 ? 'sawtooth' : 'square';
+      o.frequency.setValueAtTime(freq, ctx.currentTime);
+      o.frequency.exponentialRampToValueAtTime(freq*.4, ctx.currentTime + .12);
+      g.gain.setValueAtTime(0, ctx.currentTime);
+      g.gain.linearRampToValueAtTime(.3, ctx.currentTime + .005);
+      g.gain.exponentialRampToValueAtTime(.001, ctx.currentTime + .25);
+      o.connect(g); g.connect(ctx.destination);
+      o.start(); o.stop(ctx.currentTime + .3);
+    });
+    // 大太鼓ドン (重低音)
+    const o2 = ctx.createOscillator(), g2 = ctx.createGain();
+    o2.type = 'sine';
+    o2.frequency.setValueAtTime(180, ctx.currentTime);
+    o2.frequency.exponentialRampToValueAtTime(40, ctx.currentTime + .2);
+    g2.gain.setValueAtTime(.85, ctx.currentTime);
+    g2.gain.exponentialRampToValueAtTime(.001, ctx.currentTime + .35);
+    o2.connect(g2); g2.connect(ctx.destination);
+    o2.start(); o2.stop(ctx.currentTime + .4);
+    // 高音キラキラ残響 (長く)
+    setTimeout(() => {
+      [5000, 6500, 8000, 9500].forEach((freq, i) => {
+        setTimeout(() => {
+          const o = ctx.createOscillator(), g = ctx.createGain();
+          o.type = 'triangle';
+          o.frequency.value = freq;
+          g.gain.setValueAtTime(.12, ctx.currentTime);
+          g.gain.exponentialRampToValueAtTime(.001, ctx.currentTime + .35);
+          o.connect(g); g.connect(ctx.destination);
+          o.start(); o.stop(ctx.currentTime + .4);
+        }, i * 50);
+      });
+    }, 100);
+  },
 };
 
 // ════════════════════════════════════════════════════════════
@@ -1742,6 +2439,7 @@ const SFX = {
 const BGM = (() => {
   let on = false, timer = null, tick = 0;
   let blastMode = false;
+  let deathMode = false;
 
   // === 通常モード ===
   // A minor pentatonic + chromatic スパイス で「妖しいカジノ」感
@@ -1790,6 +2488,33 @@ const BGM = (() => {
     117, null, 117, null, 117, null, 117, null,
     104, null, 104, null, 104, null, 104, null,
      98, null,  98, null, 116, null, 117, null,
+  ];
+
+  // === 死神モード === (重低音オルガン + 不協和音、ホラー)
+  // 半音クラスター + 不協和3度で「死神接近」の不気味さ
+  const DEATH_MEL = [
+    // 低い不協和な滑り音
+    220, null, null, null, 233, null, null, null,
+    // 半音上昇 (恐怖が迫る)
+    247, null, null, null, 261, null, 277, null,
+    // パイプオルガン風持続
+    220, 247, 220, 207, null, null, null, null,
+    // 終末的な下降
+    196, null, 185, null, 175, null, 165, null,
+  ];
+  const DEATH_HARM = [
+    // 不協和3度 (主旋律と半音ずれ)
+    null, null, 311, null, null, null, 330, null,
+    null, null, 349, null, null, null, 370, null,
+    311, null, null, null, 311, null, null, null,
+    null, null, null, null, 277, null, null, null,
+  ];
+  const DEATH_BASS = [
+    // 重低音ドローン (ずっと響く)
+    55,  null, null, null, 55,  null, null, null,
+    58,  null, null, null, 58,  null, null, null,
+    55,  null, null, null, 55,  null, null, null,
+    49,  null, null, null, 49,  null, null, null,
   ];
 
   function playNote(freq, duration, type, volume){
@@ -1846,26 +2571,47 @@ const BGM = (() => {
     const ctx = getCtx();
     if(!ctx){ timer = setTimeout(step, 200); return; }
 
-    const MEL  = blastMode ? BLAST_MEL  : NORMAL_MEL;
-    const HARM = blastMode ? BLAST_HARM : NORMAL_HARM;
-    const BASS = blastMode ? BLAST_BASS : NORMAL_BASS;
-    // tempo: ms per tick (1拍)
-    const tempo = blastMode ? 145 : 175;
+    let MEL, HARM, BASS, tempo, melType, melVol;
+    if(deathMode){
+      MEL  = DEATH_MEL;
+      HARM = DEATH_HARM;
+      BASS = DEATH_BASS;
+      tempo = 240;  // ゆったり重い
+      melType = 'sawtooth';
+      melVol = .14;
+    } else if(blastMode){
+      MEL  = BLAST_MEL;
+      HARM = BLAST_HARM;
+      BASS = BLAST_BASS;
+      tempo = 145;
+      melType = 'sawtooth';
+      melVol = .13;
+    } else {
+      MEL  = NORMAL_MEL;
+      HARM = NORMAL_HARM;
+      BASS = NORMAL_BASS;
+      tempo = 175;
+      melType = 'square';
+      melVol = .11;
+    }
     const i = tick % MEL.length;
 
     // メロディ
-    playNote(MEL[i], tempo*1.4/1000,
-             blastMode ? 'sawtooth' : 'square',
-             blastMode ? .13 : .11);
+    playNote(MEL[i], tempo*1.4/1000, melType, melVol);
     // ハーモニー (3拍にまたがる長い音)
-    playNote(HARM[i], tempo*2.5/1000, 'triangle', .07);
-    // ベース
-    playNote(BASS[i], tempo*1.5/1000, 'sine', .22);
+    playNote(HARM[i], tempo*2.5/1000, 'triangle', deathMode ? .10 : .07);
+    // ベース (死神モードはより太く長く)
+    playNote(BASS[i], tempo * (deathMode ? 2.2 : 1.5) / 1000, 'sine', deathMode ? .30 : .22);
 
-    // ドラム (8拍ごと=拍頭でキック、裏拍でハイハット)
-    if(i % 8 === 0)      playKick();
-    if(i % 4 === 2)      playHat(.12);
-    if(i % 8 === 6)      playHat(.18);
+    // ドラム (死神モードはキックのみ重く)
+    if(deathMode){
+      if(i % 8 === 0) playKick();
+      if(i % 16 === 8) playKick();  // ゆっくりした2拍リズム
+    } else {
+      if(i % 8 === 0)      playKick();
+      if(i % 4 === 2)      playHat(.12);
+      if(i % 8 === 6)      playHat(.18);
+    }
 
     tick++;
     timer = setTimeout(step, tempo);
@@ -1887,8 +2633,13 @@ const BGM = (() => {
     // 切替時にtickをリセットしてフレーズが頭から始まるように
     tick = 0;
   }
+  function setDeath(v){
+    if(deathMode === !!v) return;
+    deathMode = !!v;
+    tick = 0;
+  }
   function isOn(){ return on; }
-  return { start, stop, setBlast, isOn };
+  return { start, stop, setBlast, setDeath, isOn };
 })();
 
 // ════════════════════════════════════════════════════════════
@@ -1971,6 +2722,8 @@ function startGame(){
       idx: i, name,
       icon: PLAYER_ICONS[i], color: PLAYER_COLORS[i],
       pos: 0, skip: 0, moves: 0, finished: false,
+      sword: 0,  // 勇者の剣 残ターン数
+      armor: 0,  // 勇者の鎧 残ターン数
     });
   }
   currentIdx = 0;
@@ -1979,7 +2732,6 @@ function startGame(){
   savepointReached = [];
   const pen = PENALTIES[selectedPenalty];
   document.getElementById('pb-name').textContent = pen.emoji + ' ' + pen.name;
-  document.getElementById('win-penalty').textContent = pen.name;
   showScreen('game');
   renderBoard();
   renderPlayersBar();
@@ -2104,6 +2856,7 @@ function refreshTokens(){
     if(!el) return;
     const t = document.createElement('div');
     t.className = 'token';
+    t.dataset.player = p.idx;
     t.style.background = p.color;
     t.style.color = p.color;
     t.style.borderColor = (p.idx === currentIdx && !p.finished) ? '#FFE600' : '#fff';
@@ -2197,9 +2950,17 @@ function renderPlayersBar(){
     const el = document.createElement('div');
     el.className = 'pchip' + (p.idx === currentIdx && !p.finished ? ' current' : '') + (p.finished ? ' finished' : '');
     el.style.color = p.color;
+    const swordBadge = p.sword > 0
+      ? `<span class="pchip-sword" title="勇者の剣 残${p.sword}回">⚔${p.sword}</span>`
+      : '';
+    const armorBadge = p.armor > 0
+      ? `<span class="pchip-armor" title="勇者の鎧 残${p.armor}ターン">🛡${p.armor}</span>`
+      : '';
     el.innerHTML = `
       <span class="pchip-icon">${p.icon}</span>
       <span>${p.name}</span>
+      ${swordBadge}
+      ${armorBadge}
       <span class="pchip-pos">${p.pos}/${GOAL}</span>
     `;
     bar.appendChild(el);
@@ -2230,6 +2991,102 @@ function rollDice(){
     });
     return;
   }
+
+  // 勇者の剣 発動チェック
+  if(p.sword > 0){
+    triggerSwordTurn(p, () => actuallyRollDice());
+    return;
+  }
+
+  actuallyRollDice();
+}
+
+// 勇者の剣ターン: 「振るう or スキップ」モーダル → 振るうなら相手選択 → 半分グイBLAST
+function triggerSwordTurn(p, onProceed){
+  const others = players.filter(pl => !pl.finished && pl.idx !== p.idx);
+  if(others.length === 0){
+    // 他に誰もいないなら剣スキップ
+    p.sword--;
+    renderPlayersBar();
+    onProceed();
+    return;
+  }
+  // 「剣を振るう？」モーダル
+  showSwordChoice(p, () => {
+    // YES → 相手選択
+    showPlayerPick({
+      icon: '⚔',
+      title: '勇者の剣',
+      text: `${p.name}が剣を振るう⚔<br><b>半分グイさせる相手</b>を選べ‼️`,
+      excludeSelf: true,
+      onPick: (target) => {
+        // ⚔ 剣の斬撃エフェクト → 完了後に半分グイDRINK BLAST (鎧反射対応)
+        runSwordSlashEffect(p, target, () => {
+          attackDrinkWithKey(p, target, 'half', 1, () => {
+            p.sword--;
+            renderPlayersBar();
+            if(p.sword === 0){
+              openModal({
+                icon: '⚔', type: '剣の効果終了', color: '#aaa',
+                text: `${p.name}の勇者の剣の効力が切れた…<br>5ターン使い切った！`,
+                onClose: onProceed,
+              });
+            } else {
+              onProceed();
+            }
+          });
+        });
+      }
+    });
+  }, () => {
+    // NO (スキップ) → カウンターは減らさず通常ターンへ
+    onProceed();
+  });
+}
+
+function showSwordChoice(p, onYes, onNo){
+  // 既存のmodal枠を流用 (icon=⚔、ボタン2個カスタム)
+  // シンプルな自作HTMLで対応
+  const overlay = document.createElement('div');
+  overlay.className = 'modal open';
+  overlay.style.zIndex = '260';
+  overlay.innerHTML = `
+    <div class="modal-card" style="border-color:var(--yellow);box-shadow:0 0 24px rgba(255,230,0,.5);">
+      <div class="modal-icon" style="animation:swordSwing 1s ease-in-out infinite;">⚔</div>
+      <div class="modal-type" style="color:var(--yellow);">勇者の剣 (残${p.sword}回)</div>
+      <div class="modal-text">${p.name}のターン⚔<br>勇者の剣を振るうか？<br><span style="font-size:11px;color:#aaa;">振ると残り回数 -1、振らないと温存できる</span></div>
+      <div style="display:flex;gap:10px;">
+        <button class="modal-btn" id="sw-yes" style="background:linear-gradient(135deg,#FFE600,#FF8800);color:#000;border-color:#FFE600;">⚔ 振るう</button>
+        <button class="modal-btn" id="sw-no" style="background:linear-gradient(135deg,#444,#222);">温存する</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  tone(880, .12, 'square', .25);
+  document.getElementById('sw-yes').onclick = () => {
+    SFX.click();
+    overlay.remove();
+    setTimeout(onYes, 100);
+  };
+  document.getElementById('sw-no').onclick = () => {
+    SFX.click();
+    overlay.remove();
+    setTimeout(onNo, 100);
+  };
+}
+
+// half固定でattackDrink (鎧反射対応)
+function attackDrinkWithKey(attacker, target, penKey, repeatCount, onClose){
+  const savedPenalty = selectedPenalty;
+  selectedPenalty = penKey;
+  attackDrink(attacker, target, repeatCount, () => {
+    selectedPenalty = savedPenalty;
+    onClose();
+  });
+}
+
+function actuallyRollDice(){
+  const p = players[currentIdx];
 
   isRolling = true;
   document.getElementById('roll-btn').disabled = true;
@@ -2425,7 +3282,9 @@ function handleCellEvent(p){
     onClose: () => {
       if(cell.blast){
         const callTimes = cell.doubleBlast ? 2 : 1;
-        showDrinkBlast(p, callTimes, () => applyCellAction(p, cell));
+        // 自分のマス踏み: target=自分。 鎧が発動した場合の反射先は左隣の人
+        const left = players.length > 1 ? players[(p.idx - 1 + players.length) % players.length] : null;
+        attackDrink(null, p, callTimes, () => applyCellAction(p, cell), undefined, left);
       } else {
         applyCellAction(p, cell);
       }
@@ -2489,7 +3348,7 @@ function applyCellAction(p, cell){
       break;
     case 'rightdrink': {
       const r = players[(p.idx + 1) % players.length];
-      showDrinkBlast(r, 1, () => nextTurn());
+      attackDrink(p, r, 1, () => nextTurn());
       break;
     }
     case 'jankenleft': {
@@ -2532,8 +3391,346 @@ function applyCellAction(p, cell){
       break;
     }
     case 'savepoint': nextTurn(); break;
+    case 'sword': {
+      p.sword = 5;
+      renderPlayersBar();
+      openModal({
+        icon: '⚔', type: '勇者の剣 GET!', color: 'var(--yellow)',
+        text: `${p.name}は勇者の剣を手に入れた‼️⚔<br>5ターンの間、毎ターン誰かを指名して<br><b>半分グイ</b>させられる🍻`,
+        onClose: nextTurn,
+      });
+      break;
+    }
+    case 'armor': {
+      p.armor = 5;
+      renderPlayersBar();
+      openModal({
+        icon: '🛡', type: '勇者の鎧 GET!', color: 'var(--cyan)',
+        text: `${p.name}は勇者の鎧を装備した‼️🛡<br>5ターンの間、自分のグイは<br><b>全て跳ね返す‼️</b>🪞`,
+        onClose: nextTurn,
+      });
+      break;
+    }
+    case 'deathbook': {
+      // 他のプレイヤーがいないなら効果なし
+      const others = players.filter(pl => !pl.finished && pl.idx !== p.idx);
+      if(others.length === 0){
+        openModal({
+          icon:'📕', type:'死神の本', color:'var(--purple)',
+          text:'他のプレイヤーがいないので…<br>本は静かに閉じた。',
+          onClose: nextTurn,
+        });
+        break;
+      }
+      showPlayerPick({
+        icon: '📕',
+        title: '死神の本',
+        text: `${p.name}が死神の本を発動😈<br><b>最初のマスに戻す相手</b>を選べ‼️`,
+        excludeSelf: true,
+        onPick: (target) => {
+          runDeathBookEffect(target, () => nextTurn());
+        }
+      });
+      break;
+    }
     default: nextTurn();
   }
+}
+
+// ════════════════════════════════════════════════════════════
+// ⚔ SWORD SLASH エフェクト (強化版・約2.6秒)
+// ════════════════════════════════════════════════════════════
+function runSwordSlashEffect(attacker, target, onComplete){
+  const overlay = document.getElementById('sword-overlay');
+  const wrap = document.querySelector('.wrap') || document.body;
+  overlay.innerHTML = '';
+  overlay.classList.add('open');
+
+  // 標的の駒を特定
+  const targetCell = document.querySelector(`.cell[data-idx="${target.pos}"]`);
+  let targetToken = null;
+  if(targetCell){
+    targetCell.querySelectorAll('.token').forEach(t => {
+      if(t.dataset.player === String(target.idx)){
+        targetToken = t;
+      }
+    });
+  }
+
+  // ▼ Phase 1: ためる (0~600ms) - 「勇者の剣！」タイトル + 巨大剣登場 + 標的アバター
+  SFX.swordCharge();
+
+  const title = document.createElement('div');
+  title.className = 'sword-title';
+  title.textContent = `${attacker.name} の 勇者の剣‼️`;
+  overlay.appendChild(title);
+
+  const blade = document.createElement('div');
+  blade.className = 'sword-blade';
+  blade.textContent = '⚔';
+  overlay.appendChild(blade);
+
+  // 標的の名前+絵文字を画面下に表示
+  const targetDisp = document.createElement('div');
+  targetDisp.className = 'sword-target-display';
+  targetDisp.innerHTML = `
+    <div class="sword-target-icon">${target.icon}</div>
+    <div class="sword-target-name">${target.name} を斬る‼️</div>
+  `;
+  overlay.appendChild(targetDisp);
+
+  // ▼ Phase 2: 振り抜き (700~1200ms) - 風切り音 + 剣スイング
+  setTimeout(() => {
+    SFX.swordSwing();
+    blade.classList.add('swing');
+    // タイトルと標的表示を消す (剣が動き出す瞬間)
+    title.style.transition = 'opacity .2s';
+    title.style.opacity = '0';
+    targetDisp.style.transition = 'opacity .2s';
+    targetDisp.style.opacity = '0';
+  }, 700);
+
+  // ▼ Phase 3: 衝撃 (1100~2100ms) - 斬撃3連 + 大太鼓 + 振動 + フラッシュ
+  setTimeout(() => {
+    // 大太鼓ドン
+    SFX.bigDrum();
+    SFX.swordHit();
+
+    // フラッシュ
+    overlay.classList.add('flash');
+    setTimeout(() => overlay.classList.remove('flash'), 250);
+
+    // 画面振動 (大幅に)
+    wrap.classList.add('shake-hit');
+    setTimeout(() => wrap.classList.remove('shake-hit'), 1600);
+
+    // 3連斬撃ライン
+    const slash1 = document.createElement('div');
+    slash1.className = 'sword-slash-mega';
+    overlay.appendChild(slash1);
+    const slash2 = document.createElement('div');
+    slash2.className = 'sword-slash-mega line2';
+    overlay.appendChild(slash2);
+    const slash3 = document.createElement('div');
+    slash3.className = 'sword-slash-mega line3';
+    overlay.appendChild(slash3);
+
+    // ✴ 巨大閃光
+    const impact = document.createElement('div');
+    impact.className = 'sword-impact-mega';
+    impact.textContent = '✴';
+    overlay.appendChild(impact);
+
+    // 標的の駒に被弾エフェクト
+    if(targetToken){
+      targetToken.classList.add('slashed');
+      setTimeout(() => targetToken.classList.remove('slashed'), 1200);
+    }
+
+    // 火花を大量に放射
+    for(let i=0; i<16; i++){
+      const angle = (Math.PI * 2 / 16) * i + Math.random()*.4;
+      const dist = 200 + Math.random() * 150;
+      const sx = Math.cos(angle) * dist;
+      const sy = Math.sin(angle) * dist;
+      const spark = document.createElement('div');
+      spark.className = 'sword-spark';
+      spark.textContent = ['✨','⭐','💥','🔥','⚡','💫'][Math.floor(Math.random()*6)];
+      spark.style.left = '50%';
+      spark.style.top = '50%';
+      spark.style.setProperty('--sx', sx + 'px');
+      spark.style.setProperty('--sy', sy + 'px');
+      overlay.appendChild(spark);
+    }
+  }, 1100);
+
+  // ▼ Phase 4: 「斬‼️」テキスト (1300ms~2400ms) - フィニッシュ宣告
+  setTimeout(() => {
+    const shout = document.createElement('div');
+    shout.className = 'sword-shout';
+    shout.textContent = '斬‼️';
+    overlay.appendChild(shout);
+  }, 1300);
+
+  // ▼ Phase 5: クリーンアップ → DRINK BLAST へ (2600ms)
+  setTimeout(() => {
+    overlay.classList.remove('open');
+    setTimeout(() => {
+      overlay.innerHTML = '';
+    }, 400);
+    onComplete();
+  }, 2600);
+}
+
+// ════════════════════════════════════════════════════════════
+// 💀 DEATH BOOK エフェクト (死神召喚アニメ)
+// ════════════════════════════════════════════════════════════
+function runDeathBookEffect(target, onComplete){
+  const overlay = document.getElementById('death-overlay');
+  overlay.innerHTML = '';
+  overlay.classList.add('open');
+
+  // BGMを死神モードに
+  BGM.setDeath(true);
+  // 召喚音
+  SFX.deathSummon();
+
+  // ▼ Phase 1: 死神出現 (1.2秒)
+  const grim = document.createElement('div');
+  grim.className = 'death-grim';
+  grim.textContent = '☠️';
+  overlay.appendChild(grim);
+
+  // 背後のオーラ
+  const aura = document.createElement('div');
+  aura.className = 'death-aura';
+  aura.style.top = '30%';
+  aura.style.left = '50%';
+  aura.style.transform = 'translate(-50%,-50%)';
+  overlay.appendChild(aura);
+
+  // 宣告テキスト (少し遅れて出る)
+  setTimeout(() => {
+    const decree = document.createElement('div');
+    decree.className = 'death-decree';
+    decree.innerHTML = `
+      <span class="target-name">${target.name}よ…</span>
+      最初のマスへ送ってやろう
+    `;
+    overlay.appendChild(decree);
+    SFX.deathWhisper();
+  }, 700);
+
+  // ▼ Phase 2: 死神が浮遊 (1.5秒)
+  setTimeout(() => {
+    grim.classList.remove('death-grim');
+    grim.className = 'death-grim floating';
+    grim.style.top = '30%';
+    aura.style.top = '30%';
+  }, 1300);
+
+  // ▼ Phase 3: 死神が標的の駒へ飛ぶ (1.5秒)
+  setTimeout(() => {
+    // 標的の駒の画面座標を取得
+    const cell = document.querySelector(`.cell[data-idx="${target.pos}"]`);
+    if(!cell){
+      // 駒がない場合 (ありえないけど) スキップ
+      finishDeathBook(target, overlay, onComplete);
+      return;
+    }
+    const rect = cell.getBoundingClientRect();
+    const targetX = rect.left + rect.width/2 - window.innerWidth/2;
+    const targetY = rect.top + rect.height/2 - window.innerHeight*0.3;
+
+    grim.className = 'death-grim flying';
+    grim.style.setProperty('--targetX', `calc(-50% + ${targetX}px)`);
+    grim.style.setProperty('--targetY', `${targetY}px`);
+    aura.style.transition = 'all 1.5s';
+    aura.style.top = `calc(30% + ${targetY}px)`;
+    aura.style.left = `calc(50% + ${targetX}px)`;
+
+    // 駒に呪いエフェクト適用
+    setTimeout(() => {
+      const tokens = cell.querySelectorAll('.token');
+      tokens.forEach(t => {
+        if(t.dataset.player === String(target.idx)){
+          t.classList.add('cursed');
+        }
+      });
+    }, 800);
+  }, 2800);
+
+  // ▼ Phase 4: 死神が駒を運ぶ (2.5秒)
+  setTimeout(() => {
+    const fromCell = document.querySelector(`.cell[data-idx="${target.pos}"]`);
+    const toCell   = document.querySelector(`.cell[data-idx="0"]`);
+    if(!fromCell || !toCell){
+      finishDeathBook(target, overlay, onComplete);
+      return;
+    }
+    const fromRect = fromCell.getBoundingClientRect();
+    const toRect   = toCell.getBoundingClientRect();
+    const fromX = fromRect.left + fromRect.width/2 - window.innerWidth/2;
+    const fromY = fromRect.top + fromRect.height/2 - window.innerHeight*0.3;
+    const toX = toRect.left + toRect.width/2 - window.innerWidth/2;
+    const toY = toRect.top + toRect.height/2 - window.innerHeight*0.3;
+
+    grim.className = 'death-grim carrying';
+    grim.style.setProperty('--fromX', `calc(-50% + ${fromX}px)`);
+    grim.style.setProperty('--fromY', `${fromY}px`);
+    grim.style.setProperty('--toX', `calc(-50% + ${toX}px)`);
+    grim.style.setProperty('--toY', `${toY}px`);
+
+    // 駒も一緒に動かす — animateMoveで歩かせるのではなく
+    // 一気にtarget.pos = 0 に変更して、refreshTokens
+    // (画面上は死神が運ぶアニメで補完される)
+    setTimeout(() => {
+      target.pos = 0;
+      refreshTokens();
+      // 戻った駒に呪いエフェクトを再適用 (refreshTokensでDOMが作り直される)
+      const newCell = document.querySelector(`.cell[data-idx="0"]`);
+      if(newCell){
+        newCell.querySelectorAll('.token').forEach(t => {
+          if(t.dataset.player === String(target.idx)){
+            t.classList.add('cursed');
+          }
+        });
+      }
+    }, 1300);
+
+    // オーラも追従
+    aura.style.transition = 'all 2.5s';
+    aura.style.top = `calc(30% + ${toY}px)`;
+    aura.style.left = `calc(50% + ${toX}px)`;
+  }, 4400);
+
+  // ▼ Phase 5: 着地ドサッ (1秒)
+  setTimeout(() => {
+    SFX.deathDrop();
+    // 紫煙エフェクト
+    const toCell = document.querySelector(`.cell[data-idx="0"]`);
+    if(toCell){
+      const toRect = toCell.getBoundingClientRect();
+      const toX = toRect.left + toRect.width/2 - window.innerWidth/2;
+      const toY = toRect.top + toRect.height/2 - window.innerHeight*0.3;
+      ['💨','💜','💀'].forEach((emoji, i) => {
+        setTimeout(() => {
+          const smoke = document.createElement('div');
+          smoke.className = 'death-smoke';
+          smoke.textContent = emoji;
+          smoke.style.left = `calc(50% + ${toX}px - 30px)`;
+          smoke.style.top  = `calc(30% + ${toY}px - 30px)`;
+          overlay.appendChild(smoke);
+          setTimeout(() => smoke.remove(), 1000);
+        }, i * 100);
+      });
+    }
+    // 死神フェードアウト
+    grim.classList.remove('carrying');
+    grim.className = 'death-grim fading';
+    aura.style.transition = 'all .8s';
+    aura.style.opacity = '0';
+  }, 6900);
+
+  // ▼ Phase 6: クリーンアップ → モーダル
+  setTimeout(() => {
+    finishDeathBook(target, overlay, onComplete);
+  }, 8000);
+}
+
+function finishDeathBook(target, overlay, onComplete){
+  // BGM通常モードへ戻す
+  BGM.setDeath(false);
+  overlay.classList.remove('open');
+  overlay.innerHTML = '';
+  // 駒の呪いエフェクト解除
+  document.querySelectorAll('.token.cursed').forEach(t => t.classList.remove('cursed'));
+  renderPlayersBar();
+  openModal({
+    icon: '💀', type: 'DEATH BOOK', color: 'var(--purple)',
+    text: `${target.name}は<br>最初のマスに戻された‼️😱`,
+    onClose: onComplete,
+  });
 }
 
 // ════════════════════════════════════════════════════════════
@@ -2561,6 +3758,42 @@ function closeModal(){
 }
 
 // ════════════════════════════════════════════════════════════
+// 👥 プレイヤー選択モーダル
+// ════════════════════════════════════════════════════════════
+// options:
+//   icon: 表示する絵文字
+//   title: タイトル (英大文字推奨)
+//   text: 説明文 (HTML可)
+//   excludeSelf: 自分を選択肢から除外するか (default: true)
+//   onPick: function(targetPlayer) — プレイヤー選択時のコールバック
+function showPlayerPick({icon, title, text, excludeSelf=true, onPick}){
+  const cur = players[currentIdx];
+  const list = document.getElementById('pick-list');
+  list.innerHTML = '';
+  const candidates = players.filter(pl => !pl.finished && (!excludeSelf || pl.idx !== cur.idx));
+  candidates.forEach(pl => {
+    const btn = document.createElement('button');
+    btn.className = 'pick-btn';
+    btn.innerHTML = `
+      <span class="pb-emoji">${pl.icon}</span>
+      <span class="pb-name" style="color:${pl.color};">${pl.name}</span>
+      <span class="pb-pos">${pl.pos===0?'START':pl.pos===GOAL?'GOAL':pl.pos}</span>
+    `;
+    btn.onclick = () => {
+      SFX.click();
+      document.getElementById('pick-modal').classList.remove('open');
+      setTimeout(() => onPick(pl), 200);
+    };
+    list.appendChild(btn);
+  });
+  document.getElementById('pick-icon').textContent = icon || '👥';
+  document.getElementById('pick-title').textContent = title || 'SELECT';
+  document.getElementById('pick-text').innerHTML = text || '誰かを選んでください';
+  document.getElementById('pick-modal').classList.add('open');
+  tone(880, .12, 'square', .25);
+}
+
+// ════════════════════════════════════════════════════════════
 // 🔥 DRINK BLAST — 「◯◯飲めよー‼️」激しい演出
 // ════════════════════════════════════════════════════════════
 let dbCallback = null;
@@ -2571,6 +3804,38 @@ function pickPenaltyKey(){
     return RANDOM_POOL[Math.floor(Math.random() * RANDOM_POOL.length)];
   }
   return selectedPenalty;
+}
+
+// 鎧反射を考慮したDRINK BLAST攻撃ラッパー
+// attacker: 攻撃元プレイヤー (null可)
+// target  : 飲ませたい対象プレイヤー
+// defaultReflectTo: 反射先が無い時の代替 (例: 自分のマス踏みグイの反射先 = 左隣)
+// — target.armor > 0 なら反射
+function attackDrink(attacker, target, repeatCount, onClose, customCall, defaultReflectTo){
+  // 鎧装備中なら反射
+  if(target && target.armor > 0 && !target.finished){
+    let reflectTo = (attacker && attacker !== target && !attacker.finished) ? attacker : null;
+    if(!reflectTo && defaultReflectTo && defaultReflectTo !== target && !defaultReflectTo.finished){
+      reflectTo = defaultReflectTo;
+    }
+    // 反射先が見つからない (1人プレイなど) → そのまま target に飲ませる
+    if(!reflectTo){
+      showDrinkBlast(target, repeatCount, onClose, customCall);
+      return;
+    }
+    // 反射エフェクトモーダル
+    openModal({
+      icon: '🪞', type: '勇者の鎧 反射‼️', color: 'var(--cyan)',
+      text: `${target.name}の勇者の鎧が発動🛡<br><b>${reflectTo.name}</b>に跳ね返した‼️🪞`,
+      onClose: () => {
+        // 反射先(=元攻撃者)も鎧装備でも、そこは反射しない (無限ループ防止)
+        showDrinkBlast(reflectTo, repeatCount, onClose, customCall);
+      },
+    });
+    return;
+  }
+  // 通常攻撃
+  showDrinkBlast(target, repeatCount, onClose, customCall);
 }
 
 function showDrinkBlast(targetPlayer, repeatCount, onClose, customCall){
@@ -2673,6 +3938,27 @@ function spawnDbConfetti(parent, n){
 function nextTurn(){
   if(winner){ showWinScreen(); return; }
   isRolling = false;
+  // 現プレイヤーの装備カウンター減算 (armor: ターン経過、sword: 振るって-1するので別管理)
+  const ending = players[currentIdx];
+  if(ending && !ending.finished && ending.armor > 0){
+    ending.armor--;
+    if(ending.armor === 0){
+      // 鎧消滅メッセージを次のターンに進む前に挟む
+      renderPlayersBar();
+      openModal({
+        icon:'🛡', type:'勇者の鎧 終了', color:'#aaa',
+        text:`${ending.name}の勇者の鎧の効力が切れた…<br>5ターン経過！`,
+        onClose: () => {
+          advanceCurrentIdx();
+        },
+      });
+      return;
+    }
+  }
+  advanceCurrentIdx();
+}
+
+function advanceCurrentIdx(){
   let safety = 0;
   do {
     currentIdx = (currentIdx + 1) % players.length;
@@ -2692,12 +3978,80 @@ function showWinScreen(){
   if(!winner) return;
   document.getElementById('win-name').textContent = winner.icon + ' ' + winner.name;
   document.getElementById('win-name').style.filter = `drop-shadow(0 0 14px ${winner.color})`;
-  const coins = winner.moves + 50;
-  document.getElementById('win-coins').textContent = coins;
-  document.getElementById('rank-name').value = winner.name;
+
+  // 敗者リスト構築
+  const losers = players.filter(pl => pl.idx !== winner.idx);
+  const msg = document.getElementById('win-msg');
+  const penBtn = document.getElementById('loser-pen-btn');
+  if(losers.length > 0){
+    const names = losers.map(l => `${l.icon} ${l.name}`).join('・');
+    msg.innerHTML = `おめでとう御座います‼️<br><span style="font-size:13px;color:#aaa;">勝者以外の敗者: ${names}</span>`;
+    penBtn.style.display = 'block';
+    penBtn.disabled = false;
+    penBtn.textContent = '🍻 敗者に罰ゲームを発動‼️';
+  } else {
+    msg.innerHTML = 'おめでとう御座います‼️';
+    penBtn.style.display = 'none';
+  }
+
   showScreen('win');
   setTimeout(() => fireConfetti(), 100);
   BGM.stop();
+}
+
+// すごろくのトップ画面(セットアップ画面)へ戻る
+function goHome(){
+  // BGM停止 + 状態リセット
+  BGM.stop();
+  BGM.setBlast(false);
+  BGM.setDeath(false);
+  // 通常モーダルや死神オーバーレイが残っていたら閉じる
+  document.getElementById('modal').classList.remove('open');
+  document.getElementById('drink-blast').classList.remove('open');
+  const pickModal = document.getElementById('pick-modal');
+  if(pickModal) pickModal.classList.remove('open');
+  const deathOverlay = document.getElementById('death-overlay');
+  if(deathOverlay){
+    deathOverlay.classList.remove('open');
+    deathOverlay.innerHTML = '';
+  }
+  // 状態リセット (resetGameと同等)
+  selectedPenalty = null;
+  document.getElementById('ps2-next').disabled = true;
+  document.querySelectorAll('.pen-btn').forEach(b => b.classList.remove('active'));
+  // 人数選択ペインへ
+  showScreen('setup');
+  showSetupPane(1);
+  SFX.click();
+}
+
+// 勝利時の敗者罰ゲーム発動
+// 敗者を1人ずつDRINK BLASTで順番に飲ませる (ランダムなら毎回ランダム抽選)
+function triggerLoserPenalty(){
+  const losers = players.filter(pl => pl.idx !== winner.idx);
+  if(losers.length === 0) return;
+  const btn = document.getElementById('loser-pen-btn');
+  btn.disabled = true;
+  btn.textContent = '🍻 罰ゲーム実行中...';
+  // BGMを罰ゲームモードに復活
+  BGM.start();
+  BGM.setBlast(true);
+
+  let i = 0;
+  function next(){
+    if(i >= losers.length){
+      // 全員終わったらBGM停止 + ボタンを「終了」に
+      BGM.stop();
+      btn.textContent = '✅ 罰ゲーム完了！';
+      btn.style.background = 'linear-gradient(135deg,#39FF14,#00F5FF)';
+      btn.style.color = '#000';
+      return;
+    }
+    const target = losers[i];
+    i++;
+    showDrinkBlast(target, 1, () => next());
+  }
+  next();
 }
 
 function fireConfetti(){
@@ -2717,50 +4071,8 @@ function fireConfetti(){
 }
 
 // ════════════════════════════════════════════════════════════
-// SUPABASE
+// SUPABASE (※スコア送信機能は削除されました)
 // ════════════════════════════════════════════════════════════
-async function submitScore(){
-  if(scoreSubmitted) return;
-  const name = (document.getElementById('rank-name').value || '').trim().substring(0,8) || winner.name;
-  const coins = parseInt(document.getElementById('win-coins').textContent) || 0;
-  const status = document.getElementById('submit-status');
-  const btn = document.getElementById('submit-btn');
-  btn.disabled = true;
-  status.textContent = '送信中...';
-  status.style.color = 'var(--cyan)';
-
-  try {
-    const r = await fetch(SUPABASE_URL + '/rest/v1/scores', {
-      method: 'POST',
-      headers: {
-        'apikey': SUPABASE_KEY,
-        'Authorization': 'Bearer ' + SUPABASE_KEY,
-        'Content-Type': 'application/json',
-        'Prefer': 'return=minimal',
-      },
-      body: JSON.stringify({
-        player_name: name,
-        game: 'uwasa_land',
-        coins: coins,
-        score: coins,
-        plays: 1,
-      }),
-    });
-    if(r.ok){
-      status.textContent = '✓ 登録完了！';
-      status.style.color = 'var(--green)';
-      scoreSubmitted = true;
-    } else {
-      status.textContent = '⚠ エラー: ' + r.status;
-      status.style.color = 'var(--red)';
-      btn.disabled = false;
-    }
-  } catch(e){
-    status.textContent = '⚠ ネットワークエラー';
-    status.style.color = 'var(--red)';
-    btn.disabled = false;
-  }
-}
 
 function resetGame(){
   showScreen('setup');
