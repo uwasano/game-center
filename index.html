@@ -62,6 +62,7 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;
   50%{box-shadow:0 0 22px rgba(255,230,0,.9)}
 }
 
+/* MARQUEE */
 /* ── MARQUEE: フロストガラス面 ── */
 .marquee{
   position:relative;
@@ -70,7 +71,6 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;
   padding:9px 0;
   overflow:hidden;
   border-radius:14px;
-  /* 半透明な水色×ピンクの淡いガラス (ややトーンダウン) */
   background:
     linear-gradient(135deg,
       rgba(180,240,255,.10) 0%,
@@ -86,50 +86,32 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;
     0 4px 14px rgba(0,200,255,.08),
     0 2px 6px rgba(0,0,0,.20);
 }
-/* ガラス上面のキラリ反射 (弱めに) */
 .marquee::before{
-  content:'';position:absolute;inset:0;
-  pointer-events:none;
+  content:'';position:absolute;inset:0;pointer-events:none;
   background:linear-gradient(115deg,
-    transparent 0%,
-    transparent 40%,
+    transparent 0%,transparent 40%,
     rgba(255,255,255,.08) 50%,
     rgba(255,255,255,.02) 56%,
-    transparent 65%,
-    transparent 100%);
+    transparent 65%,transparent 100%);
   border-radius:14px;
 }
-/* 左右にフェードマスク */
 .marquee::after{
-  content:'';position:absolute;inset:0;
-  pointer-events:none;
-  background:
-    linear-gradient(90deg,
-      rgba(10,5,25,.85) 0%,
-      rgba(10,5,25,0) 8%,
-      rgba(10,5,25,0) 92%,
-      rgba(10,5,25,.85) 100%);
+  content:'';position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(90deg,
+    rgba(10,5,25,.85) 0%,rgba(10,5,25,0) 8%,
+    rgba(10,5,25,0) 92%,rgba(10,5,25,.85) 100%);
   border-radius:14px;
 }
-
 .marquee-track{
-  display:flex;
-  width:max-content;
+  display:flex;width:max-content;
   animation:mq 18s linear infinite;
   will-change:transform;
 }
 .marquee:hover .marquee-track{animation-play-state:paused;}
-
 .marquee-in{
-  display:inline-block;
-  white-space:nowrap;
-  font-size:12px;
-  /* 落ち着いた水色 (まぶしくない) */
-  color:#A8D8E8;
-  letter-spacing:3px;
-  font-family:'DotGothic16',sans-serif;
-  font-weight:bold;
-  /* 控えめなシャドウ */
+  display:inline-block;white-space:nowrap;
+  font-size:12px;color:#A8D8E8;letter-spacing:3px;
+  font-family:'DotGothic16',sans-serif;font-weight:bold;
   text-shadow:
     0 0 4px rgba(0,180,220,.35),
     0 1px 2px rgba(0,0,0,.4);
@@ -560,7 +542,6 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;
           <span class="tag players">👥 2〜5人</span>
           <span class="tag party">★ PARTY</span>
           <span class="tag new2">★ NEW</span>
-          <span class="tag new">RANKING</span>
         </div>
       </div>
     </div>
@@ -596,7 +577,6 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;
       <div class="rtab active uwasa" onclick="switchTab('uwasa')" id="tab-uwasa">UWASA</div>
       <div class="rtab nabe"         onclick="switchTab('nabe')"  id="tab-nabe">3アホ</div>
       <div class="rtab darts"        onclick="switchTab('darts')" id="tab-darts">DARTS</div>
-      <div class="rtab land"         onclick="switchTab('land')"  id="tab-land">LAND</div>
       <div class="rtab total"        onclick="switchTab('total')" id="tab-total">TOTAL</div>
     </div>
 
@@ -828,7 +808,7 @@ let currentTab='uwasa';
 
 function switchTab(tab){
   currentTab=tab;
-  document.querySelectorAll('.rtab').forEach(t=>t.classList.remove('active','uwasa','nabe','darts','land','total'));
+  document.querySelectorAll('.rtab').forEach(t=>t.classList.remove('active','uwasa','nabe','darts','total'));
   const el=document.getElementById('tab-'+tab);
   el.classList.add('active',tab);
   loadRanking(tab);
@@ -848,6 +828,7 @@ async function fetchRanking(game, limit=10, aggregate='best'){
     const fetchLimit = 200;
     let url=SUPABASE_URL+'/rest/v1/scores?select=player_name,coins,score,stage,distance,game,created_at&created_at=gte.'+getMonday()+'&order=coins.desc&limit='+fetchLimit;
     if(game!=='total') url+='&game=eq.'+game;
+    else url+='&game=neq.uwasa_land';  // TOTAL ランキングから罰ゲームすごろくは除外
     const r=await fetch(url,{headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+SUPABASE_KEY}});
     if(!r.ok) return null;
     const raw = await r.json();
@@ -900,7 +881,7 @@ async function fetchLastWeekChampion(){
     thisMon.setHours(0,0,0,0);
     const lastMon=new Date(thisMon);
     lastMon.setDate(lastMon.getDate()-7);
-    const url=SUPABASE_URL+'/rest/v1/scores?select=player_name,coins,game&created_at=gte.'+lastMon.toISOString()+'&created_at=lt.'+thisMon.toISOString()+'&order=coins.desc&limit=1';
+    const url=SUPABASE_URL+'/rest/v1/scores?select=player_name,coins,game&created_at=gte.'+lastMon.toISOString()+'&created_at=lt.'+thisMon.toISOString()+'&game=neq.uwasa_land&order=coins.desc&limit=1';
     const r=await fetch(url,{headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+SUPABASE_KEY}});
     if(!r.ok) return null;
     const data=await r.json();
@@ -917,8 +898,7 @@ async function showChampionBanner(){
     const gameIcon=
       champ.game==='count_up_aho'   ? '👏' :
       champ.game==='uwasa_brothers' ? '🎮' :
-      champ.game==='shisha_darts'   ? '🎯' :
-      champ.game==='uwasa_land'     ? '🎲' : '🏆';
+      champ.game==='shisha_darts'   ? '🎯' : '🏆';
     content.innerHTML=`
       <div class="champ-name">${gameIcon} ${champ.player_name}</div>
       <div class="champ-coins">🪙 ${champ.coins||0} コイン</div>
@@ -939,10 +919,9 @@ async function loadRanking(tab){
   const game = tab==='uwasa' ? 'uwasa_brothers'
              : tab==='nabe'  ? 'count_up_aho'
              : tab==='darts' ? 'shisha_darts'
-             : tab==='land'  ? 'uwasa_land'
              : 'total';
-  // ダーツとLANDは累積SUMで競う。他は既存仕様（ベスト残し）。
-  const aggregate = (tab==='darts'||tab==='land') ? 'sum' : 'best';
+  // ダーツは累積SUMで競う。他は既存仕様（ベスト残し）。
+  const aggregate = tab==='darts' ? 'sum' : 'best';
   const data = await fetchRanking(game, 10, aggregate);
 
   if(!data){
@@ -965,13 +944,12 @@ async function loadRanking(tab){
     const gIcon = g==='count_up_aho'   ? '👏'
                 : g==='uwasa_brothers' ? '🎮'
                 : g==='shisha_darts'   ? '🎯'
-                : g==='uwasa_land'     ? '🎲'
                 : '';
     const sub   = g==='count_up_aho'
       ? `→${row.distance||0}`
       : g==='uwasa_brothers'
         ? `ステージ${(row.stage||0)+1}`
-        : (g==='shisha_darts'||g==='uwasa_land')
+        : g==='shisha_darts'
           ? `×${row.plays||1}`
           : '';
     return `<div class="rank-row">
