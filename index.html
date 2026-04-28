@@ -516,17 +516,20 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;
 }
 .fc-headline .fc-big {
   display: inline-block;
-  font-size: 16px;
-  line-height: 1.5;
-  letter-spacing: .02em;
+  font-size: 17px;
+  line-height: 1.6;
+  letter-spacing: .03em;
   margin-bottom: 4px;
+}
+.fc-headline .fc-pink {
+  color: var(--pink);
   text-shadow:
     0 0 8px var(--pink),
     0 0 16px var(--pink),
     0 0 28px rgba(255,45,120,.6);
-  animation: fcBigPulse 2.2s ease-in-out infinite;
+  animation: fcPinkPulse 2.2s ease-in-out infinite;
 }
-@keyframes fcBigPulse {
+@keyframes fcPinkPulse {
   0%, 100% {
     text-shadow:
       0 0 8px var(--pink),
@@ -535,10 +538,33 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;
   }
   50% {
     text-shadow:
-      0 0 12px var(--pink),
-      0 0 24px var(--pink),
-      0 0 44px rgba(255,45,120,.85),
-      0 0 60px rgba(255,45,120,.4);
+      0 0 14px var(--pink),
+      0 0 28px var(--pink),
+      0 0 50px rgba(255,45,120,.9),
+      0 0 70px rgba(255,45,120,.45);
+  }
+}
+.fc-headline .fc-cyan {
+  color: var(--cyan);
+  text-shadow:
+    0 0 8px var(--cyan),
+    0 0 16px var(--cyan),
+    0 0 28px rgba(0,245,255,.6);
+  animation: fcCyanPulse 2.2s ease-in-out infinite .4s;
+}
+@keyframes fcCyanPulse {
+  0%, 100% {
+    text-shadow:
+      0 0 8px var(--cyan),
+      0 0 16px var(--cyan),
+      0 0 28px rgba(0,245,255,.6);
+  }
+  50% {
+    text-shadow:
+      0 0 14px var(--cyan),
+      0 0 28px var(--cyan),
+      0 0 50px rgba(0,245,255,.9),
+      0 0 70px rgba(0,245,255,.45);
   }
 }
 .fc-headline .fc-small {
@@ -547,8 +573,6 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;
   line-height: 1.7;
   margin-top: 2px;
 }
-.fc-headline .fc-pink { color: var(--pink); text-shadow: 0 0 10px var(--pink); }
-.fc-headline .fc-cyan { color: var(--cyan); text-shadow: 0 0 10px var(--cyan); }
 
 .fc-sub {
   font-family: 'DotGothic16', sans-serif;
@@ -785,15 +809,15 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;
   <a class="factory-cta" href="https://uwasano.github.io/game-center-seisaku/" target="_blank" rel="noopener">
     <div class="fc-badge">★ NEW SERVICE ★</div>
     <div class="fc-headline">
-      <span class="fc-pink fc-big">"あの店にしかない面白さ"</span><br>
-      <span class="fc-cyan fc-small">を、一緒に作りあげませんか？</span>
+      <span class="fc-pink fc-big">あなたのお店にも、</span><br>
+      <span class="fc-cyan fc-big">ゲーム作ります。</span>
     </div>
     <div class="fc-sub">
-      お客さんが勝手に通いたくなる、<br>
-      お店専用ゲームを一緒に作ります。
+      お客さんが勝手に通いたくなる<br>
+      お店専用ゲームを一緒に作ります
     </div>
     <div class="fc-button">
-      <span>詳しくはこちらから</span>
+      <span>制作依頼はこちら</span>
       <span class="fc-arrow">▶</span>
     </div>
     <div class="fc-tags">
