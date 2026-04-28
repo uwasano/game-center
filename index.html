@@ -508,11 +508,44 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;
 
 .fc-headline {
   font-family: 'Press Start 2P', monospace;
-  font-size: 13px;
-  line-height: 1.7;
-  margin-bottom: 8px;
+  font-size: 11px;
+  line-height: 1.9;
+  margin-bottom: 10px;
   color: var(--yellow);
   text-shadow: 0 0 10px var(--yellow), 0 0 20px var(--yellow);
+}
+.fc-headline .fc-big {
+  display: inline-block;
+  font-size: 16px;
+  line-height: 1.5;
+  letter-spacing: .02em;
+  margin-bottom: 4px;
+  text-shadow:
+    0 0 8px var(--pink),
+    0 0 16px var(--pink),
+    0 0 28px rgba(255,45,120,.6);
+  animation: fcBigPulse 2.2s ease-in-out infinite;
+}
+@keyframes fcBigPulse {
+  0%, 100% {
+    text-shadow:
+      0 0 8px var(--pink),
+      0 0 16px var(--pink),
+      0 0 28px rgba(255,45,120,.6);
+  }
+  50% {
+    text-shadow:
+      0 0 12px var(--pink),
+      0 0 24px var(--pink),
+      0 0 44px rgba(255,45,120,.85),
+      0 0 60px rgba(255,45,120,.4);
+  }
+}
+.fc-headline .fc-small {
+  display: inline-block;
+  font-size: 10px;
+  line-height: 1.7;
+  margin-top: 2px;
 }
 .fc-headline .fc-pink { color: var(--pink); text-shadow: 0 0 10px var(--pink); }
 .fc-headline .fc-cyan { color: var(--cyan); text-shadow: 0 0 10px var(--cyan); }
@@ -752,15 +785,15 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;
   <a class="factory-cta" href="https://uwasano.github.io/game-center-seisaku/" target="_blank" rel="noopener">
     <div class="fc-badge">★ NEW SERVICE ★</div>
     <div class="fc-headline">
-      <span class="fc-pink">あなたのお店にも、</span><br>
-      <span class="fc-cyan">ゲーム作ります。</span>
+      <span class="fc-pink fc-big">"あの店にしかない面白さ"</span><br>
+      <span class="fc-cyan fc-small">を、一緒に作りあげませんか？</span>
     </div>
     <div class="fc-sub">
-      シーシャバーが本気で作る<br>
-      お店専用オリジナルゲーム制作サービス
+      お客さんが勝手に通いたくなる、<br>
+      お店専用ゲームを一緒に作ります。
     </div>
     <div class="fc-button">
-      <span>制作依頼はこちら</span>
+      <span>詳しくはこちらから</span>
       <span class="fc-arrow">▶</span>
     </div>
     <div class="fc-tags">
